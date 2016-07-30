@@ -36,7 +36,7 @@ class HadoopDiscover:
         self.distro = distro
         self.hdfs_srv_name = hdfs_srv_name
         self.hbase_srv_name = hbase_srv_name
-        self.hg = HttpGet(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
+        self.hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
         self.cluster_name = cluster_name
         self.cluster_url = '%s/api/v1/clusters/%s' % (cfgs['mgr_url'], cluster_name.replace(' ', '%20'))
         self._check_version()
@@ -64,16 +64,16 @@ class HadoopDiscover:
         return self.users
 
     def _get_hdp_users(self):
-        desired_cfg = self.hg.get_content('%s/?fields=Clusters/desired_configs' % (self.cluster_url))
+        desired_cfg = self.hg.get_config('%s/?fields=Clusters/desired_configs' % (self.cluster_url))
         config_type = {'hbase-env':'hbase_user', 'hadoop-env':'hdfs_user'}
         for k,v in config_type.items():
             desired_tag = desired_cfg['Clusters']['desired_configs'][k]['tag']
-            current_cfg = self.hg.get_content('%s/configurations?type=%s&tag=%s' % (self.cluster_url, k, desired_tag))
+            current_cfg = self.hg.get_config('%s/configurations?type=%s&tag=%s' % (self.cluster_url, k, desired_tag))
             self.users[v] = current_cfg['items'][0]['properties'][v]
 
     def _get_cdh_users(self):
         def _get_username(service_name, hadoop_type):
-            cfg = self.hg.get_content('%s/services/%s/config' % (self.cluster_url, service_name))
+            cfg = self.hg.get_config('%s/services/%s/config' % (self.cluster_url, service_name))
             if cfg.has_key('items'):
                 for item in cfg['items']:
                     if item['name'] == 'process_username': 
@@ -101,7 +101,7 @@ class HadoopDiscover:
 
     def _get_rsnodes_cdh(self):
         ''' get list of HBase RegionServer nodes in CDH '''
-        cm = self.hg.get_content('%s/api/v6/cm/deployment' % cfgs['mgr_url'])
+        cm = self.hg.get_config('%s/api/v6/cm/deployment' % cfgs['mgr_url'])
 
         hostids = []
         for c in cm['clusters']:
@@ -116,7 +116,7 @@ class HadoopDiscover:
 
     def _get_rsnodes_hdp(self):
         ''' get list of HBase RegionServer nodes in HDP '''
-        hdp = self.hg.get_content('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url )
+        hdp = self.hg.get_config('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url )
         self.rsnodes = [ c['HostRoles']['host_name'] for c in hdp['host_components'] ]
         
 
@@ -411,14 +411,14 @@ def check_node_conn():
 
 def check_mgr_url():
     if cfgs['distro'] == 'apache': return
-    hg = HttpGet(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
+    hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
     validate_url_v1 = '%s/api/v1/clusters' % cfgs['mgr_url']
     validate_url_v6 = '%s/api/v6/clusters' % cfgs['mgr_url']
-    content = hg.get_content(validate_url_v1)
+    content = hg.get_config(validate_url_v1)
 
     if content['items'][0].has_key('name'):
         # use v6 rest api for CDH to get fullversion
-        content = hg.get_content(validate_url_v6)
+        content = hg.get_config(validate_url_v6)
 
     cluster_cfgs = []
     # loop all managed clusters

@@ -46,19 +46,25 @@ class ParseHttp:
         self.headers['Content-Type'] = 'application/json'
         self.headers['Authorization'] = 'Basic %s' % (base64.b64encode('%s:%s' % (self.user, self.passwd)))
 
-    def get_content(self, url):
-        self.url = url
+    def _request(self, url, method, body=None):
         try:
-            resp, content = self.h.request(self.url, 'GET', headers=self.headers)  
+            resp, content = self.h.request(url, method, headers=self.headers, body=body)
             if resp.status != 200:
-                err('Error return code %s when getting configs from manager URL' % resp.status)
-        except Exception:
-            err('Failed to access manager URL ' + url)
+                err('Error return code {0} when {1}ting configs'.format(resp.status, method.lower()))
+            if method == 'GET': return content
+        except Exception as exc:
+            err('Error with {0}ting configs using URL {1}. Reason: {2}'.format(method.lower(), url, exc))
 
+    def get_config(self, url):
         try:
-            return defaultdict(str, json.loads(content))
+            return defaultdict(str, json.loads(self._request(url, 'GET')))
         except ValueError:
-            err('Failed to get data from manager URL, check if password is correct')
+            err('Failed to get data from URL, check password if URL requires authentication')
+
+    def set_config(self, config):
+        if type(config) != 'dict': err('Wrong parameter, should be a dict')
+        self._request(self.url, 'PUT', body=json.dumps(config))
+
 
 class ParseXML:
     def __init__(self, xml_file):
