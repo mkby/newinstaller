@@ -24,38 +24,25 @@
 
 import os
 
-import xml.etree.ElementTree as ET
+from common import ParseXML
 
 hbaseMaster="hbase.master.info.port"
 hbaseRegion="hbase.regionserver.info.port"
 zooKeeperNodes="hbase.zookeeper.quorum"
 zooKeeperClientPort="hbase.zookeeper.property.clientPort"
-pathToHome= os.environ['HOME']
 
 hbaseMasterInfoPort="60010"
 regionServerInfoPort="60030"
 zookeeperNodeNames=""
 zookeeperPort="2181"
 
-tree = ET.parse( pathToHome + '/hbase-site.xml')
+xml_file = 'hbase-site.xml'
+p = ParseXML(xml_file)
 
-root = tree.getroot()
 
+hbaseMasterInfoPort = p.get_property(hbaseMaster)
+regionServerInfoPort = p.get_property(hbaseRegion) 
+zookeeperNodeNames = p.get_property(zooKeeperNodes)
+zookeeperPort = p.get_property(zooKeeperClientPort)
 
-for x in root.findall('property'):
-    name = str(x.find('name').text)
-    if name == hbaseMaster:
-       hbaseMasterInfoPort = x.find('value').text
-    if name == hbaseRegion:
-       regionServerInfoPort = x.find('value').text
-    if name == zooKeeperNodes:
-       zookeeperNodeNames = x.find('value').text
-    if name == zooKeeperClientPort:
-       zookeeperPort = x.find('value').text
-
-f = open( '/etc/trafodion/trafodion_config', 'a')
-f.write ( 'export HBASE_MASTER_INFO_PORT="' + hbaseMasterInfoPort + '"\n' )
-f.write ( 'export REGIONSERVER_INFO_PORT="' + regionServerInfoPort + '"\n' )
-f.write ( 'export ZOOKEEPER_NODES="' + zookeeperNodeNames + '"\n' )
-f.write ( 'export ZOOKEEPER_PORT="' + zookeeperPort + '"\n' )
-f.close()
+print zookeeperPort

@@ -5,6 +5,10 @@ import json
 import re
 import time
 import base64
+try: 
+  import xml.etree.cElementTree as ET 
+except ImportError: 
+  import xml.etree.ElementTree as ET
 # httplib2 is not installed by default
 try:
     import httplib2
@@ -31,7 +35,7 @@ def err(msg):
     print '\n\33[31m***[ERROR]: %s \33[0m' % msg
     exit(1)
 
-class HttpGet:
+class ParseHttp:
     def __init__(self, user, passwd):
         self.user = user
         self.passwd = passwd
@@ -56,16 +60,70 @@ class HttpGet:
         except ValueError:
             err('Failed to get data from manager URL, check if password is correct')
 
+class ParseXML:
+    def __init__(self, xml_file):
+        self._xml_file = xml_file
+        try:
+            self._tree = ET.parse(self._xml_file)
+        except Exception as e:
+            err('failed to parsing xml: %s' % e)
+            
+        self._root = self._tree.getroot()
+        self._nvlist = []
+        for prop in self._root.findall('property'):
+            t_array = []
+            for elem in prop:
+                t_array.append(elem.text) 
+            self._nvlist.append(t_array)
+
+    def __indent(self, elem):
+        """Return a pretty-printed XML string for the Element."""
+        if len(elem):
+            if not elem.text: elem.text = '\n' + '  '
+            if not elem.tail: elem.tail = '\n'
+            for subelem in elem:
+                self.__indent(subelem)
+        else:
+            if not elem.tail: elem.tail = '\n' + '  '
+
+    def get_property(self, name):
+        try:
+            return [x[1] for x in self._nvlist if x[0]==name][0]
+        except:
+            return ''
+
+    def add_property(self, name, value):
+        # don't add property if already exists
+        if self.get_property(name): return
+        elem_p = ET.Element('property')
+        elem_name = ET.Element('name')
+        elem_value = ET.Element('value')
+
+        elem_name.text = name
+        elem_value.text = value
+        elem_p.append(elem_name)
+        elem_p.append(elem_value)
+
+        self._root.append(elem_p)
+
+    def write_xml(self):
+        self.__indent(self._root)
+        self._tree.write(self._xml_file)
+
+    def output_xmlinfo(self):
+        for n,v in self._nvlist:
+            print n,v
+
 class ParseJson:
     """ 
     jload: load json file to a dict
     jsave: save dict to json file with pretty format
     """
     def __init__(self, js_file):
-        self.js_file = js_file
+        self.__js_file = js_file
 
     def jload(self):
-        with open(self.js_file, 'r') as f:
+        with open(self.__js_file, 'r') as f:
             tmparray = f.readlines()
         content = ''
         for t in tmparray:
@@ -77,10 +135,11 @@ class ParseJson:
             err('No json format found in config file')
 
     def jsave(self, dic):
-        with open(self.js_file, 'w') as f:
+        with open(self.__js_file, 'w') as f:
             f.write(json.dumps(dic, indent=4))
+        return 0
 
-class ParseIni:
+class ParseInI:
     def __init__(self):
         self.cfg_file = 'config.ini'
         self.conf = ConfigParser()
