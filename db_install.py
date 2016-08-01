@@ -620,8 +620,9 @@ def get_options():
                 help="Call ansible to install.")
     parser.add_option("-b", "--become-method", dest="method", metavar="METHOD",
                 help="Specify become root method for ansible [ sudo | su | pbrun | pfexec | runas | doas ].")
-    parser.add_option("-f", "--fork", dest="fork", metavar="FORK",
-                help="Specify number of parallel processes to use for ansible(default=5)" )
+    parser.add_option("-p", "--prompt-passwd", action="store_true", dest="pwd", default=False,
+                help="Prompt SSH login password for remote hosts. \
+                      If set, passwordless ssh is not required.")
     parser.add_option("--dryrun", action="store_true", dest="dryrun", default=False,
                 help="Dry run mode, it will only generate the config file.") 
     parser.add_option("--no-mod", action="store_true", dest="nomod", default=False,
