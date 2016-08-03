@@ -11,6 +11,7 @@ class Remote:
     def __init__(self, host, pwd):
         self.host = host
         self.pwd = pwd
+        self.rc = 0
         self.chkssh_cmd = 'exit 0'
         self.tmp_folder = '.install'
         self.sshpass = self.__sshpass_available()
@@ -73,7 +74,8 @@ class Remote:
 
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
-        if p.returncode != 0:
+        self.rc = p.returncode
+        if self.rc != 0:
             if user_cmd == self.chkssh_cmd:
                 err('Host [%s]: Failed to connect using SSH! Check password or connectivity.' % (self.host))
             else:
@@ -143,9 +145,10 @@ def run(cfgs, options):
             remote_instances[0].run_script(script)
         elif node == 'all':
             threads = [Thread(target=r.run_script, args=(script, )) for r in remote_instances]
-            # TODO: thread return code
             for t in threads: t.start()
             for t in threads: t.join()
+            if sum([ r.rc for r in remote_instances ]) != 0:
+                err('Script failed to run on one or more nodes, exiting ...')
 
         status.set_status()
     

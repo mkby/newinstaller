@@ -5,16 +5,12 @@ import json
 import re
 import time
 import base64
+import subprocess
+import logging
 try: 
   import xml.etree.cElementTree as ET 
 except ImportError: 
   import xml.etree.ElementTree as ET
-# httplib2 is not installed by default
-try:
-    import httplib2
-except ImportError:
-    print 'Python module httplib2 is not found. Install python-httplib2 first.'
-    exit(1)
 from ConfigParser import ConfigParser
 from collections import defaultdict
 
@@ -32,11 +28,47 @@ def info(msg):
     print '\n\33[33m***[INFO]: %s \33[0m' % msg
 
 def err(msg):
-    print '\n\33[31m***[ERROR]: %s \33[0m' % msg
+    sys.stderr.write('\n\33[31m***[ERROR]: %s \33[0m\n' % msg)
     exit(1)
+
+def get_logger():
+    ts = time.strftime('%Y%m%d')
+    logs_dir = installer_loc + '/logs'
+    if not os.path.exists(logs_dir): os.mkdir(logs_dir)
+    log_file = '%s/install_%s.log' % (logs_dir, ts)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    #formatter = logging.Formatter('[%(asctime)s %(levelname)s %(filename)s]: %(message)s')
+    formatter = logging.Formatter('[%(asctime)s %(levelname)s]: %(message)s')
+
+    fh = logging.FileHandler(log_file)
+    fh.setFormatter(formatter)
+
+    logger.addHandler(fh)
+
+    return logger
+
+def run_cmd(cmd):
+    """ run linux command, return command output if have """
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    stdout, stderr = p.communicate()
+    if p.returncode != 0:
+        err('Failed to run command %s: %s' % (cmd, stderr))
+    return stdout if stdout else 0
+
+def output_cmd(cmd):
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
 class ParseHttp:
     def __init__(self, user, passwd):
+        # httplib2 is not installed by default
+        try:
+            import httplib2
+        except ImportError:
+            err('Python module httplib2 is not found. Install python-httplib2 first.')
+
         self.user = user
         self.passwd = passwd
         self.h = httplib2.Http(disable_ssl_certificate_validation=True)  
@@ -124,7 +156,7 @@ class ParseJson:
     """ 
     jload: load json file to a dict
     jsave: save dict to json file with pretty format
-    """
+    """ 
     def __init__(self, js_file):
         self.__js_file = js_file
 
@@ -146,6 +178,7 @@ class ParseJson:
         return 0
 
 class ParseInI:
+    """ handle ini file """ 
     def __init__(self):
         self.cfg_file = 'config.ini'
         self.conf = ConfigParser()
@@ -256,5 +289,5 @@ def time_elapse(func):
         print '\nInstallation time: %d hour(s) %d minute(s) %d second(s)' % (hours, minutes, seconds)
     return wrapper
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     exit(0)
