@@ -93,9 +93,9 @@ class ParseHttp:
         except ValueError:
             err('Failed to get data from URL, check password if URL requires authentication')
 
-    def set_config(self, config):
-        if type(config) != 'dict': err('Wrong parameter, should be a dict')
-        self._request(self.url, 'PUT', body=json.dumps(config))
+    def set_config(self, url, config):
+        if not isinstance(config, dict): err('Wrong HTTP PUT parameter, should be a dict')
+        self._request(url, 'PUT', body=json.dumps(config))
 
 
 class ParseXML:
