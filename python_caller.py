@@ -17,7 +17,7 @@ class Remote:
         self.sshpass = self.__sshpass_available()
 
     def __commands(self, method):
-        """ method should be 'ssh' or 'scp' """
+        """ create 'ssh' or 'scp' commands """
         cmd = []
         if self.sshpass and self.pwd: cmd = ['sshpass','-p', self.pwd]
         cmd += [method]
@@ -118,18 +118,27 @@ def run(cfgs, options):
     stat_file = 'install.status'
     cfg_file = 'script_config.json'
 
-    enable_pwd = True
-    #enable_pwd = False
-    if enable_pwd:
+    conf = ParseJson(cfg_file).jload()
+    script_cfgs = conf['conf']
+
+    hosts = ['eason-1', 'eason-2']
+    #hosts = ['esgvm-eason']
+    local_host = socket.gethostname()
+
+    # Check if install on localhost
+    islocal = lambda h, lh: True if len(h) == 1 and (h[0] == 'localhost' or h[0] in lh) else False
+
+    threshold = 10
+    #enable_pwd = True
+    enable_pwd = False
+    if enable_pwd and not islocal(hosts, local_host):
         pwd = getpass.getpass('Input SSH Password: ')
     else:
         pwd = ''
 
-    conf = ParseJson(cfg_file).jload()
-    script_cfgs = conf['conf']
-
-    hosts = ['eason-1', 'cent-2']
-    remote_instances = [Remote(host, pwd) for host in hosts]
+    remote_instances = []
+    if not islocal(hosts, local_host):
+        remote_instances = [Remote(host, pwd) for host in hosts]
 
     for cfg in script_cfgs:
         script = cfg['script']
@@ -139,16 +148,35 @@ def run(cfgs, options):
             info('Script \'%s\' had already been executed, skipping ...' % script)
             continue
 
-        if node == 'local':
-            Remote(socket.gethostname(), pwd).run_script(script)
-        if node == 'first':
-            remote_instances[0].run_script(script)
-        elif node == 'all':
-            threads = [Thread(target=r.run_script, args=(script, )) for r in remote_instances]
-            for t in threads: t.start()
-            for t in threads: t.join()
-            if sum([ r.rc for r in remote_instances ]) != 0:
-                err('Script failed to run on one or more nodes, exiting ...')
+        if islocal(hosts, local_host):
+            rc = run_cmd(sys.path[0] + '/' + script)
+            if rc == 1: 
+                msg = 'Failed to run \'%s\'' % script
+                get_logger().error(msg)
+                err(msg)
+            else:
+                ok('Script \'%s\' running successfully!' % script)
+        else:
+            if node == 'local':
+                Remote(local_host, pwd).run_script(script)
+            if node == 'first':
+                remote_instances[0].run_script(script)
+            elif node == 'all':
+                # set thread count threshold 
+                l = len(remote_instances)
+                if l > threshold:
+                    piece = (l - (l % threshold)) / threshold
+                    parted_remote_instances = [remote_instances[threshold*i:threshold*(i+1)] for i in range(piece)]
+                    parted_remote_instances.append(remote_instances[threshold*piece:])
+                else:
+                    parted_remote_instances = [remote_instances]
+
+                for parted_remote_inst in parted_remote_instances:
+                    threads = [Thread(target=r.run_script, args=(script, )) for r in parted_remote_inst]
+                    for t in threads: t.start()
+                    for t in threads: t.join()
+                    if sum([ r.rc for r in parted_remote_inst ]) != 0:
+                        err('Script failed to run on one or more nodes, exiting ...')
 
         status.set_status()
     
