@@ -58,9 +58,6 @@ def run_cmd(cmd):
         err('Failed to run command %s: %s' % (cmd, stderr))
     return stdout if stdout else 0
 
-def output_cmd(cmd):
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
 class ParseHttp:
     def __init__(self, user, passwd):
         # httplib2 is not installed by default
@@ -75,27 +72,34 @@ class ParseHttp:
         self.h.add_credentials(self.user, self.passwd)
         self.headers = {}
         self.headers['X-Requested-By'] = 'trafodion'
-        self.headers['Content-Type'] = 'application/json'
+        #self.headers['Content-Type'] = 'application/json'
         self.headers['Authorization'] = 'Basic %s' % (base64.b64encode('%s:%s' % (self.user, self.passwd)))
 
     def _request(self, url, method, body=None):
         try:
             resp, content = self.h.request(url, method, headers=self.headers, body=body)
-            if resp.status != 200:
+            # return code is not 2xx
+            if not 200 < resp.status < 300:
                 err('Error return code {0} when {1}ting configs'.format(resp.status, method.lower()))
-            if method == 'GET': return content
+            if not method == 'PUT': return content
         except Exception as exc:
             err('Error with {0}ting configs using URL {1}. Reason: {2}'.format(method.lower(), url, exc))
 
-    def get_config(self, url):
+    def get(self, url):
         try:
             return defaultdict(str, json.loads(self._request(url, 'GET')))
         except ValueError:
             err('Failed to get data from URL, check password if URL requires authentication')
 
-    def set_config(self, url, config):
+    def put(self, url, config):
         if not isinstance(config, dict): err('Wrong HTTP PUT parameter, should be a dict')
         self._request(url, 'PUT', body=json.dumps(config))
+
+    def post(self, url):
+        try:
+            return defaultdict(str, json.loads(self._request(url, 'POST')))
+        except ValueError:
+            err('Failed to send command to URL')
 
 
 class ParseXML:
