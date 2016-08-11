@@ -79,9 +79,9 @@ class ParseHttp:
         try:
             resp, content = self.h.request(url, method, headers=self.headers, body=body)
             # return code is not 2xx
-            if not 200 < resp.status < 300:
+            if not 200 <= resp.status < 300:
                 err('Error return code {0} when {1}ting configs'.format(resp.status, method.lower()))
-            if not method == 'PUT': return content
+            return content
         except Exception as exc:
             err('Error with {0}ting configs using URL {1}. Reason: {2}'.format(method.lower(), url, exc))
 
@@ -93,7 +93,8 @@ class ParseHttp:
 
     def put(self, url, config):
         if not isinstance(config, dict): err('Wrong HTTP PUT parameter, should be a dict')
-        self._request(url, 'PUT', body=json.dumps(config))
+        result = self._request(url, 'PUT', body=json.dumps(config))
+        if result: return defaultdict(str, json.loads(result))
 
     def post(self, url):
         try:
@@ -104,9 +105,10 @@ class ParseHttp:
 
 class ParseXML:
     def __init__(self, xml_file):
-        self._xml_file = xml_file
+        self.__xml_file = xml_file
+        if not os.path.exists(self.__xml_file): err('Cannot find xml file %s' % self.__xml_file)
         try:
-            self._tree = ET.parse(self._xml_file)
+            self._tree = ET.parse(self.__xml_file)
         except Exception as e:
             err('failed to parsing xml: %s' % e)
             
@@ -150,7 +152,7 @@ class ParseXML:
 
     def write_xml(self):
         self.__indent(self._root)
-        self._tree.write(self._xml_file)
+        self._tree.write(self.__xml_file)
 
     def output_xmlinfo(self):
         for n,v in self._nvlist:
@@ -163,6 +165,7 @@ class ParseJson:
     """ 
     def __init__(self, js_file):
         self.__js_file = js_file
+        if not os.path.exists(self.__js_file): err('Cannot find json file %s' % self.__js_file)
 
     def jload(self):
         with open(self.__js_file, 'r') as f:
