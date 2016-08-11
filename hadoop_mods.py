@@ -2,8 +2,9 @@
 import time
 import base64
 import sys
-from common import ParseJson
+from common import *
 
+cfgs = ParseJson('db_config').jload()
 modcfgs = ParseJson('mod_cfgs.json').jload()
 
 MOD_CFGS = modcfgs['MOD_CFGS']
@@ -42,10 +43,9 @@ class CDHMod:
         return True
             
     def mod(self):
-        # temp vaule, should get from global cfgs
-        hdfs_service = 'hdfs'
-        hbase_service = 'hbase'
-        zk_service = 'zookeeper'
+        hdfs_service = cfgs['hdfs_service_name']
+        hbase_service = cfgs['hbase_service_name']
+        zk_service = cfgs['zookeeper_service_name']
         services = { hdfs_service:HDFS_CONFIG, hbase_service:HBASE_MASTER_CONFIG, zk_service:ZK_CONFIG }
 
         for srv, cfg in services.iteritems():
@@ -170,7 +170,6 @@ def apache_restart(hadoop_home, hbase_home):
 
 
 def main():
-    cfgs = ParseJson('db_config').jload()
     if 'CDH' in cfgs['distro']:
         cdh = CDHMod(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']), cfgs['mgr_url'], cfgs['cluster_name'])
         cdh.mod()
