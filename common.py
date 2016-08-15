@@ -177,9 +177,9 @@ class ParseJson:
     """ 
     def __init__(self, js_file):
         self.__js_file = js_file
-        if not os.path.exists(self.__js_file): err('Cannot find json file %s' % self.__js_file)
 
     def jload(self):
+        if not os.path.exists(self.__js_file): err('Cannot find json file %s' % self.__js_file)
         with open(self.__js_file, 'r') as f:
             tmparray = f.readlines()
         content = ''
