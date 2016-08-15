@@ -28,8 +28,14 @@ def info(msg):
     print '\n\33[33m***[INFO]: %s \33[0m' % msg
 
 def err(msg):
+    """ used by main script """
     sys.stderr.write('\n\33[31m***[ERROR]: %s \33[0m\n' % msg)
-    exit(1)
+    sys.exit(1)
+
+def err2(msg):
+    """ used by sub script """
+    sys.stderr.write(msg)
+    sys.exit(1)
 
 def get_logger():
     ts = time.strftime('%Y%m%d')
@@ -51,12 +57,18 @@ def get_logger():
     return logger
 
 def run_cmd(cmd):
-    """ run linux command, return command output if have """
+    """ run linux command, check command return value """
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         err('Failed to run command %s: %s' % (cmd, stderr))
-    return stdout if stdout else 0
+    return 0
+
+def cmd_output(cmd):
+    """ run linux command, return command output """
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    stdout, stderr = p.communicate()
+    return stdout, stderr
 
 class ParseHttp:
     def __init__(self, user, passwd):

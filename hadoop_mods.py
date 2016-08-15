@@ -4,7 +4,7 @@ import base64
 import sys
 from common import *
 
-cfgs = ParseJson('db_config').jload()
+#cfgs = ParseJson('db_config').jload()
 modcfgs = ParseJson('mod_cfgs.json').jload()
 
 MOD_CFGS = modcfgs['MOD_CFGS']
@@ -43,9 +43,12 @@ class CDHMod:
         return True
             
     def mod(self):
-        hdfs_service = cfgs['hdfs_service_name']
-        hbase_service = cfgs['hbase_service_name']
-        zk_service = cfgs['zookeeper_service_name']
+        hdfs_service = 'hdfs'
+        hbase_service = 'hbase'
+        zk_service = 'zookeeper'
+       # hdfs_service = cfgs['hdfs_service_name']
+       # hbase_service = cfgs['hbase_service_name']
+       # zk_service = cfgs['zookeeper_service_name']
         services = { hdfs_service:HDFS_CONFIG, hbase_service:HBASE_MASTER_CONFIG, zk_service:ZK_CONFIG }
 
         for srv, cfg in services.iteritems():
@@ -184,4 +187,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    cdh = CDHMod('admin','admin','http://192.168.0.31:7180','cluster1')
+    cdh.mod()
+    cdh.restart()

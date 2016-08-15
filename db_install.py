@@ -64,16 +64,16 @@ class HadoopDiscover:
         return self.users
 
     def _get_hdp_users(self):
-        desired_cfg = self.hg.get_config('%s/?fields=Clusters/desired_configs' % (self.cluster_url))
+        desired_cfg = self.hg.get('%s/?fields=Clusters/desired_configs' % (self.cluster_url))
         config_type = {'hbase-env':'hbase_user', 'hadoop-env':'hdfs_user'}
         for k,v in config_type.items():
             desired_tag = desired_cfg['Clusters']['desired_configs'][k]['tag']
-            current_cfg = self.hg.get_config('%s/configurations?type=%s&tag=%s' % (self.cluster_url, k, desired_tag))
+            current_cfg = self.hg.get('%s/configurations?type=%s&tag=%s' % (self.cluster_url, k, desired_tag))
             self.users[v] = current_cfg['items'][0]['properties'][v]
 
     def _get_cdh_users(self):
         def _get_username(service_name, hadoop_type):
-            cfg = self.hg.get_config('%s/services/%s/config' % (self.cluster_url, service_name))
+            cfg = self.hg.get('%s/services/%s/config' % (self.cluster_url, service_name))
             if cfg.has_key('items'):
                 for item in cfg['items']:
                     if item['name'] == 'process_username': 
@@ -101,7 +101,7 @@ class HadoopDiscover:
 
     def _get_rsnodes_cdh(self):
         ''' get list of HBase RegionServer nodes in CDH '''
-        cm = self.hg.get_config('%s/api/v6/cm/deployment' % cfgs['mgr_url'])
+        cm = self.hg.get('%s/api/v6/cm/deployment' % cfgs['mgr_url'])
 
         hostids = []
         for c in cm['clusters']:
@@ -116,7 +116,7 @@ class HadoopDiscover:
 
     def _get_rsnodes_hdp(self):
         ''' get list of HBase RegionServer nodes in HDP '''
-        hdp = self.hg.get_config('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url )
+        hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url )
         self.rsnodes = [ c['HostRoles']['host_name'] for c in hdp['host_components'] ]
         
 
@@ -414,11 +414,11 @@ def check_mgr_url():
     hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
     validate_url_v1 = '%s/api/v1/clusters' % cfgs['mgr_url']
     validate_url_v6 = '%s/api/v6/clusters' % cfgs['mgr_url']
-    content = hg.get_config(validate_url_v1)
+    content = hg.get(validate_url_v1)
 
     if content['items'][0].has_key('name'):
         # use v6 rest api for CDH to get fullversion
-        content = hg.get_config(validate_url_v6)
+        content = hg.get(validate_url_v6)
 
     cluster_cfgs = []
     # loop all managed clusters
