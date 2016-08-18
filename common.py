@@ -267,6 +267,14 @@ class ParseJson:
             f.write(json.dumps(dic, indent=4))
         return 0
 
+    def setConfig(self, key, value):
+        try: 
+            config = self.jload()
+        except:
+            config = dict()
+        config[key] = value
+        self.jsave(config)
+
 class ParseInI:
     """ handle ini file """ 
     def __init__(self):
