@@ -2,9 +2,10 @@
 
 import platform
 from common import *
+import os
 
-
-configFile = ParseJson("discover_config.json")
+path=os.path.dirname(os.path.abspath(__file__))
+configFile = ParseJson(path + '/discover_config.json')
 
 def getVersion():
 
@@ -21,12 +22,15 @@ def setConfigs(key, value):
     configFile.setConfig(key, value);
 
 def compareType(linuxType):
-    config = ParseJson("versionSupport.json").jload()
+    config = ParseJson(path + '/versionSupport.json').jload()
     supportedLinux = config['linuxVersions']
     if linuxType.lower() in supportedLinux:
-        print "COOL"
+        print "%s is installed and it is supported" % (linuxType)
+        get_logger().info(linuxType + ' installed and supported')
     else:
-        print "Not cool" 
+        print "%s is not supported. Please install a supported version: %s" % (linuxType, supportedLinux)
+        get_logger().error(linuxType + ' installed and not supported')
+        get_logger().error('Use a supported linux type ' + supportedLinux)
 
 if __name__ == '__main__':
 
