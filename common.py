@@ -16,6 +16,8 @@ from collections import defaultdict
 
 __version__ = 'v1.0.0'
 installer_loc = sys.path[0]
+DBCFG_FILE = installer_loc + '/db_config'
+DBCFG_TMP_FILE = installer_loc + '/.db_config_temp'
 
 def version():
     print 'Installer version: %s' % __version__
@@ -56,19 +58,88 @@ def get_logger():
 
     return logger
 
+
 def run_cmd(cmd):
     """ run linux command, check command return value """
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         err('Failed to run command %s: %s' % (cmd, stderr))
-    return 0
+    return p.returncode, stdout
 
 def cmd_output(cmd):
     """ run linux command, return command output """
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
     return stdout, stderr
+
+class Remote(object):
+    """ copy files to/fetch files from remote host using ssh """
+    def __init__(self, host, user='', pwd=''):
+        self.host = host
+        self.user = user
+        self.pwd = pwd
+        self.sshpass = self.__sshpass_available()
+
+    def _commands(self, method):
+        """ create 'ssh' or 'scp' commands """
+        cmd = []
+        if self.sshpass and self.pwd: cmd = ['sshpass','-p', self.pwd]
+        cmd += [method]
+        if not self.pwd: cmd += ['-oPasswordAuthentication=no']
+        return cmd
+
+
+    def _execute(self, cmd):
+        try:
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = p.communicate()
+            rc = p.returncode
+            if not rc: rc = 0
+        except Exception as e:
+            err('Failed to copy/fetch files to/from remote host: %s' % e)
+
+        return rc, stdout, stderr
+
+
+    def copy(self, files, remote_folder='.'):
+        """ copy file to self.user's home folder """
+        for f in files:
+            if not os.path.exists(f):
+                err('Copy file error: %s doesn\'t exist' % f)
+
+        cmd = self._commands('scp')
+        cmd += ['-r']
+        cmd += files # files should be full path
+        if self.user:
+            cmd += ['%s@%s:~/%s/' % (self.user, self.host, remote_folder)]
+        else:
+            cmd += ['%s:~/%s/' % (self.host, remote_folder)]
+
+        self._execute(cmd)
+
+
+    def fetch(self, files, local_folder='.'):
+        """ fetch file from self.user's home folder """
+        cmd = self._commands('scp')
+        cmd += ['-r']
+        if self.user:
+            cmd += ['%s@%s:~/{%s}' % (self.user, self.host, ','.join(files))]
+        else:
+            cmd += ['%s:~/{%s}' % (self.host, ','.join(files))]
+        cmd += [local_folder]
+
+        self._execute(cmd)
+
+    def __sshpass_available(self):
+        sshpass_available = True
+        try:
+            p = subprocess.Popen(['sshpass'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p.communicate()
+        except OSError:
+            sshpass_available = False
+
+        return sshpass_available
 
 class ParseHttp:
     def __init__(self, user, passwd):

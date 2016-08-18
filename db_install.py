@@ -24,10 +24,6 @@ from common import *
 # init global cfgs for user input
 cfgs = defaultdict(str)
 
-tmp_file = installer_loc + '/.db_config_temp'
-def_cfgfile = installer_loc + '/db_config'
-
-
 class HadoopDiscover:
     ''' discover for hadoop related info '''
     def __init__(self, distro, cluster_name, hdfs_srv_name, hbase_srv_name):
@@ -392,14 +388,13 @@ class UserInput:
         print pt
         confirm = self.get_input('confirm_all')
         if confirm == 'N': 
-            if os.path.exists(def_cfgfile): os.remove(def_cfgfile)
+            if os.path.exists(DBCFG_FILE): os.remove(DBCFG_FILE)
             log_err('User quit')
 
 
 def log_err(errtext):
-    global tmp_file
     # save tmp config files
-    tp = ParseJson(tmp_file)
+    tp = ParseJson(DBCFG_TMP_FILE)
     tp.jsave(cfgs)
 
     err(errtext)
@@ -442,10 +437,10 @@ def check_mgr_url():
     
 def user_input(no_dbmgr=False, vanilla_hadoop=False):
     """ get user's input and check input value """
-    global cfgs, tmp_file
+    global cfgs
     # load from temp storaged config file
-    if os.path.exists(tmp_file):
-        tp = ParseJson(tmp_file)
+    if os.path.exists(DBCFG_TMP_FILE):
+        tp = ParseJson(DBCFG_TMP_FILE)
         cfgs = tp.jload()
 
     u = UserInput()
@@ -620,6 +615,8 @@ def get_options():
                 help="Call ansible to install.")
     parser.add_option("-b", "--become-method", dest="method", metavar="METHOD",
                 help="Specify become root method for ansible [ sudo | su | pbrun | pfexec | runas | doas ].")
+    parser.add_option("-f", "--fork", dest="fork", metavar="FORK",
+                help="Specify number of parallel processes to run sub scripts (default=5)" )
     parser.add_option("-p", "--prompt-passwd", action="store_true", dest="pwd", default=False,
                 help="Prompt SSH login password for remote hosts. \
                       If set, passwordless ssh is not required.")
@@ -655,8 +652,7 @@ def main():
         from python_caller import run
 
     if not options.ansible: 
-        if options.method or options.fork:
-            log_err('Wrong parameter, cannot specify ansible option without ansible enabled')
+        if options.method: log_err('Wrong parameter, cannot specify ansible option without ansible enabled')
 
     if options.version: version()
     if options.dryrun and options.cfgfile:
@@ -691,7 +687,7 @@ def main():
             log_err('Cannot find config file \'%s\'' % options.cfgfile)
         config_file = options.cfgfile
     else:
-        config_file = def_cfgfile
+        config_file = DBCFG_FILE
 
     p = ParseJson(config_file)
 
@@ -736,7 +732,7 @@ def main():
         try:
             # only rename default config file
             ts = time.strftime('%y%m%d_%H%M')
-            if config_file == def_cfgfile and os.path.exists(config_file):
+            if config_file == DBCFG_FILE and os.path.exists(config_file):
                 os.rename(config_file, config_file + '.bak' + ts)
         except OSError:
             log_err('Cannot rename config file')
@@ -744,12 +740,12 @@ def main():
         format_output('DryRun Complete')
 
     # remove temp config file
-    if os.path.exists(tmp_file): os.remove(tmp_file)
+    if os.path.exists(DBCFG_TMP_FILE): os.remove(DBCFG_TMP_FILE)
 
 if __name__ == "__main__":
     try:
         main()
     except (KeyboardInterrupt,EOFError):
-        tp = ParseJson(tmp_file)
+        tp = ParseJson(DBCFG_TMP_FILE)
         tp.jsave(cfgs)
         print '\nAborted...'

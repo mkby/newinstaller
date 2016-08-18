@@ -1,52 +1,29 @@
 #!/usr/bin/env python
 
-from common import *
-from threading import Thread
+import os
 import subprocess
 import getpass
-import os, socket
+import socket
+from threading import Thread
+from common import *
 
-class Remote:
+class RemoteRun(Remote):
     """ run commands or scripts remotely using ssh """
-    def __init__(self, host, pwd):
-        self.host = host
-        self.pwd = pwd
+
+    def __init__(self, host, user='', pwd=''):
+        super(RemoteRun, self).__init__(host, user, pwd)
         self.rc = 0 # multithread return code check
         self.tmp_folder = '.install'
-        self.dbcfg_file = 'db_config'
         self.common_lib = 'common.py'
-        self.sshpass = self.__sshpass_available()
-
-    def __commands(self, method):
-        """ create 'ssh' or 'scp' commands """
-        cmd = []
-        if self.sshpass and self.pwd: cmd = ['sshpass','-p', self.pwd]
-        cmd += [method]
-        if not self.pwd: cmd += ['-oPasswordAuthentication=no']
-        return cmd
-        
-    def __put_file(self, *src_files):
-        for src_file in src_files:
-            if not os.path.exists(src_file):
-                err('Script %s doesn\'t exist' % src_file)
-
-        cmd = self.__commands('scp')
-        cmd += ['-r']
-        cmd += list(src_files)
-        cmd += ['%s:~/%s/' % (self.host, self.tmp_folder)]
-        try:
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            p.communicate()
-        except Exception as e:
-            err('Failed to copy files to remote host: %s' %  e)
 
     def run_script(self, script_file, script_options='', verbose=False):
 
+        begin(script_file, self.host)
         # create tmp folder
         self.__run_sshcmd('mkdir -p ~/%s' % self.tmp_folder)
 
         # copy file to remote
-        self.__put_file(script_file, self.dbcfg_file, self.common_lib)
+        self.copy([script_file, DBCFG_FILE, self.common_lib], remote_folder=self.tmp_folder)
 
         # set permission
         self.__run_sshcmd('chmod a+rx %s/%s' % (self.tmp_folder, script_file))
@@ -57,41 +34,41 @@ class Remote:
         #remove tmp folder
         self.__run_sshcmd('rm -rf %s' % self.tmp_folder)
             
-    def __run_sshcmd(self, user_cmd):
-        """ run internal used ssh command """
+    def __run_ssh(self, user_cmd):
         user_cmds = user_cmd.split()
-        cmd = self.__commands('ssh')
-        cmd += [self.host]
+
+        cmd = self._commands('ssh')
+        if self.user: 
+            cmd += ['%s@%s' % (self.user, self.host)]
+        else:
+            cmd += [self.host]
         cmd += user_cmds
 
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        self.rc = p.returncode
+        return self._execute(cmd)
+
+    def __run_sshcmd(self, int_cmd):
+        """ run internal used ssh command """
+
+        self.rc, stdout, stderr = self.__run_ssh(int_cmd)
         if self.rc != 0:
             msg = 'Host [%s]: Failed to run setup commands, check SSH password or connectivity' % self.host
-            if stderr: msg += ': ' + stderr
+            if stderr: msg += '\nReason: ' + stderr
             get_logger().error(msg)
             err(msg)
         
     def __run_script(self, script, script_options, verbose=False):
         script_cmd = 'cd ~/%s;./%s' % (self.tmp_folder, script)
         if script_options: script_cmd += ' ' + script_options 
-        script_cmd = script_cmd.split()
-        cmd = self.__commands('ssh')
-        cmd += [self.host]
-        cmd += script_cmd
 
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        self.rc = p.returncode
+        self.rc, stdout, stderr = self.__run_ssh(script_cmd)
 
         get_logger().info(' Host [%s]: %s' % (self.host, stdout))
         if verbose: print stdout
 
         if self.rc == 0:
-            state_ok('Host [%s], Script [%s]' % (self.host, script))
+            state_ok('Host [%s]: Script [%s]' % (self.host, script))
         else:
-            state_fail('Host [%s], Script [%s]' % (self.host, script))
+            state_fail('Host [%s]: Script [%s]' % (self.host, script))
             msg = 'Host [%s]: Failed to run \'%s\'' % (self.host, script)
             if stderr: 
                 msg += ': ' + stderr
@@ -99,16 +76,6 @@ class Remote:
             get_logger().error(msg)
             exit(1)
 
-
-    def __sshpass_available(self):
-        sshpass_available = True
-        try:
-            p = subprocess.Popen(['sshpass'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            p.communicate()
-        except OSError:
-            sshpass_available = False
-
-        return sshpass_available
 
 def state_ok(msg):
     state(32, ' OK ', msg)
@@ -122,6 +89,15 @@ def state_skip(msg):
 def state(color, result, msg):
     WIDTH = 80
     print '\33[%dm%s %s [ %s ]\33[0m\n' % (color, msg, (WIDTH - len(msg))*'.', result)
+
+def begin(script, host=''):
+    output = '\nStart running script [%s]' % script
+    if host: 
+        output += ' on host [%s]' % host
+    else:
+        output += ' on localhost'
+
+    print output
 
 class Status:
     def __init__(self, stat_file, name):
@@ -142,6 +118,7 @@ class Status:
 
 @time_elapse
 def run(dbcfgs, options):
+    """ main entry """
     STAT_FILE = 'install.status'
     SCRCFG_FILE = 'script_config.json'
 
@@ -159,6 +136,7 @@ def run(dbcfgs, options):
     #if options.pwd: enable_pwd = True
     #if options.user: user = options.user
     #if options.nomod: nomod = True
+    #if options.fork: THRESHOLD = options.fork
     enable_pwd = True
     if enable_pwd and not islocal(hosts, local_host):
         pwd = getpass.getpass('Input SSH Password: ')
@@ -167,55 +145,79 @@ def run(dbcfgs, options):
 
     remote_instances = []
     if not islocal(hosts, local_host):
-        remote_instances = [Remote(host, pwd) for host in hosts]
+        remote_instances = [RemoteRun(host, pwd) for host in hosts]
 
-    for cfg in script_cfgs:
-        script = cfg['script']
-        node = cfg['node']
-        status = Status(STAT_FILE, script)
-        if status.get_status(): 
-            state_skip('Script [%s] had already been executed' % script)
-            continue
-
-        # install on localhost only
-        if islocal(hosts, local_host):
-            rc = run_cmd(sys.path[0] + '/' + script)
-            if rc != 0: 
-                get_logger().error('Failed to run \'%s\'' % script)
-                state_fail('Script [%s]' % script)
-            else:
-                state_ok('Script [%s]' % script)
+    
+    def run_local_script(script):
+        # copy file needs to use SSH to login remote nodes,
+        # so pass the ssh password to this sub script if have
+        if script:
+            cmd = sys.path[0] + '/' + script + ' ' + pwd
         else:
-            if node == 'local':
-                Remote(local_host, pwd).run_script(script)
-            elif node == 'first':
-                #remote_instances[0].run_script(script)
-                remote_instances[0].run_script(script, verbose=True)
-            elif node == 'all':
-                # set thread count threshold 
-                THRESHOLD = 10
-                l = len(remote_instances)
-                if l > THRESHOLD:
-                    piece = (l - (l % THRESHOLD)) / THRESHOLD
-                    parted_remote_instances = [remote_instances[THRESHOLD*i:THRESHOLD*(i+1)] for i in range(piece)]
-                    parted_remote_instances.append(remote_instances[THRESHOLD*piece:])
-                else:
-                    parted_remote_instances = [remote_instances]
+            cmd = sys.path[0] + '/' + script
 
-                for parted_remote_inst in parted_remote_instances:
-                    threads = [Thread(target=r.run_script, args=(script, )) for r in parted_remote_inst]
-                    for t in threads: t.start()
-                    for t in threads: t.join()
-                    if sum([ r.rc for r in parted_remote_inst ]) != 0:
-                        err('Script failed to run on one or more nodes, exiting ...')
+        begin(script)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        stdout, stderr = p.communicate()
+        rc = p.returncode
+        if rc != 0:
+            msg = 'Failed to run \'%s\'' % script
+            if stderr: 
+                msg += ': ' + stderr
+                print stderr
+            get_logger().error(msg)
+            state_fail('localhost: Script [%s]' % script)
+            exit(rc)
+        else:
+            state_ok('Script [%s]' % script)
+
+    # run sub scripts
+    try:
+        for cfg in script_cfgs:
+            script = cfg['script']
+            node = cfg['node']
+            status = Status(STAT_FILE, script)
+            if status.get_status(): 
+                state_skip('Script [%s] had already been executed' % script)
+                continue
+
+            # if install on localhost only
+            if islocal(hosts, local_host):
+                run_local_script(script)
             else:
-                # should not go to here
-                err('Invalid configuration for %s' % cfg_file)
+                if node == 'local':
+                    run_local_script(script)
+                elif node == 'first':
+                    #remote_instances[0].run_script(script)
+                    remote_instances[0].run_script(script, verbose=True)
+                elif node == 'all':
+                    # set thread count threshold 
+                    THRESHOLD = 5
+                    l = len(remote_instances)
+                    if l > THRESHOLD:
+                        piece = (l - (l % THRESHOLD)) / THRESHOLD
+                        parted_remote_instances = [remote_instances[THRESHOLD*i:THRESHOLD*(i+1)] for i in range(piece)]
+                        parted_remote_instances.append(remote_instances[THRESHOLD*piece:])
+                    else:
+                        parted_remote_instances = [remote_instances]
 
-        status.set_status()
+                    for parted_remote_inst in parted_remote_instances:
+                        threads = [Thread(target=r.run_script, args=(script, )) for r in parted_remote_inst]
+                        for t in threads: t.start()
+                        for t in threads: t.join()
+                        #TODO: add log file location to display, log file name reconsider
+                        if sum([ r.rc for r in parted_remote_inst ]) != 0:
+                            err('Script failed to run on one or more nodes, exiting ...')
+                else:
+                    # should not go to here
+                    err('Invalid configuration for %s' % SCRCFG_FILE)
+            status.set_status()
+    except KeyboardInterrupt:
+        err('User quit')
+
     
     # remove status file if all scripts run successfully
-    os.remove(stat_file)
+    os.remove(STAT_FILE)
 
 
 if __name__ == '__main__':
