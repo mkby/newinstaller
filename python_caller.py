@@ -12,7 +12,6 @@ class RemoteRun(Remote):
 
     def __init__(self, host, user='', pwd=''):
         super(RemoteRun, self).__init__(host, user, pwd)
-        self.rc = 0 # multithread return code check
         self.tmp_folder = '.install'
         self.common_lib = 'common.py'
 
@@ -34,45 +33,47 @@ class RemoteRun(Remote):
         #remove tmp folder
         self.__run_sshcmd('rm -rf %s' % self.tmp_folder)
             
-    def __run_ssh(self, user_cmd):
+    def __run_ssh(self, user_cmd, tty=False):
         user_cmds = user_cmd.split()
 
         cmd = self._commands('ssh')
+        if tty: cmd += ['-tt'] # force tty allocation
         if self.user: 
             cmd += ['%s@%s' % (self.user, self.host)]
         else:
             cmd += [self.host]
         cmd += user_cmds
 
-        return self._execute(cmd)
+        self._execute(cmd)
 
     def __run_sshcmd(self, int_cmd):
         """ run internal used ssh command """
 
-        self.rc, stdout, stderr = self.__run_ssh(int_cmd)
+        self.__run_ssh(int_cmd)
         if self.rc != 0:
             msg = 'Host [%s]: Failed to run setup commands, check SSH password or connectivity' % self.host
-            if stderr: msg += '\nReason: ' + stderr
+            if self.stderr: msg += '\nReason: ' + self.stderr
             get_logger().error(msg)
             err(msg)
         
     def __run_script(self, script, script_options, verbose=False):
-        script_cmd = 'cd ~/%s;./%s' % (self.tmp_folder, script)
+        # sub script needs sudo privilege
+        script_cmd = 'cd ~/%s; sudo ./%s' % (self.tmp_folder, script)
         if script_options: script_cmd += ' ' + script_options 
 
-        self.rc, stdout, stderr = self.__run_ssh(script_cmd)
+        self.__run_ssh(script_cmd, tty=True)
 
-        get_logger().info(' Host [%s]: %s' % (self.host, stdout))
-        if verbose: print stdout
+        get_logger().info(' Host [%s]: %s' % (self.host, self.stdout))
+        if verbose: print self.stdout
 
         if self.rc == 0:
             state_ok('Host [%s]: Script [%s]' % (self.host, script))
         else:
             state_fail('Host [%s]: Script [%s]' % (self.host, script))
             msg = 'Host [%s]: Failed to run \'%s\'' % (self.host, script)
-            if stderr: 
-                msg += ': ' + stderr
-                print stderr
+            if self.stderr: 
+                msg += ': ' + self.stderr
+                print '\nReason: ' + self.stderr
             get_logger().error(msg)
             exit(1)
 
@@ -88,7 +89,7 @@ def state_skip(msg):
 
 def state(color, result, msg):
     WIDTH = 80
-    print '\33[%dm%s %s [ %s ]\33[0m\n' % (color, msg, (WIDTH - len(msg))*'.', result)
+    print '\n\33[%dm%s %s [ %s ]\33[0m\n' % (color, msg, (WIDTH - len(msg))*'.', result)
 
 def begin(script, host=''):
     output = '\nStart running script [%s]' % script
@@ -145,12 +146,13 @@ def run(dbcfgs, options):
 
     remote_instances = []
     if not islocal(hosts, local_host):
-        remote_instances = [RemoteRun(host, pwd) for host in hosts]
+        remote_instances = [RemoteRun(host, pwd=pwd) for host in hosts]
 
     
     def run_local_script(script):
         # copy file needs to use SSH to login remote nodes,
         # so pass the ssh password to this sub script if have
+        #TODO: not finished
         if script:
             cmd = sys.path[0] + '/' + script + ' ' + pwd
         else:

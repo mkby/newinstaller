@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import pty
 import sys
 import json
 import re
@@ -39,7 +40,7 @@ def err2(msg):
     sys.stderr.write(msg)
     sys.exit(1)
 
-def get_logger():
+def get_logger(log_file=''):
     ts = time.strftime('%Y%m%d')
     logs_dir = installer_loc + '/logs'
     if not os.path.exists(logs_dir): os.mkdir(logs_dir)
@@ -60,12 +61,12 @@ def get_logger():
 
 
 def run_cmd(cmd):
-    """ run linux command, check command return value """
+    """ run linux command, check command return value and return stdout """
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
-        err('Failed to run command %s: %s' % (cmd, stderr))
-    return p.returncode, stdout
+        err2('Failed to run command %s: %s' % (cmd, stderr))
+    return stdout
 
 def cmd_output(cmd):
     """ run linux command, return command output """
@@ -74,36 +75,34 @@ def cmd_output(cmd):
     return stdout, stderr
 
 class Remote(object):
-    """ copy files to/fetch files from remote host using ssh """
+    """ 
+        copy files to/fetch files from remote host using ssh
+        can also use paramiko, but it's not a build-in module
+    """
     def __init__(self, host, user='', pwd=''):
         self.host = host
         self.user = user
+        self.rc = 0
         self.pwd = pwd
         self.sshpass = self.__sshpass_available()
 
     def _commands(self, method):
-        """ create 'ssh' or 'scp' commands """
         cmd = []
         if self.sshpass and self.pwd: cmd = ['sshpass','-p', self.pwd]
         cmd += [method]
         if not self.pwd: cmd += ['-oPasswordAuthentication=no']
         return cmd
 
-
     def _execute(self, cmd):
         try:
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = p.communicate()
-            rc = p.returncode
-            if not rc: rc = 0
+            p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.stdout, self.stderr = p.communicate()
+            if p.returncode: self.rc = p.returncode
         except Exception as e:
-            err('Failed to copy/fetch files to/from remote host: %s' % e)
-
-        return rc, stdout, stderr
-
+            err('Failed to run commands on remote host: %s' % e)
 
     def copy(self, files, remote_folder='.'):
-        """ copy file to self.user's home folder """
+        """ copy file to user's home folder """
         for f in files:
             if not os.path.exists(f):
                 err('Copy file error: %s doesn\'t exist' % f)
@@ -118,9 +117,8 @@ class Remote(object):
 
         self._execute(cmd)
 
-
     def fetch(self, files, local_folder='.'):
-        """ fetch file from self.user's home folder """
+        """ fetch file from user's home folder """
         cmd = self._commands('scp')
         cmd += ['-r']
         if self.user:
@@ -155,7 +153,6 @@ class ParseHttp:
         self.h.add_credentials(self.user, self.passwd)
         self.headers = {}
         self.headers['X-Requested-By'] = 'trafodion'
-        #self.headers['Content-Type'] = 'application/json'
         self.headers['Authorization'] = 'Basic %s' % (base64.b64encode('%s:%s' % (self.user, self.passwd)))
 
     def _request(self, url, method, body=None):
@@ -260,7 +257,7 @@ class ParseJson:
         try:
             return defaultdict(str, json.loads(content))
         except ValueError:
-            err('No json format found in config file')
+            err('No json format found in config file %s' % self.__js_file)
 
     def jsave(self, dic):
         with open(self.__js_file, 'w') as f:
