@@ -4,35 +4,57 @@ import os
 import subprocess
 import getpass
 import socket
+from glob import glob
 from threading import Thread
 from common import *
 
+logger = get_logger()
 class RemoteRun(Remote):
     """ run commands or scripts remotely using ssh """
 
     def __init__(self, host, user='', pwd=''):
         super(RemoteRun, self).__init__(host, user, pwd)
         self.tmp_folder = '.install'
-        self.common_lib = 'common.py'
 
-    def run_script(self, script_file, script_options='', verbose=False):
-
-        begin(script_file, self.host)
         # create tmp folder
         self.__run_sshcmd('mkdir -p ~/%s' % self.tmp_folder)
 
-        # copy file to remote
-        self.copy([script_file, DBCFG_FILE, self.common_lib], remote_folder=self.tmp_folder)
+        # copy all needed files to remote host
+        all_files = glob(INSTALLER_LOC + '/*.py') + glob(INSTALLER_LOC + '/*.json') + glob(INSTALLER_LOC + '/*.sh')
+        self.copy(all_files, remote_folder=self.tmp_folder)
 
         # set permission
-        self.__run_sshcmd('chmod a+rx %s/%s' % (self.tmp_folder, script_file))
+        self.__run_sshcmd('chmod a+rx %s/*.py' % self.tmp_folder)
 
-        # run script
-        self.__run_script(script_file, script_options, verbose=verbose)
+    def __del__(self):
+        # clean up
+        self.__run_ssh('rm -rf ~/%s' % self.tmp_folder)
 
-        #remove tmp folder
-        self.__run_sshcmd('rm -rf %s' % self.tmp_folder)
-            
+    def run_script(self, script, script_options='', verbose=False):
+
+        begin(script, self.host)
+        script_cmd = '~/%s/%s' % (self.tmp_folder, script)
+        if script_options: script_cmd += ' ' + script_options 
+
+        self.__run_ssh(script_cmd, tty=True)
+
+        format1 = 'Host [%s]: Script [%s]: %s' % (self.host, script, self.stdout)
+        format2 = 'Host [%s]: Script [%s]' % (self.host, script)
+
+        logger.info(format1)
+        if verbose: print format1
+
+        if self.rc == 0:
+            state_ok(format2)
+        else:
+            state_fail(format2)
+            msg = 'Host [%s]: Failed to run \'%s\'' % (self.host, script)
+            if self.stderr: 
+                msg += ': ' + self.stderr
+                print '\nReason: ' + self.stderr
+            logger.error(msg)
+            exit(1)
+
     def __run_ssh(self, user_cmd, tty=False):
         user_cmds = user_cmd.split()
 
@@ -51,32 +73,10 @@ class RemoteRun(Remote):
 
         self.__run_ssh(int_cmd)
         if self.rc != 0:
-            msg = 'Host [%s]: Failed to run setup commands, check SSH password or connectivity' % self.host
+            msg = 'Host [%s]: Failed to run internal commands, check SSH password or connectivity' % self.host
             if self.stderr: msg += '\nReason: ' + self.stderr
-            get_logger().error(msg)
+            logger.error(msg)
             err(msg)
-        
-    def __run_script(self, script, script_options, verbose=False):
-        # sub script needs sudo privilege
-        script_cmd = 'cd ~/%s; sudo ./%s' % (self.tmp_folder, script)
-        if script_options: script_cmd += ' ' + script_options 
-
-        self.__run_ssh(script_cmd, tty=True)
-
-        get_logger().info(' Host [%s]: %s' % (self.host, self.stdout))
-        if verbose: print self.stdout
-
-        if self.rc == 0:
-            state_ok('Host [%s]: Script [%s]' % (self.host, script))
-        else:
-            state_fail('Host [%s]: Script [%s]' % (self.host, script))
-            msg = 'Host [%s]: Failed to run \'%s\'' % (self.host, script)
-            if self.stderr: 
-                msg += ': ' + self.stderr
-                print '\nReason: ' + self.stderr
-            get_logger().error(msg)
-            exit(1)
-
 
 def state_ok(msg):
     state(32, ' OK ', msg)
@@ -150,8 +150,7 @@ def run(dbcfgs, options):
 
     
     def run_local_script(script):
-        # copy file needs to use SSH to login remote nodes,
-        # so pass the ssh password to this sub script if have
+        # pass the ssh password to sub scripts which need SSH
         #TODO: not finished
         if script:
             cmd = sys.path[0] + '/' + script + ' ' + pwd
@@ -167,7 +166,7 @@ def run(dbcfgs, options):
             if stderr: 
                 msg += ': ' + stderr
                 print stderr
-            get_logger().error(msg)
+            logger.error(msg)
             state_fail('localhost: Script [%s]' % script)
             exit(rc)
         else:
@@ -175,6 +174,7 @@ def run(dbcfgs, options):
 
     # run sub scripts
     try:
+        logger.info(' ***** Install Start *****')
         for cfg in script_cfgs:
             script = cfg['script']
             node = cfg['node']
@@ -184,17 +184,16 @@ def run(dbcfgs, options):
                 continue
 
             # if install on localhost only
-            if islocal(hosts, local_host):
+            if not remote_instances:
                 run_local_script(script)
             else:
                 if node == 'local':
                     run_local_script(script)
                 elif node == 'first':
-                    #remote_instances[0].run_script(script)
-                    remote_instances[0].run_script(script, verbose=True)
+                    remote_instances[0].run_script(script)
                 elif node == 'all':
                     # set thread count threshold 
-                    THRESHOLD = 5
+                    THRESHOLD = 10
                     l = len(remote_instances)
                     if l > THRESHOLD:
                         piece = (l - (l % THRESHOLD)) / THRESHOLD
@@ -213,14 +212,19 @@ def run(dbcfgs, options):
                 else:
                     # should not go to here
                     err('Invalid configuration for %s' % SCRCFG_FILE)
+
+    #        # cleanup install files on all nodes
+    #        if remote_instances:
+    #            threads = [Thread(target=r.clean) for r in remote_instances]
+    #            for t in threads: t.start()
+    #            for t in threads: t.join()
+
             status.set_status()
     except KeyboardInterrupt:
         err('User quit')
 
-    
     # remove status file if all scripts run successfully
     os.remove(STAT_FILE)
-
 
 if __name__ == '__main__':
     run(1,1)

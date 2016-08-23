@@ -16,9 +16,10 @@ from ConfigParser import ConfigParser
 from collections import defaultdict
 
 __version__ = 'v1.0.0'
-installer_loc = sys.path[0]
-DBCFG_FILE = installer_loc + '/db_config'
-DBCFG_TMP_FILE = installer_loc + '/.db_config_temp'
+INSTALLER_LOC = sys.path[0]
+DBCFG_FILE = INSTALLER_LOC + '/db_config'
+DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
+MARK = '[MARK]'
 
 def version():
     print 'Installer version: %s' % __version__
@@ -30,26 +31,25 @@ def ok(msg):
 def info(msg):
     print '\n\33[33m***[INFO]: %s \33[0m' % msg
 
-def err(msg):
+def err_m(msg):
     """ used by main script """
     sys.stderr.write('\n\33[31m***[ERROR]: %s \33[0m\n' % msg)
     sys.exit(1)
 
-def err2(msg):
+def err(msg):
     """ used by sub script """
-    sys.stderr.write(msg)
+    sys.stderr.write(MARK + msg)
     sys.exit(1)
 
 def get_logger(log_file=''):
     ts = time.strftime('%Y%m%d')
-    logs_dir = installer_loc + '/logs'
+    logs_dir = INSTALLER_LOC + '/logs'
     if not os.path.exists(logs_dir): os.mkdir(logs_dir)
     log_file = '%s/install_%s.log' % (logs_dir, ts)
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    #formatter = logging.Formatter('[%(asctime)s %(levelname)s %(filename)s]: %(message)s')
     formatter = logging.Formatter('[%(asctime)s %(levelname)s]: %(message)s')
 
     fh = logging.FileHandler(log_file)
@@ -59,18 +59,20 @@ def get_logger(log_file=''):
 
     return logger
 
-
 def run_cmd(cmd):
-    """ run linux command, check command return value and return stdout """
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    """ check command return value and return stdout """
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
     if p.returncode != 0:
-        err2('Failed to run command %s: %s' % (cmd, stderr))
+        err('Failed to run command %s: %s' % (cmd, stderr))
     return stdout
 
+def run_cmd_as_user(user, cmd):
+    return run_cmd('sudo su - %s -c \'%s\'' % (user, cmd))
+
 def cmd_output(cmd):
-    """ run linux command, return command output """
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    """ return command output but not check return value """
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
     return stdout, stderr
 
@@ -95,9 +97,13 @@ class Remote(object):
 
     def _execute(self, cmd):
         try:
-            p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            master, slave = pty.openpty()
+            p = subprocess.Popen(cmd, stdin=slave, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             self.stdout, self.stderr = p.communicate()
-            if p.returncode: self.rc = p.returncode
+            if p.returncode: 
+                self.rc = p.returncode
+                # 'ssh -tt' will overwrite stderr, so manually handle it
+                self.stdout, self.stderr = self.stdout.split(MARK)
         except Exception as e:
             err('Failed to run commands on remote host: %s' % e)
 
@@ -316,8 +322,8 @@ def http_stop():
 
 def set_ansible_cfgs(host_content):
     ts = time.strftime('%y%m%d_%H%M')
-    logs_dir = installer_loc + '/logs'
-    hosts_file = installer_loc + '/hosts'
+    logs_dir = INSTALLER_LOC + '/logs'
+    hosts_file = INSTALLER_LOC + '/hosts'
     if not os.path.exists(logs_dir): os.mkdir(logs_dir)
     log_path = '%s/%s_%s.log' %(logs_dir, sys.argv[0].split('/')[-1].split('.')[0], ts)
 
