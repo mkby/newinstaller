@@ -76,7 +76,7 @@ class RemoteRun(Remote):
             msg = 'Host [%s]: Failed to run internal commands, check SSH password or connectivity' % self.host
             if self.stderr: msg += '\nReason: ' + self.stderr
             logger.error(msg)
-            err(msg)
+            err_m(msg)
 
 def state_ok(msg):
     state(32, ' OK ', msg)
@@ -118,37 +118,22 @@ class Status:
             f.write('%s OK\n' % self.name)
 
 @time_elapse
-def run(dbcfgs, options):
-    """ main entry """
-    STAT_FILE = 'install.status'
+def run(cfgs, options, mode):
+    """ main entry
+        mode: install/discover
+    """
+    STAT_FILE = mode + '.status'
     SCRCFG_FILE = 'script_config.json'
 
     conf = ParseJson(SCRCFG_FILE).jload()
-    script_cfgs = conf['conf']
+    script_cfgs = conf[mode]
 
-    hosts = ['centosha-2', 'eason-2']
-    #hosts = dbcfgs['node_list'].split()
+    hosts = cfgs['node_list'].split()
     local_host = socket.gethostname().split('.')[0]
 
     # Check if install on localhost
     islocal = lambda h, lh: True if len(h) == 1 and (h[0] == 'localhost' or h[0] == lh) else False
 
-    #enable_pwd = False
-    #if options.pwd: enable_pwd = True
-    #if options.user: user = options.user
-    #if options.nomod: nomod = True
-    #if options.fork: THRESHOLD = options.fork
-    enable_pwd = True
-    if enable_pwd and not islocal(hosts, local_host):
-        pwd = getpass.getpass('Input SSH Password: ')
-    else:
-        pwd = ''
-
-    remote_instances = []
-    if not islocal(hosts, local_host):
-        remote_instances = [RemoteRun(host, pwd=pwd) for host in hosts]
-
-    
     def run_local_script(script):
         # pass the ssh password to sub scripts which need SSH
         #TODO: not finished
@@ -174,7 +159,22 @@ def run(dbcfgs, options):
 
     # run sub scripts
     try:
-        logger.info(' ***** Install Start *****')
+        #enable_pwd = False
+        #if options.pwd: enable_pwd = True
+        #if options.user: user = options.user
+        #if options.nomod: nomod = True
+        #if options.fork: THRESHOLD = options.fork
+        enable_pwd = True
+        if enable_pwd and not islocal(hosts, local_host):
+            pwd = getpass.getpass('Input SSH Password: ')
+        else:
+            pwd = ''
+
+        remote_instances = []
+        if not islocal(hosts, local_host):
+            remote_instances = [RemoteRun(host, pwd=pwd) for host in hosts]
+
+        logger.info(' ***** %s Start *****' % mode)
         for cfg in script_cfgs:
             script = cfg['script']
             node = cfg['node']
@@ -208,24 +208,19 @@ def run(dbcfgs, options):
                         for t in threads: t.join()
                         #TODO: add log file location to display, log file name reconsider
                         if sum([ r.rc for r in parted_remote_inst ]) != 0:
-                            err('Script failed to run on one or more nodes, exiting ...')
+                            err_m('Script failed to run on one or more nodes, exiting ...')
                 else:
                     # should not go to here
-                    err('Invalid configuration for %s' % SCRCFG_FILE)
-
-    #        # cleanup install files on all nodes
-    #        if remote_instances:
-    #            threads = [Thread(target=r.clean) for r in remote_instances]
-    #            for t in threads: t.start()
-    #            for t in threads: t.join()
+                    err_m('Invalid configuration for %s' % SCRCFG_FILE)
 
             status.set_status()
     except KeyboardInterrupt:
-        err('User quit')
+        err_m('User quit')
 
     # remove status file if all scripts run successfully
     os.remove(STAT_FILE)
 
 if __name__ == '__main__':
-    run(1,1)
+    cfgs = {'node_list': 'eason-1 eason-2'}
+    run(cfgs, 1, 'install')
     exit(0)
