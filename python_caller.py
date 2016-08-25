@@ -9,31 +9,34 @@ from threading import Thread
 from common import *
 
 logger = get_logger()
+
 class RemoteRun(Remote):
     """ run commands or scripts remotely using ssh """
 
     def __init__(self, host, user='', pwd=''):
         super(RemoteRun, self).__init__(host, user, pwd)
-        self.tmp_folder = '.install'
 
         # create tmp folder
-        self.__run_sshcmd('mkdir -p ~/%s' % self.tmp_folder)
+        self.__run_sshcmd('mkdir -p ~/%s' % TMP_FOLDER)
 
         # copy all needed files to remote host
-        all_files = glob(INSTALLER_LOC + '/*.py') + glob(INSTALLER_LOC + '/*.json') + glob(INSTALLER_LOC + '/*.sh')
-        self.copy(all_files, remote_folder=self.tmp_folder)
+        all_files = glob(INSTALLER_LOC + '/*.py') + glob(INSTALLER_LOC + '/*.json') + \
+                    glob(INSTALLER_LOC + '/*.sh') + glob(INSTALLER_LOC + '/*.template')
+
+        self.copy(all_files, remote_folder=TMP_FOLDER)
 
         # set permission
-        self.__run_sshcmd('chmod a+rx %s/*.py' % self.tmp_folder)
+        self.__run_sshcmd('chmod a+rx %s/*.py' % TMP_FOLDER)
 
     def __del__(self):
         # clean up
-        self.__run_ssh('rm -rf ~/%s' % self.tmp_folder)
+        pass
+        #self.__run_ssh('rm -rf ~/%s' % TMP_FOLDER)
 
     def run_script(self, script, script_options='', verbose=False):
 
         begin(script, self.host)
-        script_cmd = '~/%s/%s' % (self.tmp_folder, script)
+        script_cmd = '~/%s/%s' % (TMP_FOLDER, script)
         if script_options: script_cmd += ' ' + script_options 
 
         self.__run_ssh(script_cmd, tty=True)
@@ -157,14 +160,18 @@ def run(cfgs, options, mode):
         else:
             state_ok('Script [%s]' % script)
 
+    # set skipped scripts which no need to run on a upgrade install
+    #skipped_scripts = ['hadoop_mods','traf_user']
+
+    enable_pwd = True
+    #if options.pwd: enable_pwd = True
+    #if options.user: user = options.user
+    #if options.nomod: nomod = True
+    #if options.fork: THRESHOLD = options.fork
+    
     # run sub scripts
     try:
-        #enable_pwd = False
-        #if options.pwd: enable_pwd = True
-        #if options.user: user = options.user
-        #if options.nomod: nomod = True
-        #if options.fork: THRESHOLD = options.fork
-        enable_pwd = True
+        
         if enable_pwd and not islocal(hosts, local_host):
             pwd = getpass.getpass('Input SSH Password: ')
         else:
@@ -182,6 +189,8 @@ def run(cfgs, options, mode):
             if status.get_status(): 
                 state_skip('Script [%s] had already been executed' % script)
                 continue
+
+          # if options.upgrade and script in skipped_scripts: continue
 
             # if install on localhost only
             if not remote_instances:

@@ -15,14 +15,15 @@ except ImportError:
 from ConfigParser import ConfigParser
 from collections import defaultdict
 
-__version__ = 'v1.0.0'
+__VERSION__ = 'v1.0.0'
 INSTALLER_LOC = sys.path[0]
-DBCFG_FILE = INSTALLER_LOC + '/db_config'
+DBCFG_FILE = INSTALLER_LOC + '/db_config.json'
 DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
-MARK = '[MARK]'
+TMP_FOLDER = '.install'
+MARK = '[ERR]'
 
 def version():
-    print 'Installer version: %s' % __version__
+    print 'Installer version: %s' % __VERSION__
     exit(0)
 
 def ok(msg):
@@ -76,6 +77,24 @@ def cmd_output(cmd):
     stdout, stderr = p.communicate()
     return stdout, stderr
 
+def mod_template(template_file, change_items):
+    """
+        template_file should include tag like this: '{{ key }}'
+        change_item should be a dict includes {key: value}
+    """
+    try:
+        with open(template_file, 'r') as f:
+            lines = f.readlines()
+    except IOError:
+        err('Failed to open template file %s' % templat_file)
+
+    for k,v in change_items.iteritems():
+        tag = '{{ %s }}' % k
+        lines = [ l.replace(tag, v) if tag in l else l for l in lines ]
+
+    with open(template_file, 'w') as f:
+        f.writelines(lines)
+
 class Remote(object):
     """ 
         copy files to/fetch files from remote host using ssh
@@ -103,15 +122,18 @@ class Remote(object):
             if p.returncode: 
                 self.rc = p.returncode
                 # 'ssh -tt' will overwrite stderr, so manually handle it
-                self.stdout, self.stderr = self.stdout.split(MARK)
+                if MARK in self.stdout:
+                    self.stdout, self.stderr = self.stdout.split(MARK)
+                else:
+                    self.stderr = self.stdout
         except Exception as e:
-            err('Failed to run commands on remote host: %s' % e)
+            err_m('Failed to run commands on remote host: %s' % e)
 
     def copy(self, files, remote_folder='.'):
         """ copy file to user's home folder """
         for f in files:
             if not os.path.exists(f):
-                err('Copy file error: %s doesn\'t exist' % f)
+                err_m('Copy file error: %s doesn\'t exist' % f)
 
         cmd = self._commands('scp')
         cmd += ['-r']
@@ -151,7 +173,7 @@ class ParseHttp:
         try:
             import httplib2
         except ImportError:
-            err('Python module httplib2 is not found. Install python-httplib2 first.')
+            err_m('Python module httplib2 is not found. Install python-httplib2 first.')
 
         self.user = user
         self.passwd = passwd
@@ -166,19 +188,19 @@ class ParseHttp:
             resp, content = self.h.request(url, method, headers=self.headers, body=body)
             # return code is not 2xx
             if not 200 <= resp.status < 300:
-                err('Error return code {0} when {1}ting configs'.format(resp.status, method.lower()))
+                err_m('Error return code {0} when {1}ting configs'.format(resp.status, method.lower()))
             return content
         except Exception as exc:
-            err('Error with {0}ting configs using URL {1}. Reason: {2}'.format(method.lower(), url, exc))
+            err_m('Error with {0}ting configs using URL {1}. Reason: {2}'.format(method.lower(), url, exc))
 
     def get(self, url):
         try:
             return defaultdict(str, json.loads(self._request(url, 'GET')))
         except ValueError:
-            err('Failed to get data from URL, check password if URL requires authentication')
+            err_m('Failed to get data from URL, check password if URL requires authentication')
 
     def put(self, url, config):
-        if not isinstance(config, dict): err('Wrong HTTP PUT parameter, should be a dict')
+        if not isinstance(config, dict): err_m('Wrong HTTP PUT parameter, should be a dict')
         result = self._request(url, 'PUT', body=json.dumps(config))
         if result: return defaultdict(str, json.loads(result))
 
@@ -186,17 +208,17 @@ class ParseHttp:
         try:
             return defaultdict(str, json.loads(self._request(url, 'POST')))
         except ValueError:
-            err('Failed to send command to URL')
+            err_m('Failed to send command to URL')
 
 
 class ParseXML:
     def __init__(self, xml_file):
         self.__xml_file = xml_file
-        if not os.path.exists(self.__xml_file): err('Cannot find xml file %s' % self.__xml_file)
+        if not os.path.exists(self.__xml_file): err_m('Cannot find xml file %s' % self.__xml_file)
         try:
             self._tree = ET.parse(self.__xml_file)
         except Exception as e:
-            err('failed to parsing xml: %s' % e)
+            err_m('failed to parsing xml: %s' % e)
             
         self._root = self._tree.getroot()
         self._nvlist = []
@@ -253,7 +275,7 @@ class ParseJson:
         self.__js_file = js_file
 
     def jload(self):
-        if not os.path.exists(self.__js_file): err('Cannot find json file %s' % self.__js_file)
+        if not os.path.exists(self.__js_file): err_m('Cannot find json file %s' % self.__js_file)
         with open(self.__js_file, 'r') as f:
             tmparray = f.readlines()
         content = ''
@@ -263,7 +285,7 @@ class ParseJson:
         try:
             return defaultdict(str, json.loads(content))
         except ValueError:
-            err('No json format found in config file %s' % self.__js_file)
+            err_m('No json format found in config file %s' % self.__js_file)
 
     def jsave(self, dic):
         with open(self.__js_file, 'w') as f:
@@ -290,7 +312,7 @@ class ParseInI:
             host_content = self.conf.items('hosts')[0][1]
             return expNumRe(host_content)
         except IndexError:
-            err('Failed to parse hosts from %s' % self.cfg_file)
+            err_m('Failed to parse hosts from %s' % self.cfg_file)
 
     def get_roles(self):
         try:
@@ -338,7 +360,7 @@ def set_ansible_cfgs(host_content):
             with open(filename, 'w') as f:
                 f.write(content)
         except IOError:
-            err('Failed to open %s file' % filename)
+            err_m('Failed to open %s file' % filename)
     write_file(ansible_cfg, content)
     write_file(hosts_file, host_content)
     
