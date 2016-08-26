@@ -19,7 +19,7 @@ __VERSION__ = 'v1.0.0'
 INSTALLER_LOC = sys.path[0]
 DBCFG_FILE = INSTALLER_LOC + '/db_config.json'
 DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
-TMP_FOLDER = '.install'
+TMP_FOLDER = '/tmp/.install'
 MARK = '[ERR]'
 
 def version():
@@ -114,8 +114,10 @@ class Remote(object):
         if not self.pwd: cmd += ['-oPasswordAuthentication=no']
         return cmd
 
-    def _execute(self, cmd):
+    def _execute(self, cmd, verbose=False):
         try:
+            if verbose: print 'cmd:', cmd
+
             master, slave = pty.openpty()
             p = subprocess.Popen(cmd, stdin=slave, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             self.stdout, self.stderr = p.communicate()
@@ -139,9 +141,9 @@ class Remote(object):
         cmd += ['-r']
         cmd += files # files should be full path
         if self.user:
-            cmd += ['%s@%s:~/%s/' % (self.user, self.host, remote_folder)]
+            cmd += ['%s@%s:%s/' % (self.user, self.host, remote_folder)]
         else:
-            cmd += ['%s:~/%s/' % (self.host, remote_folder)]
+            cmd += ['%s:%s/' % (self.host, remote_folder)]
 
         self._execute(cmd)
 

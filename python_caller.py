@@ -17,7 +17,7 @@ class RemoteRun(Remote):
         super(RemoteRun, self).__init__(host, user, pwd)
 
         # create tmp folder
-        self.__run_sshcmd('mkdir -p ~/%s' % TMP_FOLDER)
+        self.__run_sshcmd('mkdir -p %s' % TMP_FOLDER)
 
         # copy all needed files to remote host
         all_files = glob(INSTALLER_LOC + '/*.py') + glob(INSTALLER_LOC + '/*.json') + \
@@ -30,16 +30,20 @@ class RemoteRun(Remote):
 
     def __del__(self):
         # clean up
-        pass
-        #self.__run_ssh('rm -rf ~/%s' % TMP_FOLDER)
+        self.__run_ssh('sudo rm -rf %s' % TMP_FOLDER)
 
-    def run_script(self, script, script_options='', verbose=False):
+    def run_script(self, script, run_user, script_options='', verbose=False):
+        """ @param run_user: run the script with this user """
 
         begin(script, self.host)
-        script_cmd = '~/%s/%s' % (TMP_FOLDER, script)
+        if run_user:
+            script_cmd = 'sudo su -c %s \'%s/%s\'' % (run_user, TMP_FOLDER, script)
+        else:
+            script_cmd = 'sudo %s/%s' % (TMP_FOLDER, script)
+
         if script_options: script_cmd += ' ' + script_options 
 
-        self.__run_ssh(script_cmd, tty=True)
+        self.__run_ssh(script_cmd, verbose)
 
         format1 = 'Host [%s]: Script [%s]: %s' % (self.host, script, self.stdout)
         format2 = 'Host [%s]: Script [%s]' % (self.host, script)
@@ -58,18 +62,18 @@ class RemoteRun(Remote):
             logger.error(msg)
             exit(1)
 
-    def __run_ssh(self, user_cmd, tty=False):
+    def __run_ssh(self, user_cmd, verbose=False):
         user_cmds = user_cmd.split()
 
         cmd = self._commands('ssh')
-        if tty: cmd += ['-tt'] # force tty allocation
+        cmd += ['-tt'] # force tty allocation
         if self.user: 
             cmd += ['%s@%s' % (self.user, self.host)]
         else:
             cmd += [self.host]
         cmd += user_cmds
 
-        self._execute(cmd)
+        self._execute(cmd, verbose)
 
     def __run_sshcmd(self, int_cmd):
         """ run internal used ssh command """
@@ -137,10 +141,9 @@ def run(cfgs, options, mode):
     # Check if install on localhost
     islocal = lambda h, lh: True if len(h) == 1 and (h[0] == 'localhost' or h[0] == lh) else False
 
-    def run_local_script(script):
-        # pass the ssh password to sub scripts which need SSH
-        #TODO: not finished
-        if script:
+    def run_local_script(script, req_pwd):
+        # pass the ssh password to sub scripts which need SSH password
+        if req_pwd:
             cmd = sys.path[0] + '/' + script + ' ' + pwd
         else:
             cmd = sys.path[0] + '/' + script
@@ -185,6 +188,16 @@ def run(cfgs, options, mode):
         for cfg in script_cfgs:
             script = cfg['script']
             node = cfg['node']
+            if not 'run_as_traf' in cfgs.keys():
+                run_user = ''
+            elif cfg['run_as_traf'] == 'yes':
+                run_user = cfg['traf_user']
+
+            if not 'req_pwd' in cfgs.keys():
+                req_pwd = False
+            elif cfg['req_pwd'] == 'yes':
+                req_pwd = True
+
             status = Status(STAT_FILE, script)
             if status.get_status(): 
                 state_skip('Script [%s] had already been executed' % script)
@@ -194,10 +207,10 @@ def run(cfgs, options, mode):
 
             # if install on localhost only
             if not remote_instances:
-                run_local_script(script)
+                run_local_script(script, req_pwd)
             else:
                 if node == 'local':
-                    run_local_script(script)
+                    run_local_script(script, req_pwd)
                 elif node == 'first':
                     remote_instances[0].run_script(script)
                 elif node == 'all':
@@ -212,7 +225,7 @@ def run(cfgs, options, mode):
                         parted_remote_instances = [remote_instances]
 
                     for parted_remote_inst in parted_remote_instances:
-                        threads = [Thread(target=r.run_script, args=(script, )) for r in parted_remote_inst]
+                        threads = [Thread(target=r.run_script, args=(script, run_user)) for r in parted_remote_inst]
                         for t in threads: t.start()
                         for t in threads: t.join()
                         #TODO: add log file location to display, log file name reconsider
