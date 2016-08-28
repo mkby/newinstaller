@@ -77,23 +77,31 @@ def cmd_output(cmd):
     stdout, stderr = p.communicate()
     return stdout, stderr
 
-def mod_template(template_file, change_items):
+def mod_file(template_file, change_items):
     """
-        template_file should include tag like this: '{{ key }}'
-        change_item should be a dict includes {key: value}
+        change_items should be a dict includes:
+        {regular_expression : replace_string}
     """
     try:
         with open(template_file, 'r') as f:
-            lines = f.readlines()
+            lines = f.read()
     except IOError:
-        err('Failed to open template file %s' % templat_file)
+        err('Failed to open file %s to modify' % templat_file)
 
-    for k,v in change_items.iteritems():
-        tag = '{{ %s }}' % k
-        lines = [ l.replace(tag, v) if tag in l else l for l in lines ]
+    for regexp,replace in change_items.iteritems():
+        lines = re.sub(regexp, replace, lines)
 
     with open(template_file, 'w') as f:
-        f.writelines(lines)
+        f.write(lines)
+
+def append_file(template_file, string):
+    try:
+        with open(template_file, 'a+') as f:
+            lines = f.read()
+            if not string in lines: f.write(string + '\n')
+    except IOError:
+        err('Failed to open file %s to append' % templat_file)
+
 
 class Remote(object):
     """ 
