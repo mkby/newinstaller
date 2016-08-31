@@ -18,9 +18,9 @@ def apache_mod(hdfs_xml, hbase_xml):
 
 def main():
     cfgs = ParseJson('db_config').jload()
-    if 'apache' in cfgs['distro']:
+    if 'APACHE' in cfgs['distro']:
         apache_mod(cfgs['hdfs_xml_file'], cfgs['hbase_xml_file'])
-        ok('Apache Hadoop modification completed')
+        print 'Apache Hadoop modification completed'
 
 if __name__ == '__main__':
     main()

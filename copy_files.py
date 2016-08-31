@@ -4,16 +4,16 @@
 import os
 import sys
 import subprocess
+import json
 from threading import Thread
-from common import Remote, run_cmd, ParseJson, DBCFG_FILE, err
+from common import Remote, run_cmd, DBCFG_FILE, err
 
 def run(pwd):
     """ gen ssh key on local and copy to all nodes 
         copy traf package file from local to all nodes 
     """
-    dbcfgs = ParseJson(DBCFG_FILE).jload()
-    #hosts = dbcfgs['node_list'].split()
-    hosts = ['eason-1', 'eason-2']
+    dbcfgs = json.loads(dbcfgs_json)
+    hosts = dbcfgs['node_list'].split(',')
     traf_package = dbcfgs['traf_package']
 
     key_file = '/tmp/id_rsa'
@@ -32,7 +32,12 @@ def run(pwd):
 
 # main
 try:
-    pwd = sys.argv[1]
+    dbcfgs_json = sys.argv[1]
+except IndexError:
+    err('No db config found')
+
+try:
+    pwd = sys.argv[2]
 except IndexError:
     pwd = ''
 

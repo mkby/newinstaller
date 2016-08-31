@@ -2,60 +2,70 @@
 # this script should be run on all nodes
 
 import base64
+import json
 from common import *
 
 def run():
     """ create trafodion user, bashrc, setup passwordless SSH """
-    dbcfgs = ParseJson(DBCFG_FILE).jload()
-    #traf_user = dbcfgs['traf_user']
-    #traf_pwd = base64.b64decode(dbcfgs['traf_pwd'])
-    traf_user = 'trafodion'
-    traf_pwd = 'traf'
-    traf_group = traf_user
+    dbcfgs = json.loads(dbcfgs_json)
 
-    traf_home = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2')[0].strip()
-    traf_user_dir = '%s/%s' % (traf_home, traf_user)
+    TRAF_USER = dbcfgs['traf_user']
+    TRAF_PWD = base64.b64decode(dbcfgs['traf_pwd'])
+    TRAF_GROUP = TRAF_USER
+    TRAF_HOME = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
+    TRAF_USER_DIR = '%s/%s' % (TRAF_HOME, TRAF_USER)
+    SQ_ROOT = '%s/%s-%s' % (TRAF_USER_DIR, dbcfgs['traf_basename'], dbcfgs['traf_version'])
+
+    KEY_FILE = '/tmp/id_rsa'
+    AUTH_KEY_FILE = '%s/.ssh/authorized_keys' % TRAF_USER_DIR
+    SSH_CFG_FILE = '%s/.ssh/config' % TRAF_USER_DIR
+    BASHRC_TEMPLATE = '%s/bashrc.template' % TMP_DIR
+    BASHRC_FILE = '%s/.bashrc' % TRAF_USER_DIR
+    ULIMITS_FILE = '/etc/security/limits.d/%s.conf' % TRAF_USER
+    HSPERFDATA_FILE = '/tmp/hsperfdata_trafodion'
 
     # create trafodion user and group
-    if not cmd_output('getent passwd %s' % traf_user)[0]:
-        run_cmd('useradd --shell /bin/bash -m %s -g %s --password "$(openssl passwd %s)"' % (traf_user, traf_group, traf_pwd))
+    if not cmd_output('getent group %s' % TRAF_GROUP):
+        run_cmd('groupadd %s > /dev/null 2>&1' % TRAF_GROUP)
 
-    if not cmd_output('getent group %s' % traf_user)[0]:
-        run_cmd('groupadd %s > /dev/null 2>&1' % traf_user)
-    
+    if not cmd_output('getent passwd %s' % TRAF_USER):
+        run_cmd('useradd --shell /bin/bash -m %s -g %s --password "$(openssl passwd %s)"' % (TRAF_USER, TRAF_GROUP, TRAF_PWD))
+
     # set ssh key
-    run_cmd_as_user(traf_user, 'echo -e "y" | ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa')
+    run_cmd_as_user(TRAF_USER, 'echo -e "y" | ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa')
     # the key is generated in another script running on the installer node
-    key_file = '/tmp/id_rsa'
-    run_cmd('cp %s{,.pub} %s/.ssh/' % (key_file, traf_user_dir))
-    run_cmd('chown -R %s:%s %s/.ssh/' % (traf_user, traf_group, traf_user_dir))
+    run_cmd('cp %s{,.pub} %s/.ssh/' % (KEY_FILE, TRAF_USER_DIR))
 
-    auth_key_file = '%s/.ssh/authorized_keys' % traf_user
-    run_cmd_as_user(traf_user, 'cat ~/.ssh/id_rsa.pub > ~/.ssh/authorized_keys')
-    os.chmod(auth_key_file, 644)
+    run_cmd_as_user(TRAF_USER, 'cat ~/.ssh/id_rsa.pub > %s' % AUTH_KEY_FILE)
+    run_cmd('chmod 644 %s' % AUTH_KEY_FILE)
 
-    ssh_cfg_file = '%s/.ssh.config' % traf_user
     ssh_cfg = 'StrictHostKeyChecking=no\nNoHostAuthenticationForLocalhost=yes\n'
-    with open(ssh_cfg_file, 'w') as f:
+    with open(SSH_CFG_FILE, 'w') as f:
         f.write(ssh_cfg)
-    os.chmod(ssh_cfg_file, 600)
+    run_cmd('chmod 600 %s' % SSH_CFG_FILE)
+
+    run_cmd('chown -R %s:%s %s/.ssh/' % (TRAF_USER, TRAF_GROUP, TRAF_USER_DIR))
 
     # set bashrc
-    # TODO: set real SQ_HOME
-    sq_home = traf_home_dir + 'trafodion-2.0'
-    change_items = {'sq_home': sq_home, 'node_list':dbcfgs['node_list'], 'my_nodes':dbcfgs['my_nodes']}
+    nodes = dbcfgs['node_list'].split(',')
+    change_items = {
+    '{{ sq_home }}': SQ_ROOT,
+    '{{ node_list }}': ' '.join(nodes),
+    '{{ node_count }}':str(len(nodes)),
+    '{{ my_nodes }}': ' -w ' + ' -w '.join(nodes)
+    }
 
-    bashrc_template = '%s/bashrc.template' % TMP_FOLDER
-    mod_template(bashrc_template, change_items)
+    mod_file(BASHRC_TEMPLATE, change_items)
         
     # backup bashrc if exsits
+    if os.path.exists(BASHRC_FILE):
+        run_cmd('cp %s %s.bak' % ((BASHRC_FILE,) *2))
 
     # copy bashrc to trafodion's home
-    run_cmd('cp %s/bashrc.template %s/.bashrc' % (TMP_FOLDER, traf_user_dir))
-    run_cmd('chown -R %s:%s %s/.bashrc' % (traf_user, traf_group, traf_user_dir))
+    run_cmd('cp %s/bashrc.template %s' % (TMP_DIR, BASHRC_FILE))
+    run_cmd('chown -R %s:%s %s*' % (TRAF_USER, TRAF_GROUP, BASHRC_FILE))
 
     # set ulimits for trafodion user
-    ulimits_file = '/etc/security/limits.d/%s.conf' % traf_user
     ulimits_config = '\
 # Trafodion settings\n\
 %s   soft   core unlimited\n\
@@ -68,9 +78,23 @@ def run():
 %s   hard   nproc 100000\n\
 %s   soft nofile 8192\n\
 %s   hard nofile 65535\n\
-hbase soft nofile 8192' % ((traf_user,) * 10)
-    with open(ulimits_file, 'w') as f:
+hbase soft nofile 8192' % ((TRAF_USER,) * 10)
+    with open(ULIMITS_FILE, 'w') as f:
         f.write(ulimits_config)
 
+    # change permission for hsperfdata
+    if os.path.exists(HSPERFDATA_FILE):
+        run_cmd('chown -R %s:%s %s' % (TRAF_USER, TRAF_GROUP, HSPERFDATA_FILE))
+
+    # clean up unused key file at the last step
+    run_cmd('rm -rf %s{,.pub}' % KEY_FILE)
+
+    print 'Setup trafodion user successfully!'
+
 # main
+try:
+    dbcfgs_json = sys.argv[1]
+except IndexError:
+    err('No db config found')
 run()
+

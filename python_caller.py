@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import time
 import subprocess
 import getpass
 import socket
@@ -8,7 +9,8 @@ from glob import glob
 from threading import Thread
 from common import *
 
-logger = get_logger()
+LOG_FILE = '%s/logs/install_%s.log' % (INSTALLER_LOC, time.strftime('%Y%m%d_%H%M'))
+logger = get_logger(LOG_FILE)
 
 class RemoteRun(Remote):
     """ run commands or scripts remotely using ssh """
@@ -17,39 +19,38 @@ class RemoteRun(Remote):
         super(RemoteRun, self).__init__(host, user, pwd)
 
         # create tmp folder
-        self.__run_sshcmd('mkdir -p %s' % TMP_FOLDER)
+        self.__run_sshcmd('mkdir -p %s' % TMP_DIR)
 
         # copy all needed files to remote host
         all_files = glob(INSTALLER_LOC + '/*.py') + glob(INSTALLER_LOC + '/*.json') + \
                     glob(INSTALLER_LOC + '/*.sh') + glob(INSTALLER_LOC + '/*.template')
 
-        self.copy(all_files, remote_folder=TMP_FOLDER)
+        self.copy(all_files, remote_folder=TMP_DIR)
 
         # set permission
-        self.__run_sshcmd('chmod a+rx %s/*.py' % TMP_FOLDER)
+        self.__run_sshcmd('chmod a+rx %s/*.py' % TMP_DIR)
 
     def __del__(self):
         # clean up
-        self.__run_ssh('sudo rm -rf %s' % TMP_FOLDER)
+        self.__run_ssh('sudo rm -rf %s' % TMP_DIR)
 
-    def run_script(self, script, run_user, script_options='', verbose=False):
+    def run_script(self, script, run_user, json_string, verbose=False):
         """ @param run_user: run the script with this user """
 
-        begin(script, self.host)
         if run_user:
-            script_cmd = 'sudo su -c %s \'%s/%s\'' % (run_user, TMP_FOLDER, script)
+            # format string in order to run with 'sudo su $user -c $cmd'
+            json_string = json_string.replace('"','\\\\\\"').replace(' ','').replace('{','\\{')
+            # this command only works with shell=True
+            script_cmd = '"sudo su - %s -c \'%s/%s %s\'"' % (run_user, TMP_DIR, script, json_string)
+            self.__run_ssh(script_cmd, verbose=verbose, shell=True)
         else:
-            script_cmd = 'sudo %s/%s' % (TMP_FOLDER, script)
-
-        if script_options: script_cmd += ' ' + script_options 
-
-        self.__run_ssh(script_cmd, verbose)
+            script_cmd = 'sudo %s/%s \'%s\'' % (TMP_DIR, script, json_string)
+            self.__run_ssh(script_cmd, verbose=verbose)
 
         format1 = 'Host [%s]: Script [%s]: %s' % (self.host, script, self.stdout)
         format2 = 'Host [%s]: Script [%s]' % (self.host, script)
 
         logger.info(format1)
-        if verbose: print format1
 
         if self.rc == 0:
             state_ok(format2)
@@ -62,18 +63,23 @@ class RemoteRun(Remote):
             logger.error(msg)
             exit(1)
 
-    def __run_ssh(self, user_cmd, verbose=False):
-        user_cmds = user_cmd.split()
-
+    def __run_ssh(self, user_cmd, verbose=False, shell=False):
+        """ @params: user_cmd should be a string """
         cmd = self._commands('ssh')
         cmd += ['-tt'] # force tty allocation
         if self.user: 
             cmd += ['%s@%s' % (self.user, self.host)]
         else:
             cmd += [self.host]
-        cmd += user_cmds
 
-        self._execute(cmd, verbose)
+        # if shell=True, cmd should be a string not list
+        if shell: 
+            cmd = ' '.join(cmd) + ' '
+            cmd += user_cmd
+        else:
+            cmd += user_cmd.split()
+
+        self._execute(cmd, verbose=verbose, shell=shell)
 
     def __run_sshcmd(self, int_cmd):
         """ run internal used ssh command """
@@ -81,7 +87,6 @@ class RemoteRun(Remote):
         self.__run_ssh(int_cmd)
         if self.rc != 0:
             msg = 'Host [%s]: Failed to run internal commands, check SSH password or connectivity' % self.host
-            if self.stderr: msg += '\nReason: ' + self.stderr
             logger.error(msg)
             err_m(msg)
 
@@ -97,15 +102,6 @@ def state_skip(msg):
 def state(color, result, msg):
     WIDTH = 80
     print '\n\33[%dm%s %s [ %s ]\33[0m\n' % (color, msg, (WIDTH - len(msg))*'.', result)
-
-def begin(script, host=''):
-    output = '\nStart running script [%s]' % script
-    if host: 
-        output += ' on host [%s]' % host
-    else:
-        output += ' on localhost'
-
-    print output
 
 class Status:
     def __init__(self, stat_file, name):
@@ -125,30 +121,38 @@ class Status:
             f.write('%s OK\n' % self.name)
 
 @time_elapse
-def run(cfgs, options, mode):
+def run(dbcfgs, options, mode='install'):
     """ main entry
         mode: install/discover
     """
     STAT_FILE = mode + '.status'
     SCRCFG_FILE = 'script_config.json'
 
+    verbose = True if options.verbose else False
+    if options.pwd: enable_pwd = True
+    if options.user: user = options.user
+    if options.fork: THRESHOLD = options.fork
+
     conf = ParseJson(SCRCFG_FILE).jload()
     script_cfgs = conf[mode]
 
-    hosts = cfgs['node_list'].split()
+    dbcfgs_json = json.dumps(dbcfgs)
+    hosts = dbcfgs['node_list'].split(',')
     local_host = socket.gethostname().split('.')[0]
 
     # Check if install on localhost
     islocal = lambda h, lh: True if len(h) == 1 and (h[0] == 'localhost' or h[0] == lh) else False
 
-    def run_local_script(script, req_pwd):
-        # pass the ssh password to sub scripts which need SSH password
-        if req_pwd:
-            cmd = sys.path[0] + '/' + script + ' ' + pwd
-        else:
-            cmd = sys.path[0] + '/' + script
+    # set skipped scripts which no need to run on a upgrade install
+    skipped_scripts = ['hadoop_mods','traf_user']
 
-        begin(script)
+    def run_local_script(script, json_string, req_pwd):
+        cmd = '%s/%s \'%s\'' % (INSTALLER_LOC, script, json_string)
+
+        # pass the ssh password to sub scripts which need SSH password
+        if req_pwd: cmd += ' ' + pwd
+
+        if verbose: print cmd
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         stdout, stderr = p.communicate()
         rc = p.returncode
@@ -163,14 +167,6 @@ def run(cfgs, options, mode):
         else:
             state_ok('Script [%s]' % script)
 
-    # set skipped scripts which no need to run on a upgrade install
-    #skipped_scripts = ['hadoop_mods','traf_user']
-
-    enable_pwd = True
-    #if options.pwd: enable_pwd = True
-    #if options.user: user = options.user
-    #if options.nomod: nomod = True
-    #if options.fork: THRESHOLD = options.fork
     
     # run sub scripts
     try:
@@ -187,32 +183,36 @@ def run(cfgs, options, mode):
         logger.info(' ***** %s Start *****' % mode)
         for cfg in script_cfgs:
             script = cfg['script']
+            print '\n*** Start running script [%s]:' % script
             node = cfg['node']
-            if not 'run_as_traf' in cfgs.keys():
-                run_user = ''
+            run_user = ''
+            if not 'run_as_traf' in cfg.keys():
+                pass
             elif cfg['run_as_traf'] == 'yes':
-                run_user = cfg['traf_user']
+                run_user = dbcfgs['traf_user']
 
-            if not 'req_pwd' in cfgs.keys():
+            if not 'req_pwd' in cfg.keys():
                 req_pwd = False
             elif cfg['req_pwd'] == 'yes':
                 req_pwd = True
 
             status = Status(STAT_FILE, script)
             if status.get_status(): 
-                state_skip('Script [%s] had already been executed' % script)
+                msg = 'Script [%s] had already been executed' % script
+                state_skip(msg)
+                logger.info(msg)
                 continue
 
-          # if options.upgrade and script in skipped_scripts: continue
+            if options.upgrade and script in skipped_scripts: continue
 
             # if install on localhost only
             if not remote_instances:
-                run_local_script(script, req_pwd)
+                run_local_script(script, dbcfgs_json, req_pwd)
             else:
                 if node == 'local':
-                    run_local_script(script, req_pwd)
+                    run_local_script(script, dbcfgs_json, req_pwd)
                 elif node == 'first':
-                    remote_instances[0].run_script(script)
+                    remote_instances[0].run_script(script, run_user, dbcfgs_json, verbose=verbose)
                 elif node == 'all':
                     # set thread count threshold 
                     THRESHOLD = 10
@@ -225,12 +225,12 @@ def run(cfgs, options, mode):
                         parted_remote_instances = [remote_instances]
 
                     for parted_remote_inst in parted_remote_instances:
-                        threads = [Thread(target=r.run_script, args=(script, run_user)) for r in parted_remote_inst]
+                        threads = [Thread(target=r.run_script, args=(script, run_user, dbcfgs_json, verbose)) for r in parted_remote_inst]
                         for t in threads: t.start()
                         for t in threads: t.join()
-                        #TODO: add log file location to display, log file name reconsider
+
                         if sum([ r.rc for r in parted_remote_inst ]) != 0:
-                            err_m('Script failed to run on one or more nodes, exiting ...')
+                            err_m('Script failed to run on one or more nodes, exiting ...\nCheck log file %s for details.' % LOG_FILE)
                 else:
                     # should not go to here
                     err_m('Invalid configuration for %s' % SCRCFG_FILE)
@@ -244,5 +244,5 @@ def run(cfgs, options, mode):
 
 if __name__ == '__main__':
     cfgs = {'node_list': 'eason-1 eason-2'}
-    run(cfgs, 1, 'install')
+    run(cfgs, 1)
     exit(0)

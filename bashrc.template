@@ -46,6 +46,7 @@ export MY_SQROOT=$SQ_HOME
 # These env vars define all nodes in the cluster
 export NODE_LIST="{{ node_list }}"
 export MY_NODES="{{ my_nodes }}"
+export node_count="{{ node_count }}"
 
 #-------------------------------------------
 # Execute the sqenv.sh script if it exists.

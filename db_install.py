@@ -205,7 +205,7 @@ class UserInput:
             },
             'scratch_locs':
             {
-                'prompt':'Enter scratch file location, if more than one folder, use blank seperated',
+                'prompt':'Enter scratch file location, if more than one folder, use comma seperated',
                 'default':'$MY_SQROOT/tmp',
             },
             'java_home':
@@ -230,6 +230,10 @@ class UserInput:
             'hbase_home':
             {
                 'prompt':'Enter Apache HBase directory location'
+            },
+            'hbase_ver':
+            {
+                'prompt':'Enter Apache HBase Version (1.0, 1.1, 1.2)'
             },
             'hive_home':
             {
@@ -397,15 +401,15 @@ def log_err(errtext):
     tp = ParseJson(DBCFG_TMP_FILE)
     tp.jsave(cfgs)
 
-    err(errtext)
+    err_m(errtext)
 
 def check_node_conn():
-    for node in cfgs['node_list'].split():
+    for node in cfgs['node_list'].split(','):
         rc = os.system('ping -c 1 %s >/dev/null 2>&1' % node)
         if rc: log_err('Cannot ping %s, please check network connection or /etc/hosts configured correctly ' % node)
 
 def check_mgr_url():
-    if cfgs['distro'] == 'apache': return
+    if cfgs['distro'] == 'APACHE': return
     hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
     validate_url_v1 = '%s/api/v1/clusters' % cfgs['mgr_url']
     validate_url_v6 = '%s/api/v6/clusters' % cfgs['mgr_url']
@@ -478,11 +482,12 @@ def user_input(no_dbmgr=False, vanilla_hadoop=False):
     if vanilla_hadoop:
         cfgs['hadoop_home'] = g('hadoop_home')
         cfgs['hbase_home'] = g('hbase_home')
+        hbase_ver = g('hbase_ver')
         cfgs['hive_home'] = g('hive_home')
         cfgs['hdfs_user'] = g('hdfs_user')
         cfgs['hbase_user'] = g('hbase_user')
         cfgs['first_rsnode'] = g('first_rsnode')
-        cfgs['distro'] = 'apache'
+        cfgs['distro'] = 'APACHE' + hbase_ver
     else:
         url = g('mgr_url')
         if not ('http:' in url or 'https:' in url): 
@@ -538,7 +543,7 @@ def user_input(no_dbmgr=False, vanilla_hadoop=False):
             # don't check for apache hadoop
             if not vanilla_hadoop and set(node_lists).difference(set(rsnodes)):
                 log_err('Incorrect node list, should be part of RegionServer nodes')
-            node_list = ' '.join(node_lists)
+            node_list = ','.join(node_lists)
             print ' === NODE LIST ===\n' + node_list
             confirm = u.get_input('confirm_nodelist')
             if confirm == 'N': 
@@ -547,16 +552,16 @@ def user_input(no_dbmgr=False, vanilla_hadoop=False):
                 else:
                     log_err('Incorrect node list, aborted...')
             else:
-                cfgs['node_list'] = ' ' + node_list
+                cfgs['node_list'] = ',' + node_list
                 break
     else:
-        cfgs['node_list'] = ' ' + ' '.join(rsnodes)
+        cfgs['node_list'] = ','.join(rsnodes)
 
     check_node_conn()
 
     # set other config to cfgs
-    cfgs['my_nodes'] = cfgs['node_list'].replace(' ', ' -w ')
-    cfgs['first_node'] = cfgs['node_list'].split()[0]
+    #cfgs['my_nodes'] = cfgs['node_list'].replace(' ', ' -w ')
+    cfgs['first_node'] = cfgs['node_list'].split(',')[0]
     if vanilla_hadoop:
         cfgs['hbase_xml_file'] = cfgs['hbase_home'] + '/conf/hbase-site.xml'
         cfgs['hdfs_xml_file'] = cfgs['hadoop_home'] + '/etc/hadoop/hdfs-site.xml'
@@ -595,7 +600,7 @@ def user_input(no_dbmgr=False, vanilla_hadoop=False):
         g('dcs_interface')
         g('dcs_bknodes')
         # check dcs backup nodes should exist in node list
-        if sorted(list(set((cfgs['dcs_bknodes'] + ' ' + cfgs['node_list']).split()))) != sorted(cfgs['node_list'].split()):
+        if sorted(list(set((cfgs['dcs_bknodes'] + ' ' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
             log_err('Invalid DCS backup nodes, please pick up from node list')
 
     u.notify_user()
@@ -617,13 +622,15 @@ def get_options():
                 help="Specify become root method for ansible [ sudo | su | pbrun | pfexec | runas | doas ].")
     parser.add_option("-f", "--fork", dest="fork", metavar="FORK",
                 help="Specify number of parallel processes to run sub scripts (default=5)" )
-    parser.add_option("-p", "--prompt-passwd", action="store_true", dest="pwd", default=False,
+    parser.add_option("-p", "--prompt-passwd", action="store_true", dest="pwd", default=True,
                 help="Prompt SSH login password for remote hosts. \
                       If set, passwordless ssh is not required.")
+    parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
+                help="Verbose mode, will print commands.")
     parser.add_option("--dryrun", action="store_true", dest="dryrun", default=False,
                 help="Dry run mode, it will only generate the config file.") 
-    parser.add_option("--no-mod", action="store_true", dest="nomod", default=False,
-                help="Do not modify hadoop configuration, it is really helpful when you reinstall Trafodion.")
+    parser.add_option("--upgrade", action="store_true", dest="upgrade", default=False,
+                help="Upgrade install, it is really helpful when you reinstall Trafodion.")
     parser.add_option("--vanilla-hadoop", action="store_true", dest="vanilla", default=False,
                 help="Install Trafodion on top of Vanilla Hadoop.")
     parser.add_option("--no-dbmgr", action="store_true", dest="nodbmgr", default=False,

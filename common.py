@@ -19,7 +19,7 @@ __VERSION__ = 'v1.0.0'
 INSTALLER_LOC = sys.path[0]
 DBCFG_FILE = INSTALLER_LOC + '/db_config.json'
 DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
-TMP_FOLDER = '/tmp/.install'
+TMP_DIR = '/tmp/.install'
 MARK = '[ERR]'
 
 def version():
@@ -42,11 +42,10 @@ def err(msg):
     sys.stderr.write(MARK + msg)
     sys.exit(1)
 
-def get_logger(log_file=''):
-    ts = time.strftime('%Y%m%d')
-    logs_dir = INSTALLER_LOC + '/logs'
-    if not os.path.exists(logs_dir): os.mkdir(logs_dir)
-    log_file = '%s/install_%s.log' % (logs_dir, ts)
+def get_logger(log_file):
+
+    log_dir = os.path.dirname(log_file)
+    if not os.path.exists(log_dir): os.mkdir(log_dir)
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -75,7 +74,7 @@ def cmd_output(cmd):
     """ return command output but not check return value """
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
-    return stdout, stderr
+    return stdout
 
 def mod_file(template_file, change_items):
     """
@@ -100,7 +99,14 @@ def append_file(template_file, string):
             lines = f.read()
             if not string in lines: f.write(string + '\n')
     except IOError:
-        err('Failed to open file %s to append' % templat_file)
+        err('Failed to open file %s to append' % template_file)
+
+def write_file(template_file, string):
+    try:
+        with open(template_file, 'w') as f:
+            f.write(string)
+    except IOError:
+        err('Failed to open file %s to write' % template_file)
 
 
 class Remote(object):
@@ -122,12 +128,16 @@ class Remote(object):
         if not self.pwd: cmd += ['-oPasswordAuthentication=no']
         return cmd
 
-    def _execute(self, cmd, verbose=False):
+    def _execute(self, cmd, verbose=False, shell=False):
         try:
             if verbose: print 'cmd:', cmd
 
             master, slave = pty.openpty()
-            p = subprocess.Popen(cmd, stdin=slave, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if shell:
+                p = subprocess.Popen(cmd, stdin=slave, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            else:
+                p = subprocess.Popen(cmd, stdin=slave, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
             self.stdout, self.stderr = p.communicate()
             if p.returncode: 
                 self.rc = p.returncode
@@ -154,6 +164,7 @@ class Remote(object):
             cmd += ['%s:%s/' % (self.host, remote_folder)]
 
         self._execute(cmd)
+        if self.rc != 0: err('Failed to copy files to remote nodes')
 
     def fetch(self, files, local_folder='.'):
         """ fetch file from user's home folder """
@@ -166,6 +177,7 @@ class Remote(object):
         cmd += [local_folder]
 
         self._execute(cmd)
+        if self.rc != 0: err('Failed to fetch files from remote nodes')
 
     def __sshpass_available(self):
         sshpass_available = True
@@ -357,7 +369,7 @@ def set_ansible_cfgs(host_content):
     logs_dir = INSTALLER_LOC + '/logs'
     hosts_file = INSTALLER_LOC + '/hosts'
     if not os.path.exists(logs_dir): os.mkdir(logs_dir)
-    log_path = '%s/%s_%s.log' %(logs_dir, sys.argv[0].split('/')[-1].split('.')[0], ts)
+    log_path = '%s/%s_%s.log' %(LOGS_DIR, sys.argv[0].split('/')[-1].split('.')[0], ts)
 
     ansible_cfg = os.getenv('HOME') + '/.ansible.cfg'
     content = '[defaults]\n'
