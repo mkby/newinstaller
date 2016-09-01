@@ -1,0 +1,40 @@
+{
+"install": [
+    {
+        "script": "copy_files.py",
+        "node": "local",
+        "req_pwd": "yes",
+        "run_as_traf": "no"
+    },
+    {
+        "script": "traf_user.py",
+        "node": "all",
+        "run_as_traf": "no"
+    },
+    {
+        "script": "traf_package.py",
+        "node": "all",
+        "run_as_traf": "yes"
+    },
+    {
+        "script": "traf_setup.py",
+        "node": "all",
+        "run_as_traf": "no"
+    },
+    {
+        "script": "traf_sqconfig.py",
+        "node": "first",
+        "run_as_traf": "yes"
+    }
+],
+"discover": [
+    {
+        "script": "discover1.py",
+        "node": "all"
+    },
+    {
+        "script": "discover2.py",
+        "node": "all"
+    }
+]
+}

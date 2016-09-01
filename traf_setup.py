@@ -53,12 +53,14 @@ def run():
         err('Cannot find hbase trx jar file \'%s\'' % hbase_trx_jar)
 
     # remove old trx and trafodion-utility jar files
-    run_cmd('rm -rf %s/hbase-trx*.jar %s/trafodion-utility*.jar' % (hbase_lib_path, hbase_lib_path))
+    run_cmd('rm -rf %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)
 
     # copy new ones
     run_cmd('cp %s %s' % (hbase_trx_jar, hbase_lib_path))
     run_cmd('cp %s/trafodion-utility-* %s' % (TRAF_LIB_PATH, hbase_lib_path))
 
+    # set permission
+    run_cmd('chmod +r %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)
 
     ### dcs setting ###
     # servers
@@ -73,7 +75,6 @@ def run():
     # master
     dcs_master = nodes[0]
     append_file(DCS_MASTER_FILE, dcs_master)
-
 
     # sqenvcom.sh
     append_file(SQENV_FILE, DCS_INSTALL_ENV)
