@@ -384,8 +384,8 @@ def http_start(repo_dir, repo_port):
     os.system("cd %s; python -m SimpleHTTPServer %s > /dev/null 2>&1 &" % (repo_dir, repo_port))
 
 def http_stop():
-    info('Stopping temporary python http server')
-    os.system("ps -ef|grep SimpleHTTPServer |grep -v grep | awk '{print $2}' |xargs kill -9")
+    #info('Stopping temporary python http server')
+    os.system("ps -ef|grep SimpleHTTPServer |grep -v grep | awk '{print $2}' |xargs kill -9 >/dev/null 2>&1")
 
 
 def set_ansible_cfgs(host_content):

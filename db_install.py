@@ -697,11 +697,14 @@ def main():
             log_err('Wrong method, valid methods: [ sudo | su | pbrun | pfexec | runas | doas ].')
 
     if options.offline:
-        parsecfg = ParseConfig()
-        repo_dir = parsecfg.get_repodir()
+        parseini = ParseInI()
+        repo_dir = parseini.get_repodir()
         if not repo_dir: log_err('local repo directory is not set in config.ini')
-        http_start(repo_dir, '9900')
+        http_start(repo_dir, REPO_PORT)
+
         cfgs['offline_mode'] = 'Y' 
+        cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
+        cfgs['repo_port'] = '9900'
     else:
         cfgs['offline_mode'] = 'N' 
 
@@ -756,6 +759,8 @@ def main():
 
         format_output('Installation Complete')
 
+        if options.offline: http_stop()
+
         ################
         # clean up work
         # rename default config file when successfully installed
@@ -780,4 +785,5 @@ if __name__ == "__main__":
     except (KeyboardInterrupt,EOFError):
         tp = ParseJson(DBCFG_TMP_FILE)
         tp.jsave(cfgs)
+        http_stop()
         print '\nAborted...'

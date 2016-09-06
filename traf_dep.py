@@ -29,20 +29,37 @@ import json
 import platform
 from common import run_cmd, err
 
-def run():
-    """ install Trafodion dependencies """
-    dbcfgs = json.loads(dbcfgs_json)
-    # backlog, not used
-    epelrepo='''
+# not used
+EPEL_REPO='''
 [epel]
 name=Extra Packages for Enterprise Linux $releasever - $basearch
 mirrorlist=https://mirrors.fedoraproject.org/metalink?repo=epel-$releasever&arch=$basearch
 enabled=1
 gpgcheck=0
 '''
+
+LOCAL_REPO_PTR = '''
+[traflocal]
+baseurl=http://%s:%s/
+enabled=1
+gpgcheck=0
+'''
+
+REPO_FILE = '/etc/yum.repos.d/traflocal.repo'
+
+def run():
+    """ install Trafodion dependencies """
+
+    dbcfgs = json.loads(dbcfgs_json)
+
     if dbcfgs['offline_mode'] == 'Y':
-        # local repo was set if enable offline mode
         print 'Installing pdsh in offline mode ...'
+
+        # setup temp local repo
+        repo_content = LOCAL_REPO_PTR % (dbcfgs['repo_ip'], dbcfgs['repo_port'])
+        with open(REPO_FILE, 'w') as f:
+            f.write(repo_content)
+
         run_cmd('yum install -y pdsh pdsh-rcmd-ssh')
     else:
         pdsh_installed = run_cmd('rpm -qa|grep -c pdsh')
@@ -89,6 +106,10 @@ gpgcheck=0
         else:
             print 'Installing %s ...' % pkg
             run_cmd('yum install -y %s' % pkg)
+
+    # remove temp repo file
+    if dbcfgs['offline_mode'] == 'Y':
+        os.remove(REPO_FILE)
 
 # main
 try:

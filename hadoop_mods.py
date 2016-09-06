@@ -94,16 +94,16 @@ class CDHMod:
         restart_url = RESTART_URL_PTR % (self.url, self.cluster_name)
         deploy_cfg_url = DEPLOY_CFG_URL_PTR % (self.url, self.cluster_name)
 
-        info('Restarting CDH services ...')
+        print 'Restarting CDH services ...' 
         rc1 = self.p.post(restart_url)
         if self.__retry_check(rc1['id'], 40, 15):
-            ok('Restart CDH successfully!')
+            print 'Restart CDH successfully!'
         else:
             err('Failed to restart CDH, max retry count reached')
 
         rc2 = self.p.post(deploy_cfg_url)
         if self.__retry_check(rc2['id'], 30, 10):
-            ok('Deploy client config successfully!')
+            print 'Deploy client config successfully!'
         else:
             err('Failed to deploy CDH client config, max retry count reached')
 
@@ -144,7 +144,7 @@ class HDPMod:
         srvs = ['HBASE', 'ZOOKEEPER', 'HDFS']
 
         # Stop
-        info('Restarting HDP services ...')
+        print 'Restarting HDP services ...'
         for srv in srvs:
             srv_url = srv_baseurl + srv
             config = {'RequestInfo': {'context' :'Stop %s services' % srv}, 'ServiceInfo': { 'state' : 'INSTALLED' }}
@@ -166,7 +166,7 @@ class HDPMod:
                 # wrap line
                 print
             else:
-                info('HDP service %s had already been stopped' % srv)
+                print 'HDP service %s had already been stopped' % srv
 
         time.sleep(3)
         # Start
@@ -186,9 +186,9 @@ class HDPMod:
                 time.sleep(interval)
                 stat = self.p.get(result_url)
                 if retry_cnt == maxcnt: err('Failed to start all HDP services')
-            ok('HDP services started successfully!')
+            print 'HDP services started successfully!'
         else:
-            info('HDP services had already been started')
+            print 'HDP services had already been started'
             
 
 def run():

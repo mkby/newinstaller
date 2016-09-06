@@ -25,10 +25,11 @@
 
 import os
 import sys
+import socket
 import subprocess
 import json
 from threading import Thread
-from common import Remote, run_cmd, DBCFG_FILE, err
+from common import Remote, run_cmd, err
 
 def run(pwd):
     """ gen ssh key on local and copy to all nodes 
@@ -37,9 +38,6 @@ def run(pwd):
     dbcfgs = json.loads(dbcfgs_json)
     hosts = dbcfgs['node_list'].split(',')
     traf_package = dbcfgs['traf_package']
-    offline_mode = dbcfgs['offline_mode']
-
-    #TODO: if offline mode, create localrepo and copy to all nodes
 
     key_file = '/tmp/id_rsa'
     run_cmd('sudo rm -rf %s*' % key_file)
