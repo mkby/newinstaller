@@ -21,23 +21,33 @@
 #
 # @@@ END COPYRIGHT @@@
 
-## This script should be run on all nodes with trafodion user ##
+### this script should be run on all nodes with sudo user ###
 
-import sys
-import json
-from common import run_cmd, err
+from common import ParseJson, ParseXML, err
+
+dbcfgs = json.loads(dbcfgs_json)
 
 def run():
-    dbcfgs = json.loads(dbcfgs_json)
+    if 'APACHE' in dbcfgs['distro']:
+        modcfgs = ParseJson('mod_cfgs.json').jload()
+        MOD_CFGS = modcfgs['MOD_CFGS']
 
-    TRAF_DIR = '%s-%s' % (dbcfgs['traf_basename'], dbcfgs['traf_version'])
+        hdfs_xml_file = dbcfgs['hdfs_xml_file']
+        hbase_xml_file = dbcfgs['hbase_xml_file']
 
-    # untar traf package
-    TRAF_PACKAGE_FILE = '/tmp/' + dbcfgs['traf_package'].split('/')[-1]
-    run_cmd('mkdir -p %s' % TRAF_DIR)
-    run_cmd('tar xf %s -C %s' % (TRAF_PACKAGE_FILE, TRAF_DIR))
+        hbasexml = ParseXML(hbase_xml)
+        for n,v in MOD_CFGS['hbase'].items():
+            hbasexml.add_property(n, v)
+        hbasexml.write_xml()
 
-    print 'Trafodion package uncompressed successfully!'
+        hdfsxml = ParseXML(hdfs_xml)
+        for n,v in MOD_CFGS['hdfs'].items():
+            hdfsxml.add_property(n, v)
+        hdfsxml.write_xml()
+
+        print 'Apache Hadoop modification completed'
+    else:
+        print 'no apache distribution found, skipping'
 
 # main
 try:

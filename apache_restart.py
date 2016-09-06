@@ -21,23 +21,25 @@
 #
 # @@@ END COPYRIGHT @@@
 
-## This script should be run on all nodes with trafodion user ##
+### this script should be run on first node with sudo user ###
 
-import sys
 import json
 from common import run_cmd, err
 
+dbcfgs = json.loads(dbcfgs_json)
+
 def run():
-    dbcfgs = json.loads(dbcfgs_json)
-
-    TRAF_DIR = '%s-%s' % (dbcfgs['traf_basename'], dbcfgs['traf_version'])
-
-    # untar traf package
-    TRAF_PACKAGE_FILE = '/tmp/' + dbcfgs['traf_package'].split('/')[-1]
-    run_cmd('mkdir -p %s' % TRAF_DIR)
-    run_cmd('tar xf %s -C %s' % (TRAF_PACKAGE_FILE, TRAF_DIR))
-
-    print 'Trafodion package uncompressed successfully!'
+    if 'APACHE' in dbcfgs['distro']:
+        hadoop_home = dbcfgs['hadoop_home']
+        hbase_home = dbcfgs['hbase_home']
+        # stop
+        run_cmd(hbase_home + '/bin/stop_hbase.sh')
+        run_cmd(hadoop_home + '/sbin/stop_dfs.sh')
+        # start
+        run_cmd(hadoop_home + '/sbin/start_dfs.sh')
+        run_cmd(hbase_home + '/bin/start_hbase.sh')
+    else:
+        print 'no apache distribution found, skipping'
 
 # main
 try:

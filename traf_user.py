@@ -1,5 +1,27 @@
 #!/usr/bin/env python
-# this script should be run on all nodes
+
+# @@@ START COPYRIGHT @@@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# @@@ END COPYRIGHT @@@
+
+### this script should be run on all nodes with sudo user ###
 
 import base64
 import json
@@ -33,7 +55,7 @@ def run():
 
     # set ssh key
     run_cmd_as_user(TRAF_USER, 'echo -e "y" | ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa')
-    # the key is generated in another script running on the installer node
+    # the key is generated in copy_file script running on the installer node
     run_cmd('cp %s{,.pub} %s/.ssh/' % (KEY_FILE, TRAF_USER_DIR))
 
     run_cmd_as_user(TRAF_USER, 'cat ~/.ssh/id_rsa.pub > %s' % AUTH_KEY_FILE)
@@ -66,19 +88,21 @@ def run():
     run_cmd('chown -R %s:%s %s*' % (TRAF_USER, TRAF_GROUP, BASHRC_FILE))
 
     # set ulimits for trafodion user
-    ulimits_config = '\
-# Trafodion settings\n\
-%s   soft   core unlimited\n\
-%s   hard   core unlimited\n\
-%s   soft   memlock unlimited\n\
-%s   hard   memlock unlimited\n\
-%s   soft   nofile 32768\n\
-%s   hard   nofile 65536\n\
-%s   soft   nproc 100000\n\
-%s   hard   nproc 100000\n\
-%s   soft nofile 8192\n\
-%s   hard nofile 65535\n\
-hbase soft nofile 8192' % ((TRAF_USER,) * 10)
+    ulimits_config = '''
+# Trafodion settings
+%s   soft   core unlimited
+%s   hard   core unlimited
+%s   soft   memlock unlimited
+%s   hard   memlock unlimited
+%s   soft   nofile 32768
+%s   hard   nofile 65536
+%s   soft   nproc 100000
+%s   hard   nproc 100000
+%s   soft nofile 8192
+%s   hard nofile 65535
+hbase soft nofile 8192
+''' % ((TRAF_USER,) * 10)
+
     with open(ULIMITS_FILE, 'w') as f:
         f.write(ulimits_config)
 
@@ -97,4 +121,3 @@ try:
 except IndexError:
     err('No db config found')
 run()
-

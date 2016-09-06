@@ -1,10 +1,32 @@
 #!/usr/bin/env python
-# this script should be run on first trafodion node
-# this script should be run as trafodion user
+
+# @@@ START COPYRIGHT @@@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# @@@ END COPYRIGHT @@@
+
+### this script should be run on first node with trafodion user ###
 
 import os
+import sys
 import json
-from common import *
+from common import run_cmd, err
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -14,6 +36,7 @@ def run():
 
     # this script is running by trafodion user, so get sqroot from env
     sq_root = os.environ['MY_SQROOT']
+    if sq_root == '': err('SQ_ROOT var is empty')
     sqconfig_file = sq_root + '/sql/scripts/sqconfig'
 
     core, processor = run_cmd("lscpu|grep -E '(^CPU\(s\)|^Socket\(s\))'|awk '{print $2}'").split('\n')[:2]
@@ -39,7 +62,7 @@ def run():
 
     print 'sqconfig generated successfully!'
 
-#    run_cmd('sqgen')
+    run_cmd('sqgen')
 
     print 'sqgen ran successfully!'
 

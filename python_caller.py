@@ -1,5 +1,26 @@
 #!/usr/bin/env python
 
+# @@@ START COPYRIGHT @@@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# @@@ END COPYRIGHT @@@
+
 import os
 import time
 import subprocess
@@ -9,6 +30,7 @@ from glob import glob
 from threading import Thread
 from common import *
 
+THRESHOLD = 10 # thread count
 LOG_FILE = '%s/logs/install_%s.log' % (INSTALLER_LOC, time.strftime('%Y%m%d_%H%M'))
 logger = get_logger(LOG_FILE)
 
@@ -54,6 +76,7 @@ class RemoteRun(Remote):
 
         if self.rc == 0:
             state_ok(format2)
+            logger.info(format2 + ' ran successfully!')
         else:
             state_fail(format2)
             msg = 'Host [%s]: Failed to run \'%s\'' % (self.host, script)
@@ -143,8 +166,21 @@ def run(dbcfgs, options, mode='install'):
     # Check if install on localhost
     islocal = lambda h, lh: True if len(h) == 1 and (h[0] == 'localhost' or h[0] == lh) else False
 
-    # set skipped scripts which no need to run on a upgrade install
-    skipped_scripts = ['hadoop_mods','traf_user']
+    # handle skipped scripts
+    skipped_scripts = []
+    
+    # set skipped scripts which no need to run on an upgrade install
+    if dbcfgs['upgrade'] == 'Y':
+        skipped_scripts += ['hadoop_mods', 'traf_user', 'traf_dep']
+
+    if dbcfgs['traf_start'] == 'N':
+        skipped_scripts += ['traf_start']
+
+    if 'APACHE' in dbcfgs['distro']:
+        skipped_scripts += ['hadoop_mods']
+    else:
+        skipped_scripts += ['apache_mods', 'apache_restart']
+
 
     def run_local_script(script, json_string, req_pwd):
         cmd = '%s/%s \'%s\'' % (INSTALLER_LOC, script, json_string)
@@ -153,8 +189,11 @@ def run(dbcfgs, options, mode='install'):
         if req_pwd: cmd += ' ' + pwd
 
         if verbose: print cmd
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+
+        # stdout on screen
+        p = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
         stdout, stderr = p.communicate()
+
         rc = p.returncode
         if rc != 0:
             msg = 'Failed to run \'%s\'' % script
@@ -166,6 +205,7 @@ def run(dbcfgs, options, mode='install'):
             exit(rc)
         else:
             state_ok('Script [%s]' % script)
+            logger.info('Script [%s] ran successfully!' % script)
 
     
     # run sub scripts
@@ -183,7 +223,6 @@ def run(dbcfgs, options, mode='install'):
         logger.info(' ***** %s Start *****' % mode)
         for cfg in script_cfgs:
             script = cfg['script']
-            print '\n*** Start running script [%s]:' % script
             node = cfg['node']
             run_user = ''
             if not 'run_as_traf' in cfg.keys():
@@ -203,7 +242,10 @@ def run(dbcfgs, options, mode='install'):
                 logger.info(msg)
                 continue
 
-            if options.upgrade and script in skipped_scripts: continue
+            if script.split('.')[0] in skipped_scripts:
+                continue
+            else:
+                print '\n*** Start running script [%s]:' % script
 
             # if install on localhost only
             if not remote_instances:
@@ -214,8 +256,6 @@ def run(dbcfgs, options, mode='install'):
                 elif node == 'first':
                     remote_instances[0].run_script(script, run_user, dbcfgs_json, verbose=verbose)
                 elif node == 'all':
-                    # set thread count threshold 
-                    THRESHOLD = 10
                     l = len(remote_instances)
                     if l > THRESHOLD:
                         piece = (l - (l % THRESHOLD)) / THRESHOLD

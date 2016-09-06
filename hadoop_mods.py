@@ -1,10 +1,40 @@
 #!/usr/bin/env python
+
+# @@@ START COPYRIGHT @@@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# @@@ END COPYRIGHT @@@
+
+### this script should be run on local node ###
+
 import time
 import base64
 import sys
+import json
 from common import *
 
-#cfgs = ParseJson('db_config').jload()
+try:
+    dbcfgs_json = sys.argv[1]
+except IndexError:
+    err('No db config found')
+
+dbcfgs = json.loads(dbcfgs_json)
 modcfgs = ParseJson('mod_cfgs.json').jload()
 
 MOD_CFGS = modcfgs['MOD_CFGS']
@@ -43,12 +73,9 @@ class CDHMod:
         return True
             
     def mod(self):
-        hdfs_service = 'hdfs'
-        hbase_service = 'hbase'
-        zk_service = 'zookeeper'
-       # hdfs_service = cfgs['hdfs_service_name']
-       # hbase_service = cfgs['hbase_service_name']
-       # zk_service = cfgs['zookeeper_service_name']
+        hdfs_service = dbcfgs['hdfs_service_name']
+        hbase_service = dbcfgs['hbase_service_name']
+        zk_service = dbcfgs['zookeeper_service_name']
         services = { hdfs_service:HDFS_CONFIG, hbase_service:HBASE_MASTER_CONFIG, zk_service:ZK_CONFIG }
 
         for srv, cfg in services.iteritems():
@@ -163,31 +190,16 @@ class HDPMod:
         else:
             info('HDP services had already been started')
             
-def apache_restart(hadoop_home, hbase_home):
-    # stop
-    run_cmd(hbase_home + '/bin/stop_hbase.sh')
-    run_cmd(hadoop_home + '/sbin/stop_dfs.sh')
-    # start
-    run_cmd(hadoop_home + '/sbin/start_dfs.sh')
-    run_cmd(hbase_home + '/bin/start_hbase.sh')
 
-
-def main():
-    if 'CDH' in cfgs['distro']:
-        cdh = CDHMod(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']), cfgs['mgr_url'], cfgs['cluster_name'])
+def run():
+    if 'CDH' in dbcfgs['distro']:
+        cdh = CDHMod(dbcfgs['mgr_user'], base64.b64decode(dbcfgs['mgr_pwd']), dbcfgs['mgr_url'], dbcfgs['cluster_name'])
         cdh.mod()
         cdh.restart()
-    elif 'HDP' in cfgs['distro']:
-        hdp = HDPMod(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']), cfgs['mgr_url'], cfgs['cluster_name'])
+    elif 'HDP' in dbcfgs['distro']:
+        hdp = HDPMod(dbcfgs['mgr_user'], base64.b64decode(dbcfgs['mgr_pwd']), dbcfgs['mgr_url'], dbcfgs['cluster_name'])
         hdp.mod()
         hdp.restart()
-    elif 'apache' in cfgs['distro']:
-        # apache mod should be run on all nodes, so put it in another script
-        apache_restart(cfgs['hadoop_home'], cfgs['hbase_home'])
 
-
-if __name__ == '__main__':
-    #main()
-    cdh = CDHMod('admin','admin','http://192.168.0.31:7180','cluster1')
-    cdh.mod()
-    cdh.restart()
+# main
+run()
