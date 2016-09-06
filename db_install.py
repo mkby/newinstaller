@@ -59,6 +59,7 @@ class HadoopDiscover:
         self._check_version()
 
     def _check_version(self):
+        #TODO: get version list from json config file
         cdh_version_list = ['5.4.','5.5.','5.6.','5.7.']
         hdp_version_list = ['2.3','2.4']
         distro_name = ''
@@ -700,11 +701,13 @@ def main():
         parseini = ParseInI()
         repo_dir = parseini.get_repodir()
         if not repo_dir: log_err('local repo directory is not set in config.ini')
-        http_start(repo_dir, REPO_PORT)
+
+        repo_port = '9900'
+        http_start(repo_dir, repo_port)
 
         cfgs['offline_mode'] = 'Y' 
         cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
-        cfgs['repo_port'] = '9900'
+        cfgs['repo_port'] = repo_port
     else:
         cfgs['offline_mode'] = 'N' 
 
