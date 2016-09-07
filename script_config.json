@@ -1,6 +1,11 @@
 {
 "install": [
     {
+        "script": "traf_check.py",
+        "node": "all",
+        "run_as_traf": "no"
+    },
+    {
         "script": "copy_files.py",
         "node": "local",
         "req_pwd": "yes",

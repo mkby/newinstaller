@@ -30,7 +30,6 @@ from glob import glob
 from threading import Thread
 from common import *
 
-THRESHOLD = 10 # thread count
 LOG_FILE = '%s/logs/install_%s.log' % (INSTALLER_LOC, time.strftime('%Y%m%d_%H%M'))
 logger = get_logger(LOG_FILE)
 
@@ -154,7 +153,10 @@ def run(dbcfgs, options, mode='install'):
     verbose = True if options.verbose else False
     if options.pwd: enable_pwd = True
     if options.user: user = options.user
-    if options.fork: THRESHOLD = options.fork
+    if options.fork: 
+        THRESHOLD = options.fork
+    else:
+        THRESHOLD = 10 # thread count
 
     conf = ParseJson(SCRCFG_FILE).jload()
     script_cfgs = conf[mode]
@@ -283,6 +285,4 @@ def run(dbcfgs, options, mode='install'):
     os.remove(STAT_FILE)
 
 if __name__ == '__main__':
-    cfgs = {'node_list': 'eason-1 eason-2'}
-    run(cfgs, 1)
     exit(0)

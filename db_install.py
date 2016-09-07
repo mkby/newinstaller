@@ -238,7 +238,7 @@ class UserInput:
             'dcs_cnt_per_node':
             {
                 'prompt':'Enter number of DCS client connections per node',
-                'default':'8',
+                'default':'4',
                 'isdigit':True
             },
             'first_rsnode':
@@ -494,7 +494,11 @@ def user_input(no_dbmgr=False, vanilla_hadoop=False):
             log_err('Invalid tar file %s' % input_name)
 
     cfgs['traf_basename'], cfgs['traf_version'] = _check_tar_file('traf_package', ['trafodion', 'esgynDB'])
-
+    if float(cfgs['traf_version'][:3]) >= 2.2:
+        cfgs['req_java8'] == 'Y'
+    else:
+        cfgs['req_java8'] == 'N'
+        
     # no db manager in Trafodion
     if not 'trafodion' in cfgs['traf_basename']:
         if not no_dbmgr:
@@ -643,10 +647,10 @@ def get_options():
     parser.add_option("-b", "--become-method", dest="method", metavar="METHOD",
                 help="Specify become root method for ansible [ sudo | su | pbrun | pfexec | runas | doas ].")
     parser.add_option("-f", "--fork", dest="fork", metavar="FORK",
-                help="Specify number of parallel processes to run sub scripts (default=5)" )
-    parser.add_option("-p", "--prompt-passwd", action="store_true", dest="pwd", default=True,
-                help="Prompt SSH login password for remote hosts. \
-                      If set, passwordless ssh is not required.")
+                help="Specify number of parallel processes to run sub scripts (default=10)" )
+    parser.add_option("--no-passwd", action="store_true", dest="pwd", default=True,
+                help="Not Prompt SSH login password for remote hosts. \
+                      If set, passwordless ssh is required.")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                 help="Verbose mode, will print commands.")
     parser.add_option("--dryrun", action="store_true", dest="dryrun", default=False,
@@ -676,9 +680,9 @@ def main():
     #########################
     options = get_options()
     if options.ansible:
-        from ansible_caller import run
+        from ans_wrapper import run
     else:
-        from python_caller import run
+        from py_wrapper import run
 
     if not options.ansible: 
         if options.method: log_err('Wrong parameter, cannot specify ansible option without ansible enabled')

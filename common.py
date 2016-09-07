@@ -98,11 +98,12 @@ def cmd_output(cmd):
     """ return command output but not check return value """
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
-    return stdout
+    
+    return stdout if stdout else stderr
 
 def mod_file(template_file, change_items):
     """
-        change_items should be a dict includes:
+        @params: change_items: a dict includes:
         {regular_expression : replace_string}
     """
     try:

@@ -60,7 +60,7 @@ def run():
         with open(REPO_FILE, 'w') as f:
             f.write(repo_content)
 
-        run_cmd('yum install -y pdsh pdsh-rcmd-ssh')
+        run_cmd('yum install -y --disablerepo=\* --enablerepo=traflocal pdsh pdsh-rcmd-ssh')
     else:
         pdsh_installed = run_cmd('rpm -qa|grep -c pdsh')
         if pdsh_installed == '0':
@@ -105,7 +105,10 @@ def run():
             print 'Package %s had already been installed' % pkg
         else:
             print 'Installing %s ...' % pkg
-            run_cmd('yum install -y %s' % pkg)
+            if dbcfgs['offline_mode'] == 'Y':
+                run_cmd('yum install -y --disablerepo=\* --enablerepo=traflocal %s' % pkg)
+            else:
+                run_cmd('yum install -y %s' % pkg)
 
     # remove temp repo file
     if dbcfgs['offline_mode'] == 'Y':
