@@ -30,15 +30,14 @@ from glob import glob
 from threading import Thread
 from common import *
 
-LOG_FILE = '%s/logs/install_%s.log' % (INSTALLER_LOC, time.strftime('%Y%m%d_%H%M'))
-logger = get_logger(LOG_FILE)
 
 class RemoteRun(Remote):
     """ run commands or scripts remotely using ssh """
 
-    def __init__(self, host, user='', pwd=''):
+    def __init__(self, host, logger, user='', pwd=''):
         super(RemoteRun, self).__init__(host, user, pwd)
 
+        self.logger = logger
         # create tmp folder
         self.__run_sshcmd('mkdir -p %s' % TMP_DIR)
 
@@ -71,18 +70,18 @@ class RemoteRun(Remote):
         format1 = 'Host [%s]: Script [%s]: %s' % (self.host, script, self.stdout)
         format2 = 'Host [%s]: Script [%s]' % (self.host, script)
 
-        logger.info(format1)
+        self.logger.info(format1)
 
         if self.rc == 0:
             state_ok(format2)
-            logger.info(format2 + ' ran successfully!')
+            self.logger.info(format2 + ' ran successfully!')
         else:
             state_fail(format2)
             msg = 'Host [%s]: Failed to run \'%s\'' % (self.host, script)
             if self.stderr: 
                 msg += ': ' + self.stderr
                 print '\nReason: ' + self.stderr
-            logger.error(msg)
+            self.logger.error(msg)
             exit(1)
 
     def __run_ssh(self, user_cmd, verbose=False, shell=False):
@@ -109,7 +108,7 @@ class RemoteRun(Remote):
         self.__run_ssh(int_cmd)
         if self.rc != 0:
             msg = 'Host [%s]: Failed to run internal commands, check SSH password or connectivity' % self.host
-            logger.error(msg)
+            self.logger.error(msg)
             err_m(msg)
 
 def state_ok(msg):
@@ -148,7 +147,11 @@ def run(dbcfgs, options, mode='install'):
         mode: install/discover
     """
     STAT_FILE = mode + '.status'
-    SCRCFG_FILE = 'script_config.json'
+    SCRCFG_FILE = 'script.json'
+    LOG_FILE = '%s/logs/%s_%s.log' % (INSTALLER_LOC, mode, time.strftime('%Y%m%d_%H%M'))
+    logger = get_logger(LOG_FILE)
+
+    script_output = [] # save script output
 
     verbose = True if options.verbose else False
     if options.pwd: enable_pwd = True
@@ -158,7 +161,7 @@ def run(dbcfgs, options, mode='install'):
     else:
         THRESHOLD = 10 # thread count
 
-    conf = ParseJson(SCRCFG_FILE).jload()
+    conf = ParseJson(SCRCFG_FILE).load()
     script_cfgs = conf[mode]
 
     dbcfgs_json = json.dumps(dbcfgs)
@@ -209,6 +212,7 @@ def run(dbcfgs, options, mode='install'):
             state_ok('Script [%s]' % script)
             logger.info('Script [%s] ran successfully!' % script)
 
+        return stdout
     
     # run sub scripts
     try:
@@ -220,7 +224,7 @@ def run(dbcfgs, options, mode='install'):
 
         remote_instances = []
         if not islocal(hosts, local_host):
-            remote_instances = [RemoteRun(host, pwd=pwd) for host in hosts]
+            remote_instances = [RemoteRun(host, logger, pwd=pwd) for host in hosts]
 
         logger.info(' ***** %s Start *****' % mode)
         for cfg in script_cfgs:
@@ -273,6 +277,9 @@ def run(dbcfgs, options, mode='install'):
 
                         if sum([ r.rc for r in parted_remote_inst ]) != 0:
                             err_m('Script failed to run on one or more nodes, exiting ...\nCheck log file %s for details.' % LOG_FILE)
+
+                        script_output += [ {r.host:r.stdout.strip()} for r in parted_remote_inst ]
+        
                 else:
                     # should not go to here
                     err_m('Invalid configuration for %s' % SCRCFG_FILE)
@@ -283,6 +290,8 @@ def run(dbcfgs, options, mode='install'):
 
     # remove status file if all scripts run successfully
     os.remove(STAT_FILE)
+
+    return script_output
 
 if __name__ == '__main__':
     exit(0)

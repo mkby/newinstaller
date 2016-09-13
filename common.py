@@ -458,9 +458,9 @@ def expNumRe(text):
 
 def time_elapse(func):
     """ time elapse decorator """
-    def wrapper(*args):
+    def wrapper(*args, **kwargs):
         start_time = time.time()
-        func(*args)
+        output = func(*args, **kwargs)
         end_time = time.time()
         seconds = end_time - start_time
         hours = seconds / 3600
@@ -468,6 +468,7 @@ def time_elapse(func):
         minutes = seconds / 60
         seconds = seconds % 60
         print '\nInstallation time: %d hour(s) %d minute(s) %d second(s)' % (hours, minutes, seconds)
+        return output
     return wrapper
 
 if __name__ == '__main__':

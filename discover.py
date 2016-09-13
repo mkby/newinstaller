@@ -43,6 +43,15 @@ def deco(func):
 
 
 class Discover(object):
+    """ discover functions, to add a new discover function,
+        simply add a new def with name get_xx and decorated 
+        by 'deco', then return result in string format:
+
+        @deco
+        def get_xx(self):
+            # do something
+            return result
+    """
 
     def __init__(self):
         self.CPUINFO = cmd_output('cat /proc/cpuinfo')
@@ -70,7 +79,7 @@ class Discover(object):
     @deco
     def get_linux(self):
         """ get linux version """
-        return '-'.join(platform.dist())
+        return '-'.join(platform.dist()[:2])
 
     @deco
     def get_pidmax(self):
@@ -78,7 +87,7 @@ class Discover(object):
         return self._get_sysctl_info('kernel.pid_max')
 
     @deco
-    def get_java(self):
+    def get_default_java(self):
         """ get java version """
         jdk_ver = cmd_output('javac -version')
         try:
@@ -95,13 +104,13 @@ class Discover(object):
         except AttributeError:
             return 'no_HBase'
     
-    @deco
-    def get_cpumodel(self):
-        """ get CPU model """
-        return self._get_cpu_info('model name')
+    #@deco
+    #def get_cpu_model(self):
+    #    """ get CPU model """
+    #    return self._get_cpu_info('model name')
 
     @deco
-    def get_cpucores(self):
+    def get_cpu_cores(self):
         """ get CPU cores """
         return self.CPUINFO.count('processor')
 
@@ -114,7 +123,7 @@ class Discover(object):
         return arch
 
     @deco
-    def get_memtotal(self):
+    def get_mem_total(self):
         """ get total memory size """
         mem = self._get_mem_info('MemTotal')
         memsize = mem.split()[0]
@@ -122,7 +131,7 @@ class Discover(object):
         return "%0.1f GB" % round(float(memsize) / (1024 * 1024), 2) 
 
     @deco
-    def get_memfree(self):
+    def get_mem_free(self):
         """ get current free memory size """
         free = self._get_mem_info('MemFree')
         buffers = self._get_mem_info('Buffers')
@@ -132,18 +141,18 @@ class Discover(object):
         return "%0.1f GB" % round(memfree / (1024 * 1024), 2) 
 
     @deco
-    def get_extinterface(self):
+    def get_ext_interface(self):
         """ get external network interface """
         return cmd_output('netstat -rn | grep "^0.0.0.0" | awk \'{print $8}\'').strip()
 
     @deco
-    def get_rootspace(self):
+    def get_rootdisk_free(self):
         """ get root disk space left """
         space = cmd_output('df -h|grep "\/$" | awk \'{print $4}\'')
         return space.strip()
 
     @deco
-    def get_pyver(self):
+    def get_python_ver(self):
         """ get python version """
         return platform.python_version()
 
