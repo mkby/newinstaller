@@ -41,9 +41,10 @@ from collections import defaultdict
 
 __VERSION__ = 'v1.0.0'
 INSTALLER_LOC = sys.path[0]
-DBCFG_FILE = INSTALLER_LOC + '/db_config.json'
+DBCFG_FILE = INSTALLER_LOC + '/db_config'
 DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
 TMP_DIR = '/tmp/.install'
+VERSION_FILE = INSTALLER_LOC + '/version.json'
 MARK = '[ERR]'
 
 def version():
@@ -134,17 +135,39 @@ def write_file(template_file, string):
         err('Failed to open file %s to write' % template_file)
 
 
+class Version(object):
+    def __init__(self):
+        self.support_ver = ParseJson(VERSION_FILE).load()
+
+    def get_version(self, component):
+        if self.support_ver[component] == '':
+            err('Failed to get version info for "%s" from config file' % component)
+
+        return self.support_ver[component]
+
 class Remote(object):
     """ 
         copy files to/fetch files from remote host using ssh
         can also use paramiko, but it's not a build-in module
     """
+
     def __init__(self, host, user='', pwd=''):
         self.host = host
         self.user = user
         self.rc = 0
         self.pwd = pwd
-        self.sshpass = self.__sshpass_available()
+        self.sshpass = self._sshpass_available()
+
+    @staticmethod
+    def _sshpass_available():
+        sshpass_available = True
+        try:
+            p = subprocess.Popen(['sshpass'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p.communicate()
+        except OSError:
+            sshpass_available = False
+
+        return sshpass_available
 
     def _commands(self, method):
         cmd = []
@@ -204,15 +227,6 @@ class Remote(object):
         self._execute(cmd)
         if self.rc != 0: err('Failed to fetch files from remote nodes')
 
-    def __sshpass_available(self):
-        sshpass_available = True
-        try:
-            p = subprocess.Popen(['sshpass'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            p.communicate()
-        except OSError:
-            sshpass_available = False
-
-        return sshpass_available
 
 class ParseHttp:
     def __init__(self, user, passwd):
@@ -259,6 +273,9 @@ class ParseHttp:
 
 
 class ParseXML:
+    """ handle *-site.xml with format 
+        <property><name></name><value></value></proerty>
+    """
     def __init__(self, xml_file):
         self.__xml_file = xml_file
         if not os.path.exists(self.__xml_file): err_m('Cannot find xml file %s' % self.__xml_file)
@@ -268,12 +285,9 @@ class ParseXML:
             err_m('failed to parsing xml: %s' % e)
             
         self._root = self._tree.getroot()
-        self._nvlist = []
-        for prop in self._root.findall('property'):
-            t_array = []
-            for elem in prop:
-                t_array.append(elem.text) 
-            self._nvlist.append(t_array)
+        self._properties = self._root.findall('property')
+        # name, value list
+        self._nvlist = [[elem.text for elem in p] for p in self._properties]
 
     def __indent(self, elem):
         """Return a pretty-printed XML string for the Element."""
@@ -291,9 +305,15 @@ class ParseXML:
         except:
             return ''
 
+    def rm_property(self, name):
+        for p in self._properties:
+            if p[0].text == name:
+                self._root.remove(p)
+
     def add_property(self, name, value):
         # don't add property if already exists
         if self.get_property(name): return
+
         elem_p = ET.Element('property')
         elem_name = ET.Element('name')
         elem_value = ET.Element('value')
@@ -303,25 +323,23 @@ class ParseXML:
         elem_p.append(elem_name)
         elem_p.append(elem_value)
 
+        self._nvlist.append([name, value])
         self._root.append(elem_p)
 
     def write_xml(self):
         self.__indent(self._root)
         self._tree.write(self.__xml_file)
 
-    def output_xmlinfo(self):
+    def print_xml(self):
         for n,v in self._nvlist:
             print n,v
 
 class ParseJson:
-    """ 
-    jload: load json file to a dict
-    jsave: save dict to json file with pretty format
-    """ 
     def __init__(self, js_file):
         self.__js_file = js_file
 
-    def jload(self):
+    def load(self):
+        """ load json file to a dict """
         if not os.path.exists(self.__js_file): err_m('Cannot find json file %s' % self.__js_file)
         with open(self.__js_file, 'r') as f:
             tmparray = f.readlines()
@@ -334,52 +352,45 @@ class ParseJson:
         except ValueError:
             err_m('No json format found in config file %s' % self.__js_file)
 
-    def jsave(self, dic):
+    def save(self, dic):
+        """ save dict to json file with pretty format """
         with open(self.__js_file, 'w') as f:
             f.write(json.dumps(dic, indent=4))
         return 0
 
-    def setConfig(self, key, value):
-        try: 
-            config = self.jload()
-        except:
-            config = dict()
-        config[key] = value
-        self.jsave(config)
 
 class ParseInI:
-    """ handle ini file """ 
-    def __init__(self):
-        self.cfg_file = 'config.ini'
-        self.conf = ConfigParser()
-        self.conf.read(self.cfg_file)
+    def __init__(self, ini_file):
+        self.__ini_file = ini_file
+        self.section = 'def'
 
-    def get_hosts(self):
-        try:
-            host_content = self.conf.items('hosts')[0][1]
-            return expNumRe(host_content)
-        except IndexError:
-            err_m('Failed to parse hosts from %s' % self.cfg_file)
+    def load(self):
+        """ load content from ini file and return a dict """
+        if not os.path.exists(self.__ini_file):
+            err_m('Cannot find ini file %s' % self.__ini_file)
 
-    def get_roles(self):
-        try:
-            return [[i[0], i[1].split(',')] for i in self.conf.items('roles')]
-        except:
-            return []
+        cfgs = {}
+        cf = ConfigParser()
+        cf.read(self.__ini_file)
 
-    def _get_dir(self, dir_name):
-        try:
-            return [c[1] for c in self.conf.items('dirs') if c[0] == dir_name][0]
-        except:
-            return ''
+        if not cf.has_section(self.section):
+            err_m('Cannot find the default section [%s]' % self.section)
 
-    def get_repodir(self):
-        return self._get_dir('repo_dir')
+        for cfg in cf.items(self.section):
+            cfgs[cfg[0]] = cfg[1]
 
-    def get_parceldir(self):
-        return self._get_dir('parcel_dir')
+        return defaultdict(str, cfgs)
 
-    
+    def save(self, dic):
+        """ save a dict as an ini file """
+        cf = ConfigParser()
+        cf.add_section(self.section)
+        for k,v in dic.iteritems():
+            cf.set(self.section, k, v)
+
+        with open(self.__ini_file, 'w') as f:
+            cf.write(f)
+
 def http_start(repo_dir, repo_port):
     info('Starting temporary python http server')
     os.system("cd %s; python -m SimpleHTTPServer %s > /dev/null 2>&1 &" % (repo_dir, repo_port))
