@@ -28,53 +28,69 @@ import json
 import sys
 import os
 import platform
-from common import run_cmd, cmd_output, ParseJson, err, TMP_DIR
+from common import run_cmd, cmd_output, err, Version
 
-def run():
+class Check(object):
     """ check system envs """
 
-    dbcfgs = json.loads(dbcfgs_json)
-    support_ver = ParseJson('%s/version.json' % TMP_DIR).jload()
+    def __init__(self, dbcfgs_json):
+        self.dbcfgs = json.loads(dbcfgs_json)
+        self.version = Version()
 
-    # check Linux version
-    os_dist, os_ver = platform.dist()[:2]
+    def check_linux(self):
+        """ check Linux version """
+        os_dist, os_ver = platform.dist()[:2]
 
-    if os_dist not in support_ver['linux']:
-        err('Linux distribution %s doesn\'t support' % os_dist)
-    else:
-        if not os_ver.split('.')[0] in support_ver[os_dist]:
-            err('%s version %s doesn\'t support' % (os_dist, os_ver))
+        if os_dist not in self.version.get_version('linux'):
+            err('Linux distribution %s doesn\'t support' % os_dist)
+        else:
+            if not os_ver.split('.')[0] in self.version.get_version(os_dist):
+                err('%s version %s doesn\'t support' % (os_dist, os_ver))
 
-    # check sudo access
-    run_cmd('sudo -n echo -n "check sudo access" > /dev/null 2>&1')
+    def check_sudo(self):
+        """ check sudo access """
+        run_cmd('sudo -n echo -n "check sudo access" > /dev/null 2>&1')
 
-    # check hbase xml exists
-    hbase_xml_file = dbcfgs['hbase_xml_file']
-    if not os.path.exists(hbase_xml_file):
-        err('HBase xml file is not found')
+    def check_hbase_xml(self):
+        """ check if hbase-site.xml file exists """
+        hbase_xml_file = self.dbcfgs['hbase_xml_file']
+        if not os.path.exists(hbase_xml_file):
+            err('HBase xml file is not found')
 
-    # check JDK version
-    jdk_ver = cmd_output('javac -version') # javac 1.7.0_85
-    print jdk_ver
-    try:
-        jdk_ver = re.search('(\d\.\d)', jdk_ver).groups()[0]
-    except AttributeError:
-        err('No JDK found')
+    def check_java(self):
+        """ check JDK version """
+        jdk_ver = cmd_output('javac -version')
+        try:
+            jdk_ver = re.search('(\d\.\d)', jdk_ver).groups()[0]
+        except AttributeError:
+            err('No JDK found')
 
-    if dbcfgs['req_java8'] == 'Y': # only allow JDK1.8
-        support_ver['java'] = ['1.8']
+        if self.dbcfgs['req_java8'] == 'Y': # only allow JDK1.8
+            support_java = ['1.8']
+        else:
+            support_java = self.version.get_version('java')
 
-    if jdk_ver not in support_ver['java']:
-        err('Unsupported JDK version %s' % jdk_ver)
+        if jdk_ver not in support_java:
+            err('Unsupported JDK version %s' % jdk_ver)
 
 
-    # check previous installed trafodion processes
-    mon_process = cmd_output('ps -ef|grep -c "monitor COLD"')
-    if int(mon_process) > 1:
-        err('Trafodion process is found, please stop it first')
+    def check_traf_proc(self):
+        """ check if previous installed trafodion processes exist """
+        mon_process = cmd_output('ps -ef|grep -c "monitor COLD"')
+        if int(mon_process) > 1:
+            err('Trafodion process is found, please stop it first')
 
-    # check Apache HBase version if Apache Hadoop
+    def check_hbase_ver(self):
+        """ check Apache HBase version if Apache Hadoop """
+        pass
 
+
+def run():
+    PREFIX = 'check_'
+    check = Check(dbcfgs_json)
+
+    # call method
+    [getattr(check, m)() for m in dir(check) if m.startswith(PREFIX)]
 
 # main
 try:
