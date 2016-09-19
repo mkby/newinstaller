@@ -1,0 +1,81 @@
+[def]
+##################################
+# Common Settings
+##################################
+
+# trafodion username and password
+traf_user = trafodion
+traf_pwd = traf123
+
+# trafodion used java(JDK) path on trafodion nodes
+java_home = 
+
+# cloudera/ambari management url(i.e. http://192.168.0.1:7180) and username/password
+# include 'http' or 'https'
+mgr_url = 
+mgr_user = admin
+mgr_pwd = admin
+
+# db admin user and password for db manager, ignore it if installing Apache Trafodion
+db_admin_user = admin
+db_admin_pwd = traf123
+
+# trafodion tar package file location
+traf_package = 
+
+# using the same node list as HBase regionserver
+use_hbase_node = Y
+# trafodion node list, seperated by comma, i.e. n01,n02,n03,n04
+# if use_hbase_node is enabled, no need to set it
+node_list =
+
+# the number of dcs servers on each node
+dcs_cnt_per_node = 4
+
+# scratch file location, seperated by comma if more than one
+scratch_locs = /tmp
+
+# start trafodion instance after installation completed
+traf_start = Y
+
+
+##################################
+# DCS HA configuration
+##################################
+
+# set it to 'Y' if enable DCS HA
+dcs_ha = N
+# if HA is enabled, provide floating ip, network interface and the hostname of backup dcs master nodes
+dcs_floating_ip = 
+# network interface that dcs used
+dcs_interface =
+# backup dcs master nodes, seperated by comma if more than one
+dcs_bknodes =
+
+
+##################################
+# Offline installation setting
+##################################
+
+# set offline mode to Y if no internet connection
+offline_mode = N
+# if offline mode is set, you must provide a local repository directory with all needed RPMs
+local_repo_dir = 
+
+
+##################################
+# LDAP security configuration
+##################################
+
+# set it to 'Y' if enable LDAP security
+ldap_security = N
+# if LDAP security is enabled, provide the following items
+ldap_hosts = 
+# 389 for no encryption or TLS, 636 for SSL
+ldap_port = 389
+ldap_identifiers =
+ldap_encrypt = 0
+ldap_certpath = 
+# provide if have
+ladp_user =
+ladp_pwd = 

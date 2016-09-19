@@ -178,17 +178,5 @@
       "prompt":"Use same Trafodion nodes as HBase RegionServer nodes",
       "default":"Y",
       "isYN":"Y"
-  },
-  "confirm_nodelist":
-  {
-      "prompt":"Confirm expanded node list is correct",
-      "default":"Y",
-      "isYN":"Y"
-  },
-  "confirm_all":
-  {
-      "prompt":"Confirm all configs are correct",
-      "default":"N",
-      "isYN":"Y"
   }
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import time
 from prettytable import PrettyTable
 from optparse import OptionParser
 from collections import defaultdict
@@ -38,7 +39,8 @@ def output_row(results):
 
     pt = PrettyTable(title)
     for item in items: pt.add_row(item)
-    print pt
+
+    return str(pt)
 
 # column format
 def output_column(results):
@@ -60,13 +62,22 @@ def output_column(results):
     for item in items:
         pt.add_column(item[0], item[1])
 
-    print pt
+    return str(pt)
 
 def main():
+    options = get_options()
+
     cfgs = defaultdict(str)
 
-    if os.path.exists(DBCFG_FILE):
-        cfgs = ParseInI(DBCFG_FILE).load()
+    if options.cfgfile:
+        if not os.path.exists(options.cfgfile):
+            log_err('Cannot find config file \'%s\'' % options.cfgfile)
+        config_file = options.cfgfile
+    else:
+        config_file = DBCFG_FILE
+
+    if os.path.exists(config_file):
+        cfgs = ParseInI(config_file).load()
     else:
         node_lists = expNumRe(raw_input('Enter list of Nodes separated by comma, support numeric RE, i.e. n[01-12]: '))
 
@@ -76,20 +87,20 @@ def main():
 
         cfgs['node_list'] = ','.join(node_lists)
 
-    options = get_options()
 
     results = run(cfgs, options, mode='discover')
 
 
-    #TODO: save discover results to log file with a pretty format
-    #results = [{'eason-1': '{"ext_interface": "eth0", "python_ver": "2.6.6", "mem_free": "1.9 GB", "cpu_model": "Intel Xeon E312xx (Sandy Bridge)", "cpu_cores": 2, "mem_total": "7.7 GB", "default_java": "1.7", "linux": "centos-6.7-Final", "rootdisk_free": "9.3G", "hbase": "1.0.0-cdh5.4.8", "arch": "x86_64", "pidmax": "65535"}'}, {'eason-2': '{"ext_interface": "eth0", "python_ver": "2.6.6", "mem_free": "2.6 GB", "cpu_model": "Intel Xeon E312xx (Sandy Bridge)", "cpu_cores": 2, "mem_total": "7.7 GB", "default_java": "1.7", "linux": "centos-6.7-Final", "rootdisk_free": "8.3G", "hbase": "1.0.0-cdh5.4.8", "arch": "x86_64", "pidmax": "65535"}'}]
-
     format_output('Discover results')
 
     if len(results) > 4:
-        output_row(results)
+        output = output_row(results)
     else:
-        output_column(results)
+        output = output_column(results)
+
+    print output
+    with open('discover_result', 'w') as f:
+        f.write(output)
 
 if __name__ == "__main__":
     try:
