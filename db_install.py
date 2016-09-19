@@ -53,19 +53,16 @@ class HadoopDiscover:
         self.distro = distro
         self.hdfs_srv_name = hdfs_srv_name
         self.hbase_srv_name = hbase_srv_name
-        self.hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
+        #self.hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
+        self.hg = ParseHttp(cfgs['mgr_user'], cfgs['mgr_pwd'])
         self.cluster_name = cluster_name
         self.cluster_url = '%s/api/v1/clusters/%s' % (cfgs['mgr_url'], cluster_name.replace(' ', '%20'))
         self._check_version()
 
     def _check_version(self):
-        #TODO: get version list from json config file
-        cdh_version_list = ['5.4.','5.5.','5.6.','5.7.']
-        hdp_version_list = ['2.3','2.4']
-        distro_name = ''
-
-        if 'CDH' in self.distro: version_list = cdh_version_list
-        if 'HDP' in self.distro: version_list = hdp_version_list
+        version = Version()
+        if 'CDH' in self.distro: version_list = version.get_version('cdh')
+        if 'HDP' in self.distro: version_list = version.get_version('hdp')
 
         has_version = 0
         for ver in version_list:
@@ -118,7 +115,7 @@ class HadoopDiscover:
         return self.rsnodes
 
     def _get_rsnodes_cdh(self):
-        ''' get list of HBase RegionServer nodes in CDH '''
+        """ get list of HBase RegionServer nodes in CDH """
         cm = self.hg.get('%s/api/v6/cm/deployment' % cfgs['mgr_url'])
 
         hostids = []
@@ -133,216 +130,60 @@ class HadoopDiscover:
                 if i == h['hostId']: self.rsnodes.append(h['hostname'])
 
     def _get_rsnodes_hdp(self):
-        ''' get list of HBase RegionServer nodes in HDP '''
+        """ get list of HBase RegionServer nodes in HDP """
         hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url )
         self.rsnodes = [ c['HostRoles']['host_name'] for c in hdp['host_components'] ]
         
 
 class UserInput:
     def __init__(self):
-        self.in_data = {
-            'traf_start':
-            {
-                'prompt':'Start instance after installation',
-                'default':'Y',
-                'isYN':True
-            },
-            'hdfs_user':
-            {
-                'prompt':'Enter hadoop user name',
-                'default':'hdfs',
-                'isuser': True
-            },
-            'hbase_user':
-            {
-                'prompt':'Enter hbase user name',
-                'default':'hbase',
-                'isuser': True
-            },
-            'dcs_ha':
-            {
-                'prompt':'Enable DCS High Avalability',
-                'default':'N',
-                'isYN':True
-            },
-            'dcs_ip':
-            {
-                'prompt':'Enter Floating IP address for DCS HA',
-                'isIP':True
-            },
-            'dcs_interface':
-            {
-                'prompt':'Enter interface for Floating IP address',
-                'default':'eth0',
-            },
-            'dcs_bknodes':
-            {
-                'prompt':'Enter DCS Backup Master Nodes for DCS HA (blank separated)',
-            },
-            'ldap_security':
-            {
-                'prompt':'Enable LDAP security',
-                'default':'N',
-                'isYN':True
-            },
-            'ldap_hosts':
-            {
-                'prompt':'Enter list of LDAP Hostnames (blank separated)',
-            },
-            'ldap_port':
-            {
-                'prompt':'Enter LDAP Port number (Example: 389 for no encryption or TLS, 636 for SSL)',
-                'default':'389',
-                'isdigit':True
-            },
-            'ldap_identifiers':
-            {
-                'prompt':'Enter all LDAP unique identifiers (blank separated)',
-            },
-            'ldap_encrypt':
-            {
-                'prompt':'Enter LDAP Encryption Level (0: Encryption not used, 1: SSL, 2: TLS)',
-                'default':'0',
-                'isdigit':True
-            },
-            'ldap_certpath':
-            {
-                'prompt':'Enter full path to TLS certificate',
-            },
-            'ldap_userinfo':
-            {
-                'prompt':'If Requred search user name/password',
-                'default':'N',
-                'isYN':True
-            },
-            'ldap_user':
-            {
-                'prompt':'Enter Search user name (if required)',
-                'default':' ',
-            },
-            'ldap_pwd':
-            {
-                'prompt':'Enter Search password (if required)',
-                'default':' ',
-            },
-            'scratch_locs':
-            {
-                'prompt':'Enter scratch file location, if more than one folder, use comma seperated',
-                'default':'$MY_SQROOT/tmp',
-            },
-            'java_home':
-            {
-                'prompt':'Specify location of Java 1.7 or 1.8 (JDK) on trafodion nodes',
-                'default':'/usr/java/jdk1.7.0_67-cloudera'
-            },
-            'dcs_cnt_per_node':
-            {
-                'prompt':'Enter number of DCS client connections per node',
-                'default':'4',
-                'isdigit':True
-            },
-            'first_rsnode':
-            {
-                'prompt':'Enter the hostname of first Apache HBase RegionServer node'
-            },
-            'hadoop_home':
-            {
-                'prompt':'Enter Apache Hadoop directory location'
-            },
-            'hbase_home':
-            {
-                'prompt':'Enter Apache HBase directory location'
-            },
-            'hbase_ver':
-            {
-                'prompt':'Enter Apache HBase Version (1.0, 1.1, 1.2)'
-            },
-            'hive_home':
-            {
-                'prompt':'Enter Apache Hive directory location if exists',
-                'default':'NO_HIVE'
-            },
-            'mgr_url':
-            {
-                'prompt':'Enter HDP/CDH web manager URL:port, (full URL, if no http/https prefix, default prefix is http://)'
-            },
-            'mgr_user':
-            {
-                'prompt':'Enter HDP/CDH web manager user name',
-                'default':'admin',
-                'isuser': True
-            },
-            'mgr_pwd':
-            {
-                'prompt':'Enter HDP/CDH web manager user password',
-                'ispasswd':True
-            },
-            'traf_pwd':
-            {
-                'prompt':'Enter trafodion user password',
-                'ispasswd':True
-            },
-            'traf_package':
-            {
-                'prompt':'Enter full path to Trafodion tar file',
-                'isexist': True
-            },
-            'db_admin_user':
-            {
-                'prompt':'Enter DB Admin user name for esgynDB manager',
-                'default':'DB__ADMINUSER',
-                'isuser': True
-            },
-            'db_admin_pwd':
-            {
-                'prompt':'Enter DB Admin user password for esgynDB manager',
-                'default':'traf123',
-            },
-            'node_list':
-            {
-                'prompt':'Enter list of Nodes separated by comma, support simple numeric RE,\n e.g. \'n[01-12],n[21-25]\',\'n0[1-5].com\''
-            },
-            'cluster_no':
-            {
-                'prompt':'Select the above cluster number for installing Trafodion',
-                'default':'1',
-                'isdigit':True
-            },
-            'use_hbase_node':
-            {
-                'prompt':'Use same Trafodion nodes as HBase RegionServer nodes',
-                'default':'Y',
-                'isYN':True
-            },
-            'confirm_nodelist':
-            {
-                'prompt':'Confirm expanded node list is correct',
-                'default':'Y',
-                'isYN':True
-            },
-            'confirm_all':
-            {
-                'prompt':'Confirm all configs are correct',
-                'default':'N',
-                'isYN':True
-            },
-        }
+        self.in_data = ParseJson(USER_PROMPT_FILE).load()
     
-    def _handle_input(self, args, userdef):
-        prompt = args['prompt']
-        default = userdef
-        ispasswd = isYN = isdigit = isexist = isIP = isuser = ''
-        if (not default) and args.has_key('default'): default = args['default']
-        if args.has_key('ispasswd'): 
-            ispasswd = args['ispasswd']
-            # no default value for password
-            default = ''
-        if args.has_key('isYN'): isYN = args['isYN']
-        if args.has_key('isdigit'): isdigit = args['isdigit']
-        if args.has_key('isexist'): isexist = args['isexist']
-        if args.has_key('isIP'): isIP = args['isIP']
-        if args.has_key('isuser'): isuser = args['isuser']
-    
+    def _basic_check(self, name, answer):
+        isYN = self.in_data[name].has_key('isYN')
+        isdigit = self.in_data[name].has_key('isdigit')
+        isexist = self.in_data[name].has_key('isexist')
+        isIP = self.in_data[name].has_key('isIP')
+        isuser = self.in_data[name].has_key('isuser')
+
+        # check answer value basicly
+        answer = answer.rstrip()
+        if answer:
+            if isYN:
+                answer = answer.upper()
+                if answer != 'Y' and answer != 'N':
+                    log_err('Invalid parameter for %s, should be \'Y|y|N|n\'' % name)
+            elif isdigit:
+                if not answer.isdigit():
+                    log_err('Invalid parameter for %s, should be a number' % name)
+            elif isexist:
+                if not os.path.exists(answer):
+                    log_err('%s path \'%s\' doesn\'t exist' % (name, answer))
+            elif isIP:
+                try:
+                    socket.inet_pton(socket.AF_INET, answer)
+                except:
+                    log_err('Invalid IP address \'%s\'' % answer)
+            elif isuser:
+                if re.match(r'\w+', answer).group() != answer:
+                    log_err('Invalid user name \'%s\'' % answer)
+
+        else:
+            log_err('Empty value for \'%s\'' % name)
+
+    def _handle_prompt(self, name, user_defined):
+        prompt = self.in_data[name]['prompt']
+        default = user_defined
+
+        if (not default) and self.in_data[name].has_key('default'):
+            default = self.in_data[name]['default']
+
+        ispasswd = self.in_data[name].has_key('ispasswd')
+        isYN = self.in_data[name].has_key('isYN')
+
+        # no default value for password
+        if ispasswd: default = ''
+
         if isYN:
             prompt = prompt + ' (Y/N) '
     
@@ -356,7 +197,8 @@ class UserInput:
             orig = getpass.getpass(prompt)
             confirm = getpass.getpass('Confirm ' + prompt)
             if orig == confirm: 
-                answer = base64.b64encode(confirm)
+                #answer = base64.b64encode(confirm)
+                answer = confirm
             else:
                 log_err('Password mismatch')
         else:
@@ -366,73 +208,60 @@ class UserInput:
                 log_err('Character Encode error, check user input')
             if not answer and default: answer = default
     
-        # check answer value basicly
-        answer = answer.rstrip()
-        if answer:
-            if isYN:
-                answer = answer.upper()
-                if answer != 'Y' and answer != 'N':
-                    log_err('Invalid parameter, should be \'Y|y|N|n\'')
-            elif isdigit:
-                if not answer.isdigit():
-                    log_err('Invalid parameter, should be a number')
-            elif isexist:
-                if not os.path.exists(answer):
-                    log_err('\'%s\' doesn\'t exist' % answer)
-            elif isIP:
-                try:
-                    socket.inet_pton(socket.AF_INET, answer)
-                except:
-                    log_err('Invalid IP address \'%s\'' % answer)
-            elif isuser:
-                if re.match(r'\w+', answer).group() != answer:
-                    log_err('Invalid user name \'%s\'' % answer)
-
-        else:
-            log_err('Empty value')
-        
         return answer
     
-    def get_input(self, name, userdef=''):
+    def get_input(self, name, user_defined='', prompt_mode=True):
         if self.in_data.has_key(name):
-            # save configs to global dict
-            cfgs[name] = self._handle_input(self.in_data[name], userdef)
-            return cfgs[name]
+            if prompt_mode:
+                # save configs to global dict
+                cfgs[name] = self._handle_prompt(name, user_defined)
+
+            # check basic values from global configs
+            self._basic_check(name, cfgs[name])
         else: 
             # should not go to here, just in case
             log_err('Invalid prompt')
 
+    def get_confirm(self):
+        answer = raw_input('Confirm result (Y/N) [N]: ')
+        if not answer: answer = 'N'
+
+        answer = answer.upper()
+        if answer != 'Y' and answer != 'N':
+            log_err('Invalid parameter, should be \'Y|y|N|n\'')
+        return answer
+
     def notify_user(self):
-        ''' show the final configs to user '''
-        print '\n  **** Final Configs ****'
-        pt = PrettyTable(['config type', 'value'])
-        pt.align['config type'] = pt.align['value'] = 'l'
-        for k,v in sorted(cfgs.items()):
-            if self.in_data.has_key(k):
-                if self.in_data[k].has_key('ispasswd') or 'confirm' in k: continue
-                pt.add_row([k, v])
+        """ show the final configs to user """
+        format_output('Final Configs')
+        title = ['config type', 'value']
+        pt = PrettyTable(title)
+        for item in title:
+            pt.align[item] = 'l'
+
+        for key,value in sorted(cfgs.items()):
+            if self.in_data.has_key(key) and value:
+        #        if self.in_data[k].has_key('ispasswd'): continue
+                pt.add_row([key, value])
         print pt
-        confirm = self.get_input('confirm_all')
-        if confirm == 'N': 
+        confirm = self.get_confirm()
+        if confirm != 'Y': 
             if os.path.exists(DBCFG_FILE): os.remove(DBCFG_FILE)
             log_err('User quit')
 
 
 def log_err(errtext):
     # save tmp config files
-    tp = ParseJson(DBCFG_TMP_FILE)
-    tp.jsave(cfgs)
+    tp = ParseInI(DBCFG_TMP_FILE)
+    tp.save(cfgs)
 
     err_m(errtext)
 
-def check_node_conn():
-    for node in cfgs['node_list'].split(','):
-        rc = os.system('ping -c 1 %s >/dev/null 2>&1' % node)
-        if rc: log_err('Cannot ping %s, please check network connection or /etc/hosts configured correctly ' % node)
 
-def check_mgr_url():
+def get_cluster_cfgs(cfgs):
     if cfgs['distro'] == 'APACHE': return
-    hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
+    #hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
+    hg = ParseHttp(cfgs['mgr_user'], cfgs['mgr_pwd'])
     validate_url_v1 = '%s/api/v1/clusters' % cfgs['mgr_url']
     validate_url_v6 = '%s/api/v6/clusters' % cfgs['mgr_url']
     content = hg.get(validate_url_v1)
@@ -461,43 +290,48 @@ def check_mgr_url():
     return cluster_cfgs
 
     
-def user_input(no_dbmgr=False, vanilla_hadoop=False):
+def user_input(no_dbmgr=False, apache_hadoop=False, offline=False, prompt_mode=True):
     """ get user's input and check input value """
     global cfgs
-    # load from temp storaged config file
-    if os.path.exists(DBCFG_TMP_FILE):
-        tp = ParseJson(DBCFG_TMP_FILE)
-        cfgs = tp.jload()
+    # load from temp config file if in prompt mode
+    if os.path.exists(DBCFG_TMP_FILE) and prompt_mode == True:
+        tp = ParseInI(DBCFG_TMP_FILE)
+        cfgs = tp.load()
 
     u = UserInput()
-    g = lambda n: u.get_input(n, cfgs[n])
+    g = lambda n: u.get_input(n, cfgs[n], prompt_mode=prompt_mode)
 
     g('java_home')
 
-    def _check_tar_file(input_name, namelist):
-        # find tar in installer folder, if more than one found, use the first one
-        for name in namelist:
-            tar_loc = glob('%s/%s*.tar.gz' % (INSTALLER_LOC, name))
-            if tar_loc: break
+    if offline:
+        g('local_repo_dir')
+        if not glob('%s/repodata' % cfgs['local_repo_dir']):
+            log_err('repodata directory not found, this is not a valid repository directory')
+        cfgs['offline_mode'] = 'Y'
+        cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
+        cfgs['repo_port'] = '9900'
 
+    pkg_list = ['trafodion', 'esgynDB']
+    # find tar in installer folder, if more than one found, use the first one
+    for pkg in pkg_list:
+        tar_loc = glob('%s/%s*.tar.gz' % (INSTALLER_LOC, pkg))
         if tar_loc:
-            u.get_input(input_name, tar_loc[0])
-        else:
-            g(input_name)
+            cfgs['traf_package'] = tar_loc[0]
+            break
 
-        # get basename and version from tar filename
-        try:
-            pattern = '|'.join(namelist)
-            traf_basename, traf_version = re.search(r'(.*%s.*)-(\d\.\d\.\d).*' % pattern, cfgs[input_name]).groups()
-            return traf_basename, traf_version
-        except:
-            log_err('Invalid tar file %s' % input_name)
+    g('traf_package')
 
-    cfgs['traf_basename'], cfgs['traf_version'] = _check_tar_file('traf_package', ['trafodion', 'esgynDB'])
+    # get basename and version from tar filename
+    try:
+        pattern = '|'.join(pkg_list)
+        cfgs['traf_basename'], cfgs['traf_version'] = re.search(r'(.*%s.*)-(\d\.\d\.\d).*' % pattern, cfgs['traf_package']).groups()
+    except:
+        log_err('Invalid package tar file')
+
     if float(cfgs['traf_version'][:3]) >= 2.2:
-        cfgs['req_java8'] == 'Y'
+        cfgs['req_java8'] = 'Y'
     else:
-        cfgs['req_java8'] == 'N'
+        cfgs['req_java8'] = 'N'
         
     # no db manager in Trafodion
     if not 'trafodion' in cfgs['traf_basename']:
@@ -505,30 +339,30 @@ def user_input(no_dbmgr=False, vanilla_hadoop=False):
             g('db_admin_user')
             g('db_admin_pwd')
 
-    if vanilla_hadoop:
-        cfgs['hadoop_home'] = g('hadoop_home')
-        cfgs['hbase_home'] = g('hbase_home')
-        hbase_ver = g('hbase_ver')
-        cfgs['hive_home'] = g('hive_home')
-        cfgs['hdfs_user'] = g('hdfs_user')
-        cfgs['hbase_user'] = g('hbase_user')
-        cfgs['first_rsnode'] = g('first_rsnode')
-        cfgs['distro'] = 'APACHE' + hbase_ver
+    if apache_hadoop:
+        g('hadoop_home')
+        g('hbase_home')
+        g('hive_home')
+        g('hdfs_user')
+        g('hbase_user')
+        g('first_rsnode')
+        cfgs['distro'] = 'APACHE'
     else:
-        url = g('mgr_url')
-        if not ('http:' in url or 'https:' in url): 
+        g('mgr_url')
+        if not ('http:' in cfgs['mgr_url'] or 'https:' in cfgs['mgr_url']): 
             cfgs['mgr_url'] = 'http://' + cfgs['mgr_url']
 
         g('mgr_user')
         g('mgr_pwd')
 
-        cluster_cfgs = check_mgr_url()
+        cluster_cfgs = get_cluster_cfgs(cfgs)
         c_index = 0
         # support multiple clusters, test on CDH only
         if len(cluster_cfgs) > 1:
             for index, config in enumerate(cluster_cfgs):
                 print str(index + 1) + '. ' + config[1]
-            c_index = int(g('cluster_no')) - 1
+            g('cluster_no')
+            c_index = int(cfgs['cluster_no']) - 1
             if c_index < 0 or c_index >= len(cluster_cfgs):
                 log_err('Incorrect number')
 
@@ -554,66 +388,55 @@ def user_input(no_dbmgr=False, vanilla_hadoop=False):
         cfgs['first_rsnode'] = rsnodes[0] # first regionserver node
 
     # manually set node list in apache hadoop
-    if vanilla_hadoop:
-        use_hbase_node = 'N'
+    if apache_hadoop:
+        cfgs['use_hbase_node'] = 'N'
     else:
-        use_hbase_node = g('use_hbase_node')
+        g('use_hbase_node')
 
-    if use_hbase_node == 'N':
-        cnt = 0
-        # give user another try if input is wrong
-        while cnt <= 2:
-            cnt += 1
-            if cnt == 2: print ' === Please try to input node list again ==='
-            node_lists = expNumRe(g('node_list'))
-            # don't check for apache hadoop
-            if not vanilla_hadoop and set(node_lists).difference(set(rsnodes)):
-                log_err('Incorrect node list, should be part of RegionServer nodes')
-            node_list = ','.join(node_lists)
-            print ' === NODE LIST ===\n' + node_list
-            confirm = u.get_input('confirm_nodelist')
-            if confirm == 'N': 
-                if cnt <= 1:
-                    continue
-                else:
-                    log_err('Incorrect node list, aborted...')
-            else:
-                cfgs['node_list'] = ',' + node_list
-                break
+    if cfgs['use_hbase_node'].upper() == 'N':
+        g('node_list')
+        node_lists = expNumRe(cfgs['node_list'])
+
+        # check if node list is expanded successfully
+        if len([1 for node in node_lists if '[' in node]):
+            log_err('Failed to expand node list, please check your input.')
+
+        # check node list should be part of HBase RS nodes, no check for apache hadoop
+        if not apache_hadoop and set(node_lists).difference(set(rsnodes)):
+            log_err('Incorrect node list, should be part of RegionServer nodes')
+
+        cfgs['node_list'] =  ','.join(node_lists)
     else:
         cfgs['node_list'] = ','.join(rsnodes)
 
-    check_node_conn()
+    # check node connection
+    for node in cfgs['node_list'].split(','):
+        rc = os.system('ping -c 1 %s >/dev/null 2>&1' % node)
+        if rc: log_err('Cannot ping %s, please check network connection and /etc/hosts' % node)
 
-    # set other config to cfgs
-    #cfgs['my_nodes'] = cfgs['node_list'].replace(' ', ' -w ')
-    cfgs['first_node'] = cfgs['node_list'].split(',')[0]
-    if vanilla_hadoop:
-        cfgs['hbase_xml_file'] = cfgs['hbase_home'] + '/conf/hbase-site.xml'
-        cfgs['hdfs_xml_file'] = cfgs['hadoop_home'] + '/etc/hadoop/hdfs-site.xml'
-    else:
-        cfgs['hbase_xml_file'] = '/etc/hbase/conf/hbase-site.xml'
-    cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
-    
     g('traf_pwd')
-    g('traf_start')
     g('dcs_cnt_per_node')
     g('scratch_locs')
+    g('traf_start')
+
+    # TODO add kerberos
 
     # ldap security
-    if g('ldap_security') == 'Y':
+    g('ldap_security')
+    if cfgs['ldap_security'].upper() == 'Y':
         g('ldap_hosts')
         g('ldap_port')
         g('ldap_identifiers')
-        ldap_encrypt = g('ldap_encrypt')
-        if  ldap_encrypt == '1' or ldap_encrypt == '2':
+        g('ldap_encrypt')
+        if  cfgs['ldap_encrypt'] == '1' or cfgs['ldap_encrypt'] == '2':
             g('ldap_certpath')
-        elif ldap_encrypt == '0':
+        elif cfgs['ldap_encrypt'] == '0':
             cfgs['ldap_certpath'] = ''
         else:
             log_err('Invalid ldap encryption level')
 
-        if g('ldap_userinfo') == 'Y':
+        g('ldap_userinfo')
+        if cfgs['ldap_userinfo'] == 'Y':
             g('ldap_user')
             g('ldap_pwd')
         else:
@@ -621,14 +444,24 @@ def user_input(no_dbmgr=False, vanilla_hadoop=False):
             cfgs['ldap_pwd'] = ''
 
     # DCS HA
-    if g('dcs_ha') == 'Y':
-        g('dcs_ip')
+    g('dcs_ha')
+    if cfgs['dcs_ha'].upper() == 'Y':
+        g('dcs_floating_ip')
         g('dcs_interface')
         g('dcs_bknodes')
         # check dcs backup nodes should exist in node list
-        if sorted(list(set((cfgs['dcs_bknodes'] + ' ' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
+        if sorted(list(set((cfgs['dcs_bknodes'] + ',' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
             log_err('Invalid DCS backup nodes, please pick up from node list')
 
+    # set other config to cfgs
+    if apache_hadoop:
+        cfgs['hbase_xml_file'] = cfgs['hbase_home'] + '/conf/hbase-site.xml'
+        cfgs['hdfs_xml_file'] = cfgs['hadoop_home'] + '/etc/hadoop/hdfs-site.xml'
+    else:
+        cfgs['hbase_xml_file'] = '/etc/hbase/conf/hbase-site.xml'
+
+    cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
+    
     u.notify_user()
 
 
@@ -653,18 +486,18 @@ def get_options():
                       If set, passwordless ssh is required.")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                 help="Verbose mode, will print commands.")
-    parser.add_option("--dryrun", action="store_true", dest="dryrun", default=False,
-                help="Dry run mode, it will only generate the config file.") 
+    parser.add_option("--build", action="store_true", dest="build", default=False,
+                help="Build the config file in guided mode only.") 
     parser.add_option("--upgrade", action="store_true", dest="upgrade", default=False,
-                help="Upgrade install, it is really helpful when you reinstall Trafodion.")
-    parser.add_option("--vanilla-hadoop", action="store_true", dest="vanilla", default=False,
-                help="Install Trafodion on top of Vanilla Hadoop.")
+                help="Upgrade install, it is useful when reinstalling Trafodion.")
+    parser.add_option("--apache-hadoop", action="store_true", dest="apache", default=False,
+                help="Install Trafodion on top of Apache Hadoop.")
     parser.add_option("--no-dbmgr", action="store_true", dest="nodbmgr", default=False,
                 help="Do not enable and configure esgynDB manager.")
     parser.add_option("--dbmgr-only", action="store_true", dest="dbmgr", default=False,
                 help="Enable esgynDB manager only.")
     parser.add_option("--offline", action="store_true", dest="offline", default=False,
-                help="Enable local repository for installing Trafodion.")
+                help="Enable local repository for offline installing Trafodion.")
     parser.add_option("--version", action="store_true", dest="version", default=False,
                 help="Show the installer version.")
 
@@ -675,9 +508,9 @@ def main():
     """ db_installer main loop """
     global cfgs
 
-    #########################
+    format_output('Trafodion Installation ToolKit')
+
     # handle parser option
-    #########################
     options = get_options()
     if options.ansible:
         from ans_wrapper import run
@@ -688,11 +521,11 @@ def main():
         if options.method: log_err('Wrong parameter, cannot specify ansible option without ansible enabled')
 
     if options.version: version()
-    if options.dryrun and options.cfgfile:
-        log_err('Wrong parameter, cannot specify both --dryrun and --config-file')
+    if options.build and options.cfgfile:
+        log_err('Wrong parameter, cannot specify both --build and --config-file')
 
-    if options.dryrun and options.offline:
-        log_err('Wrong parameter, cannot specify both --dryrun and --offline')
+    if options.build and options.offline:
+        log_err('Wrong parameter, cannot specify both --build and --offline')
 
     if options.dbmgr and options.nodbmgr:
         log_err('Wrong parameter, cannot specify both --dbmgr-only and --no-dbmgr')
@@ -701,29 +534,6 @@ def main():
         if options.method not in ['sudo','su','pbrun','pfexec','runas','doas']:
             log_err('Wrong method, valid methods: [ sudo | su | pbrun | pfexec | runas | doas ].')
 
-    if options.offline:
-        parseini = ParseInI()
-        repo_dir = parseini.get_repodir()
-        if not repo_dir: log_err('local repo directory is not set in config.ini')
-
-        repo_port = '9900'
-        http_start(repo_dir, repo_port)
-
-        cfgs['offline_mode'] = 'Y' 
-        cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
-        cfgs['repo_port'] = repo_port
-    else:
-        cfgs['offline_mode'] = 'N' 
-
-    if options.upgrade: cfgs['upgrade'] == 'Y'
-        
-    no_dbmgr = True if options.nodbmgr else False
-    vanilla_hadoop = True if options.vanilla else False
-
-    #######################################
-    # get user input and gen variable file
-    #######################################
-    format_output('Trafodion Installation Start')
     if options.cfgfile:
         if not os.path.exists(options.cfgfile): 
             log_err('Cannot find config file \'%s\'' % options.cfgfile)
@@ -731,45 +541,44 @@ def main():
     else:
         config_file = DBCFG_FILE
 
-    p = ParseJson(config_file)
-
-    # must install Trafodion first if using dbmgr only mode
+    # must install esgynDB first if using dbmgr-only mode
     if options.dbmgr and not os.path.exists(config_file):
         log_err('Must specify the config file, which means you have previously installed esgynDB.')
 
     # not specified config file and default config file doesn't exist either
-    if options.dryrun or (not os.path.exists(config_file)): 
-        if options.dryrun: format_output('DryRun Start')
-        user_input(no_dbmgr, vanilla_hadoop)
+    p = ParseInI(config_file)
+    if options.build or (not os.path.exists(config_file)): 
+        if options.build: format_output('DryRun Start')
+        user_input(options.nodbmgr, options.apache, options.offline, prompt_mode=True)
 
         # save config file as json format
-        print '\n** Generating json file to save configs ... \n'
-        p.jsave(cfgs)
+        print '\n** Generating config file to save configs ... \n'
+        p.save(cfgs)
 
     # config file exists
     else:
-        print '\n** Loading configs from json file ... \n'
-        cfgs = p.jload()
+        print '\n** Loading configs from config file ... \n'
+        cfgs = p.load()
+        if options.offline and cfgs['offline_mode'] != 'Y':
+            log_err('To enable offline mode, must set "offline_mode = Y" in config file')
+        user_input(options.nodbmgr, options.apache, options.offline, prompt_mode=False)
 
-        # check some basic info
-        check_mgr_url()
-        check_node_conn()
+    if options.offline:
+        http_start(cfgs['local_repo_dir'], cfgs['repo_port'])
+    else:
+        cfgs['offline_mode'] = 'N' 
 
-        u = UserInput()
-        u.notify_user()
 
-    if not options.dryrun:
-        format_output('Installation start')
+    if not options.build:
+        format_output('Installation Start')
 
-        # perform actual installation
+        ### perform actual installation ###
         run(cfgs, options)
 
         format_output('Installation Complete')
 
         if options.offline: http_stop()
 
-        ################
-        # clean up work
         # rename default config file when successfully installed
         # so next time user can input new variables for a new install
         # or specify the backup config file to install again
@@ -790,7 +599,7 @@ if __name__ == "__main__":
     try:
         main()
     except (KeyboardInterrupt,EOFError):
-        tp = ParseJson(DBCFG_TMP_FILE)
-        tp.jsave(cfgs)
+        tp = ParseInI(DBCFG_TMP_FILE)
+        tp.save(cfgs)
         http_stop()
         print '\nAborted...'

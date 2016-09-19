@@ -1,0 +1,194 @@
+{  
+  "traf_start":
+  {   
+      "prompt":"Start instance after installation",
+      "default":"Y",
+      "isYN":"Y"
+  },
+  "hdfs_user":
+  {
+      "prompt":"Enter hadoop user name",
+      "default":"hdfs",
+      "isuser": "Y"
+  },
+  "hbase_user":
+  {
+      "prompt":"Enter hbase user name",
+      "default":"hbase",
+      "isuser": "Y"
+  },
+  "dcs_ha":
+  {
+      "prompt":"Enable DCS High Avalability",
+      "default":"N",
+      "isYN":"Y"
+  },
+  "dcs_floating_ip":
+  {
+      "prompt":"Enter Floating IP address for DCS HA",
+      "isIP":"Y"
+  },
+  "dcs_interface":
+  {
+      "prompt":"Enter interface for Floating IP address",
+      "default":"eth0"
+  },
+  "dcs_bknodes":
+  {
+      "prompt":"Enter DCS Backup Master Nodes for DCS HA (comma separated)"
+  },
+  "ldap_security":
+  {
+      "prompt":"Enable LDAP security",
+      "default":"N",
+      "isYN":"Y"
+  },
+  "ldap_hosts":
+  {
+      "prompt":"Enter list of LDAP Hostnames (blank separated)"
+  },
+  "ldap_port":
+  {
+      "prompt":"Enter LDAP Port number (Example: 389 for no encryption or TLS, 636 for SSL)",
+      "default":"389",
+      "isdigit":"Y"
+  },
+  "ldap_identifiers":
+  {
+      "prompt":"Enter all LDAP unique identifiers (blank separated)"
+  },
+  "ldap_encrypt":
+  {
+      "prompt":"Enter LDAP Encryption Level (0: Encryption not used, 1: SSL, 2: TLS)",
+      "default":"0",
+      "isdigit":"Y"
+  },
+  "ldap_certpath":
+  {
+      "prompt":"Enter full path to TLS certificate file (*.pem)"
+  },
+  "ldap_userinfo":
+  {
+      "prompt":"If Requred search user name/password",
+      "default":"N",
+      "isYN":"Y"
+  },
+  "ldap_user":
+  {
+      "prompt":"Enter Search user name (if required)",
+      "default":" "
+  },
+  "ldap_pwd":
+  {
+      "prompt":"Enter Search password (if required)",
+      "default":" "
+  },
+  "scratch_locs":
+  {
+      "prompt":"Enter scratch file folder location(should be a large disk), if more than one folder, use comma seperated",
+      "default":"/tmp"
+  },
+  "local_repo_dir":
+  {
+      "prompt":"Enter local repository folder location to install trafodion RPM dependencies",
+      "isexist": "Y"
+  },
+  "java_home":
+  {
+      "prompt":"Specify location of Java(JDK) on trafodion nodes",
+      "default":"/usr/java/jdk1.7.0_67-cloudera"
+  },
+  "dcs_cnt_per_node":
+  {   
+      "prompt":"Enter number of DCS client connections per node",
+      "default":"4",
+      "isdigit":"Y"
+  },
+  "first_rsnode":
+  {
+      "prompt":"Enter the hostname of first Apache HBase RegionServer node"
+  },
+  "hadoop_home":
+  {
+      "prompt":"Enter Apache Hadoop directory location"
+  },
+  "hbase_home":
+  {
+      "prompt":"Enter Apache HBase directory location"
+  },
+  "hive_home":
+  {
+      "prompt":"Enter Apache Hive directory location if exists",
+      "default":"NO_HIVE"
+  },
+  "mgr_url":
+  {
+      "prompt":"Enter HDP/CDH web manager URL:port, (full URL, if no http/https prefix, default prefix is http://)"
+  },
+  "mgr_user":
+  {
+      "prompt":"Enter HDP/CDH web manager user name",
+      "default":"admin",
+      "isuser": "Y"
+  },
+  "mgr_pwd":
+  {
+      "prompt":"Enter HDP/CDH web manager user password",
+      "ispasswd":"Y"
+  },
+  "traf_user":
+  {
+      "prompt":"Enter trafodion user name",
+      "default":"trafodion",
+      "isuser": "Y"
+  },
+  "traf_pwd":
+  {
+      "prompt":"Enter trafodion user password",
+      "ispasswd":"Y"
+  },
+  "traf_package":
+  {
+      "prompt":"Enter full path to Trafodion tar file",
+      "isexist": "Y"
+  },
+  "db_admin_user":
+  {
+      "prompt":"Enter DB Admin user name for esgynDB manager",
+      "default":"admin",
+      "isuser": "Y"
+  },
+  "db_admin_pwd":
+  {
+      "prompt":"Enter DB Admin user password for esgynDB manager",
+      "default":"traf123"
+  },
+  "node_list":
+  {
+      "prompt":"Enter list of Nodes separated by comma, support simple numeric RE,\n i.e. \"n[01-12],n[21-25]\",\"n0[1-5].com\""
+  },
+  "cluster_no":
+  {
+      "prompt":"Select the above cluster number for installing Trafodion",
+      "default":"1",
+      "isdigit":"Y"
+  },
+  "use_hbase_node":
+  {
+      "prompt":"Use same Trafodion nodes as HBase RegionServer nodes",
+      "default":"Y",
+      "isYN":"Y"
+  },
+  "confirm_nodelist":
+  {
+      "prompt":"Confirm expanded node list is correct",
+      "default":"Y",
+      "isYN":"Y"
+  },
+  "confirm_all":
+  {
+      "prompt":"Confirm all configs are correct",
+      "default":"N",
+      "isYN":"Y"
+  }
+}

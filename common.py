@@ -41,10 +41,16 @@ from collections import defaultdict
 
 __VERSION__ = 'v1.0.0'
 INSTALLER_LOC = sys.path[0]
+
+USER_PROMPT_FILE = INSTALLER_LOC + '/conf/prompt.json'
+SCRCFG_FILE = INSTALLER_LOC + '/conf/script.json'
+VERSION_FILE = INSTALLER_LOC + '/conf/version.json'
+MODCFG_FILE = INSTALLER_LOC + '/conf/mod_cfgs.json'
+
 DBCFG_FILE = INSTALLER_LOC + '/db_config'
 DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
+
 TMP_DIR = '/tmp/.install'
-VERSION_FILE = INSTALLER_LOC + '/version.json'
 MARK = '[ERR]'
 
 def version():

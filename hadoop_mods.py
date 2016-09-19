@@ -35,7 +35,7 @@ except IndexError:
     err('No db config found')
 
 dbcfgs = json.loads(dbcfgs_json)
-modcfgs = ParseJson('mod_cfgs.json').jload()
+modcfgs = ParseJson(MODCFG_FILE).load()
 
 MOD_CFGS = modcfgs['MOD_CFGS']
 HBASE_MASTER_CONFIG = modcfgs['HBASE_MASTER_CONFIG']
@@ -193,11 +193,13 @@ class HDPMod:
 
 def run():
     if 'CDH' in dbcfgs['distro']:
-        cdh = CDHMod(dbcfgs['mgr_user'], base64.b64decode(dbcfgs['mgr_pwd']), dbcfgs['mgr_url'], dbcfgs['cluster_name'])
+        #cdh = CDHMod(dbcfgs['mgr_user'], base64.b64decode(dbcfgs['mgr_pwd']), dbcfgs['mgr_url'], dbcfgs['cluster_name'])
+        cdh = CDHMod(dbcfgs['mgr_user'], dbcfgs['mgr_pwd'], dbcfgs['mgr_url'], dbcfgs['cluster_name'])
         cdh.mod()
         cdh.restart()
     elif 'HDP' in dbcfgs['distro']:
-        hdp = HDPMod(dbcfgs['mgr_user'], base64.b64decode(dbcfgs['mgr_pwd']), dbcfgs['mgr_url'], dbcfgs['cluster_name'])
+        #hdp = HDPMod(dbcfgs['mgr_user'], base64.b64decode(dbcfgs['mgr_pwd']), dbcfgs['mgr_url'], dbcfgs['cluster_name'])
+        hdp = HDPMod(dbcfgs['mgr_user'], dbcfgs['mgr_pwd'], dbcfgs['mgr_url'], dbcfgs['cluster_name'])
         hdp.mod()
         hdp.restart()
 

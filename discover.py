@@ -82,6 +82,15 @@ class Discover(object):
         return '-'.join(platform.dist()[:2])
 
     @deco
+    def get_firewall_stat(self):
+        """ get firewall running status """
+        iptables_stat = cmd_output('iptables -nL|grep -vE "(Chain|target)"').strip()
+        if iptables_stat:
+            return 'Running'
+        else:
+            return 'Stopped'
+
+    @deco
     def get_pidmax(self):
         """ get kernel pid max setting """
         return self._get_sysctl_info('kernel.pid_max')
@@ -96,18 +105,27 @@ class Discover(object):
             return 'no_def_Java'
 
     @deco
+    def get_hive(self):
+        """ get Hive status """
+        hive_stat = cmd_output('which hive')
+        if 'no hive' in hive_stat:
+            return 'N/A'
+        else:
+            return 'OK'
+
+    @deco
     def get_hbase(self):
         """ get HBase version """
         hbase_ver = cmd_output('hbase version | head -n1')
         try:
             return re.search('HBase (.*)', hbase_ver).groups()[0]
         except AttributeError:
-            return 'no_HBase'
+            return 'N/A'
     
-    #@deco
-    #def get_cpu_model(self):
-    #    """ get CPU model """
-    #    return self._get_cpu_info('model name')
+    @deco
+    def get_cpu_model(self):
+        """ get CPU model """
+        return self._get_cpu_info('model name')
 
     @deco
     def get_cpu_cores(self):
@@ -156,6 +174,14 @@ class Discover(object):
         """ get python version """
         return platform.python_version()
 
+    @deco
+    def get_traf_status(self):
+        """ get trafodion running status """
+        mon_process = cmd_output('ps -ef|grep -v grep|grep -c "monitor COLD"')
+        if int(mon_process) > 1:
+            return 'Running'
+        else:
+            return 'Stopped'
 
 def run():
     discover = Discover()

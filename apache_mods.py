@@ -29,7 +29,7 @@ dbcfgs = json.loads(dbcfgs_json)
 
 def run():
     if 'APACHE' in dbcfgs['distro']:
-        modcfgs = ParseJson('mod_cfgs.json').jload()
+        modcfgs = ParseJson(MODCFG_FILE).load()
         MOD_CFGS = modcfgs['MOD_CFGS']
 
         hdfs_xml_file = dbcfgs['hdfs_xml_file']

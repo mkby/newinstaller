@@ -68,7 +68,12 @@ def run():
     elif 'HDP' in DISTRO:
         hbase_lib_path = '/usr/hdp/current/hbase-regionserver/lib'
     elif 'APACHE' in DISTRO:
-        hbase_lib_path = dbcfgs['hbase_home'] + '/lib'
+        hbase_home = dbcfgs['hbase_home']
+        hbase_lib_path = hbase_home + '/lib'
+        # for apache distro, get hbase version from cmdline
+        hbase_ver = cmd_output('%s/bin/hbase version | head -n1' % hbase_home)
+        hbase_ver = re.search('HBase (\d\.\d)', hbase_ver).groups()[0]
+        DISTRO += hbase_ver
 
     distro, v1, v2 = re.search('(\w+)(\d)\.(\d)', DISTRO).groups()
     hbase_trx_jar = '%s/hbase-trx-%s%s_%s-%s.jar' % (TRAF_LIB_PATH, distro.lower(), v1, v2, TRAF_VER)
@@ -118,11 +123,12 @@ def run():
     p.add_property('dcs.dns.interface', net_interface)
 
     if dbcfgs['dcs_ha'] == 'yes':
-        dcs_ip = dbcfgs['dcs_ip']
+        dcs_floating_ip = dbcfgs['dcs_floating_ip']
         dcs_backup_nodes = dbcfgs['dcs_backup_nodes']
         p.add_property('dcs.master.floating.ip', 'true')
         p.add_property('dcs.master.floating.ip.external.interface', net_interface)
-        p.add_property('dcs.master.floating.ip.external.ip.address', dcs_ip)
+        p.add_property('dcs.master.floating.ip.external.ip.address', dcs_floating_ip)
+        p.rm_property('dcs.dns.interface')
 
         # backup_master
         write_file(DCS_BKMASTER_FILE, dcs_backup_nodes)

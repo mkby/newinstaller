@@ -76,13 +76,21 @@ class Check(object):
 
     def check_traf_proc(self):
         """ check if previous installed trafodion processes exist """
-        mon_process = cmd_output('ps -ef|grep -c "monitor COLD"')
-        if int(mon_process) > 1:
+        mon_process = cmd_output('ps -ef|grep -v grep|grep -c "monitor COLD"')
+        if int(mon_process) > 0:
             err('Trafodion process is found, please stop it first')
 
     def check_hbase_ver(self):
         """ check Apache HBase version if Apache Hadoop """
-        pass
+        if self.dbcfgs.has_key('hbase_home'): # apache distro
+            hbase_home = self.dbcfgs['hbase_home']
+            support_hbase_ver = self.version.get_version('hbase')
+            hbase_ver = cmd_output('%s/bin/hbase version | head -n1' % hbase_home)
+            hbase_ver = re.search('HBase (\d\.\d)', hbase_ver).groups()[0]
+            if hbase_ver not in support_hbase_ver:
+                err('Unsupported HBase version %s' % hbase_ver)
+        else:
+            pass
 
 
 def run():

@@ -42,7 +42,7 @@ class RemoteRun(Remote):
         self.__run_sshcmd('mkdir -p %s' % TMP_DIR)
 
         # copy all needed files to remote host
-        all_files = glob(INSTALLER_LOC + '/*.py') + glob(INSTALLER_LOC + '/*.json') + \
+        all_files = glob(INSTALLER_LOC + '/*.py') + glob(INSTALLER_LOC + '/conf/*.json') + \
                     glob(INSTALLER_LOC + '/*.sh') + glob(INSTALLER_LOC + '/*.template')
 
         self.copy(all_files, remote_folder=TMP_DIR)
@@ -80,7 +80,7 @@ class RemoteRun(Remote):
             msg = 'Host [%s]: Failed to run \'%s\'' % (self.host, script)
             if self.stderr: 
                 msg += ': ' + self.stderr
-                print '\nReason: ' + self.stderr
+                print '\n ' + self.stderr
             self.logger.error(msg)
             exit(1)
 
@@ -147,20 +147,16 @@ def run(dbcfgs, options, mode='install'):
         mode: install/discover
     """
     STAT_FILE = mode + '.status'
-    SCRCFG_FILE = 'script.json'
     LOG_FILE = '%s/logs/%s_%s.log' % (INSTALLER_LOC, mode, time.strftime('%Y%m%d_%H%M'))
     logger = get_logger(LOG_FILE)
 
-    script_output = [] # save script output
+    verbose = True if hasattr(options, 'verbose') and options.verbose else False
+    enable_pwd = True if hasattr(options, 'pwd') and options.pwd else False
+    upgrade = True if hasattr(options, 'upgrade') and options.upgrade else False
+    user = options.user if hasattr(options, 'user') and options.user else ''
+    threshold = options.fork if hasattr(options, 'fork') and options.fork else 10
 
-    verbose = True if options.verbose else False
-    if options.pwd: enable_pwd = True
-    if options.user: user = options.user
-    if options.fork: 
-        THRESHOLD = options.fork
-    else:
-        THRESHOLD = 10 # thread count
-
+    script_output = [] # script output array
     conf = ParseJson(SCRCFG_FILE).load()
     script_cfgs = conf[mode]
 
@@ -175,7 +171,7 @@ def run(dbcfgs, options, mode='install'):
     skipped_scripts = []
     
     # set skipped scripts which no need to run on an upgrade install
-    if dbcfgs['upgrade'] == 'Y':
+    if upgrade:
         skipped_scripts += ['hadoop_mods', 'traf_user', 'traf_dep']
 
     if dbcfgs['traf_start'] == 'N':
@@ -224,7 +220,12 @@ def run(dbcfgs, options, mode='install'):
 
         remote_instances = []
         if not islocal(hosts, local_host):
-            remote_instances = [RemoteRun(host, logger, pwd=pwd) for host in hosts]
+            remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd) for host in hosts]
+            first_instance = remote_instances[0]
+            for instance in remote_instances:
+                if instance.host == dbcfgs['first_rsnode']:
+                    first_rs_instance = instance
+                    break
 
         logger.info(' ***** %s Start *****' % mode)
         for cfg in script_cfgs:
@@ -260,13 +261,15 @@ def run(dbcfgs, options, mode='install'):
                 if node == 'local':
                     run_local_script(script, dbcfgs_json, req_pwd)
                 elif node == 'first':
-                    remote_instances[0].run_script(script, run_user, dbcfgs_json, verbose=verbose)
+                    first_instance.run_script(script, run_user, dbcfgs_json, verbose=verbose)
+                elif node == 'first_rs':
+                    first_rs_instance.run_script(script, run_user, dbcfgs_json, verbose=verbose)
                 elif node == 'all':
                     l = len(remote_instances)
-                    if l > THRESHOLD:
-                        piece = (l - (l % THRESHOLD)) / THRESHOLD
-                        parted_remote_instances = [remote_instances[THRESHOLD*i:THRESHOLD*(i+1)] for i in range(piece)]
-                        parted_remote_instances.append(remote_instances[THRESHOLD*piece:])
+                    if l > threshold:
+                        piece = (l - (l % threshold)) / threshold
+                        parted_remote_instances = [remote_instances[threshold*i:threshold*(i+1)] for i in range(piece)]
+                        parted_remote_instances.append(remote_instances[threshold*piece:])
                     else:
                         parted_remote_instances = [remote_instances]
 

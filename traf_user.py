@@ -32,7 +32,8 @@ def run():
     dbcfgs = json.loads(dbcfgs_json)
 
     TRAF_USER = dbcfgs['traf_user']
-    TRAF_PWD = base64.b64decode(dbcfgs['traf_pwd'])
+    #TRAF_PWD = base64.b64decode(dbcfgs['traf_pwd'])
+    TRAF_PWD = dbcfgs['traf_pwd']
     TRAF_GROUP = TRAF_USER
     TRAF_HOME = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
     TRAF_USER_DIR = '%s/%s' % (TRAF_HOME, TRAF_USER)

@@ -2,24 +2,20 @@
 "install": [
     {
         "script": "traf_check.py",
-        "node": "all",
-        "run_as_traf": "no"
+        "node": "all"
     },
     {
         "script": "copy_files.py",
         "node": "local",
-        "req_pwd": "yes",
-        "run_as_traf": "no"
+        "req_pwd": "yes"
     },
     {
         "script": "traf_user.py",
-        "node": "all",
-        "run_as_traf": "no"
+        "node": "all"
     },
     {
         "script": "traf_dep.py",
-        "node": "all",
-        "run_as_traf": "no"
+        "node": "all"
     },
     {
         "script": "traf_package.py",
@@ -28,28 +24,23 @@
     },
     {
         "script": "traf_setup.py",
-        "node": "all",
-        "run_as_traf": "no"
+        "node": "all"
     },
     {
         "script": "hadoop_mods.py",
-        "node": "local",
-        "run_as_traf": "no"
+        "node": "local"
     },
     {
         "script": "apache_mods.py",
-        "node": "all",
-        "run_as_traf": "no"
+        "node": "all"
     },
     {
         "script": "apache_restart.py",
-        "node": "first",
-        "run_as_traf": "no"
+        "node": "first"
     },
     {
         "script": "hdfs_cmds.py",
-        "node": "first",
-        "run_as_traf": "no"
+        "node": "first_rs"
     },
     {
         "script": "traf_sqconfig.py",
