@@ -42,8 +42,9 @@ class RemoteRun(Remote):
         self.__run_sshcmd('mkdir -p %s' % TMP_DIR)
 
         # copy all needed files to remote host
-        all_files = glob(INSTALLER_LOC + '/*.py') + glob(INSTALLER_LOC + '/conf/*.json') + \
-                    glob(INSTALLER_LOC + '/*.sh') + glob(INSTALLER_LOC + '/*.template')
+        all_files = glob(INSTALLER_LOC + '/*.py') + \
+                    glob(INSTALLER_LOC + '/*.json') + \
+                    glob(INSTALLER_LOC + '/*.template')
 
         self.copy(all_files, remote_folder=TMP_DIR)
 
@@ -278,10 +279,10 @@ def run(dbcfgs, options, mode='install'):
                         for t in threads: t.start()
                         for t in threads: t.join()
 
-                        if sum([ r.rc for r in parted_remote_inst ]) != 0:
+                        if sum([r.rc for r in parted_remote_inst]) != 0:
                             err_m('Script failed to run on one or more nodes, exiting ...\nCheck log file %s for details.' % LOG_FILE)
 
-                        script_output += [ {r.host:r.stdout.strip()} for r in parted_remote_inst ]
+                        script_output += [{r.host:r.stdout.strip()} for r in parted_remote_inst]
         
                 else:
                     # should not go to here

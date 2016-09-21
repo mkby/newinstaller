@@ -85,7 +85,7 @@
   },
   "scratch_locs":
   {
-      "prompt":"Enter scratch file folder location(should be a large disk), if more than one folder, use comma seperated",
+      "prompt":"Enter trafodion scratch file folder location(should be a large disk), if more than one folder, use comma seperated",
       "default":"/tmp"
   },
   "local_repo_dir":

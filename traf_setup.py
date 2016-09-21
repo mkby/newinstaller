@@ -53,12 +53,18 @@ def run():
     TRAFCI_FILE =  SQ_ROOT + '/trafci/bin/trafci' 
     SQENV_FILE = SQ_ROOT + '/sqenvcom.sh'
 
+    SUDOER_FILE = '/etc/sudoers.d/trafodion'
+    SUDOER_CFG = """
+## Allow $BACKUP_USER id to run commands needed for backup and restore
+%%%s ALL =(hbase) NOPASSWD: /usr/bin/hbase"
+""" % TRAF_USER
+
     ### kernel settings ###
     run_cmd('sysctl -w kernel.pid_max=65535 2>&1 > /dev/null')
     run_cmd('echo "kernel.pid_max=65535" >> /etc/sysctl.conf')
 
     # set permission for scratch file dir
-    for loc in SCRATCH_LOCS: run_cmd('chmod 777 %s' % loc)
+    for loc in SCRATCH_LOCS: run_cmd('chown %s %s' % (TRAF_USER, loc))
 
     ### copy jar files ###
     hbase_lib_path = '/usr/lib/hbase/lib'
@@ -100,18 +106,19 @@ def run():
 
     write_file(DCS_SRV_FILE, dcs_servers)
 
-    # master
+    ### modify dcs config files ###
+    # modify master
     dcs_master = nodes[0]
     append_file(DCS_MASTER_FILE, dcs_master)
 
-    # sqenvcom.sh
+    # modify sqenvcom.sh
     append_file(SQENV_FILE, DCS_INSTALL_ENV)
     append_file(SQENV_FILE, REST_INSTALL_ENV)
 
     # modify dcs-env.sh
     mod_file(DCS_ENV_FILE, {'.*DCS_MANAGES_ZK=.*':'export DCS_MANAGES_ZK=false'})
 
-    # dcs-site.xml
+    # modify dcs-site.xml
     net_interface = cmd_output('netstat -rn | grep "^0.0.0.0" | awk \'{print $8}\'').strip()
     hb = ParseXML(HBASE_XML_FILE)
     zk_hosts = hb.get_property('hbase.zookeeper.quorum')
@@ -122,7 +129,7 @@ def run():
     p.add_property('dcs.zookeeper.quorum', zk_hosts)
     p.add_property('dcs.dns.interface', net_interface)
 
-    if dbcfgs['dcs_ha'] == 'yes':
+    if dbcfgs['dcs_ha'] == 'Y':
         dcs_floating_ip = dbcfgs['dcs_floating_ip']
         dcs_backup_nodes = dbcfgs['dcs_backup_nodes']
         p.add_property('dcs.master.floating.ip', 'true')
@@ -130,11 +137,21 @@ def run():
         p.add_property('dcs.master.floating.ip.external.ip.address', dcs_floating_ip)
         p.rm_property('dcs.dns.interface')
 
-        # backup_master
+        # modify backup_master
         write_file(DCS_BKMASTER_FILE, dcs_backup_nodes)
 
-        # trafci
+        # modify trafci
         mod_file(TRAFCI_FILE, {'HNAME=.*':'HNAME=%s:23400' % dcs_master})
+
+        # set trafodion sudoer file
+        SUDOER_CFG += """
+## Trafodion Floating IP commands
+Cmnd_Alias IP = /sbin/ip
+Cmnd_Alias ARP = /sbin/arping
+
+## Allow Trafodion id to run commands needed to configure floating IP
+%%%s ALL = NOPASSWD: IP, ARP
+""" % TRAF_USER
 
     p.write_xml()
 
@@ -144,6 +161,10 @@ def run():
     p.add_property('rest.zookeeper.quorum', zk_hosts)
     p.write_xml()
 
+
+    ### set trafodion sudoer file ###
+    with open(SUDOER_FILE, 'w') as f:
+        f.write(SUDOER_CFG)
 
 # main
 try:
