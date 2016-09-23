@@ -53,8 +53,7 @@ class RemoteRun(Remote):
 
     def __del__(self):
         # clean up
-        pass
-        #self.__run_ssh('sudo rm -rf %s' % TMP_DIR)
+        self.__run_ssh('sudo rm -rf %s' % TMP_DIR)
 
     def run_script(self, script, run_user, json_string, verbose=False):
         """ @param run_user: run the script with this user """
