@@ -53,7 +53,8 @@ class RemoteRun(Remote):
 
     def __del__(self):
         # clean up
-        self.__run_ssh('sudo rm -rf %s' % TMP_DIR)
+        pass
+        #self.__run_ssh('sudo rm -rf %s' % TMP_DIR)
 
     def run_script(self, script, run_user, json_string, verbose=False):
         """ @param run_user: run the script with this user """
@@ -256,6 +257,7 @@ def run(dbcfgs, options, mode='install'):
                 print '\n*** Start running script [%s]:' % script
 
             # if install on localhost only
+            #TODO: timeout exit
             if not remote_instances:
                 run_local_script(script, dbcfgs_json, req_pwd)
             else:

@@ -24,6 +24,7 @@
 ### this script should be run on all nodes with trafodion user ###
 
 import os
+import sys
 import json
 import socket
 from common import run_cmd, cmd_output, append_file, mod_file, ParseXML

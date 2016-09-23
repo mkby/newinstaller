@@ -27,7 +27,7 @@ import re
 import sys
 import json
 import platform
-from common import run_cmd, err
+from common import run_cmd, cmd_output, err
 
 # not used
 EPEL_REPO='''
@@ -60,25 +60,24 @@ def run():
         with open(REPO_FILE, 'w') as f:
             f.write(repo_content)
 
-        run_cmd('yum install -y --disablerepo=\* --enablerepo=traflocal pdsh pdsh-rcmd-ssh')
+        run_cmd('yum install -y --disablerepo=\* --enablerepo=traflocal pdsh-rcmd-ssh pdsh')
     else:
-        pdsh_installed = run_cmd('rpm -qa|grep -c pdsh')
+        pdsh_installed = cmd_output('rpm -qa|grep -c pdsh')
         if pdsh_installed == '0':
             release = platform.release()
             releasever, arch = re.search('el(\d).(\w+)',release).groups()
 
             if releasever == '7':
                 pdsh_pkg = 'http://mirrors.neusoft.edu.cn/epel/7/%s/p/pdsh-2.31-1.el7.%s.rpm' % (arch, arch)
-                pdsh_ssh_pkg = 'http://mirrors.neusoft.edu.cn/epel/7/%s/p/pdsh-rcmd-ssh-2.31-1.el7.%s.rpm' % (arch, arch)
+                #pdsh_ssh_pkg = 'http://mirrors.neusoft.edu.cn/epel/7/%s/p/pdsh-rcmd-ssh-2.31-1.el7.%s.rpm' % (arch, arch)
             elif releasever == '6':
                 pdsh_pkg = 'http://mirrors.neusoft.edu.cn/epel/6/%s/pdsh-2.26-4.el6.%s.rpm' % (arch, arch)
-                pdsh_ssh_pkg = 'http://mirrors.neusoft.edu.cn/epel/6/%s/pdsh-rcmd-ssh-2.26-4.el6.%s.rpm' % (arch, arch)
+                #pdsh_ssh_pkg = 'http://mirrors.neusoft.edu.cn/epel/6/%s/pdsh-rcmd-ssh-2.26-4.el6.%s.rpm' % (arch, arch)
             else:
                 err('Unsupported Linux version')
 
             print 'Installing pdsh ...'
             run_cmd('yum install -y %s' % pdsh_pkg)
-            run_cmd('yum install -y %s' % pdsh_ssh_pkg)
         
 
     package_list= [
@@ -98,6 +97,10 @@ def run():
         'unixODBC-devel',
         'unzip'
     ]
+
+    # It means db manager will be installed
+    if dbcfgs['db_admin_user']:
+        package_list += ['gnuplot']
 
     all_pkg_list = run_cmd('rpm -qa')
     for pkg in package_list:

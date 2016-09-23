@@ -460,6 +460,7 @@ def user_input(no_dbmgr=False, apache_hadoop=False, offline=False, prompt_mode=T
     else:
         cfgs['hbase_xml_file'] = '/etc/hbase/conf/hbase-site.xml'
 
+    cfgs['traf_user'] = 'trafodion'
     cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
     
     u.notify_user()

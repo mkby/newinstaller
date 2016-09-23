@@ -74,6 +74,13 @@ class Check(object):
             err('Unsupported JDK version %s' % jdk_ver)
 
 
+    def check_scratch_loc(self):
+        """ check if scratch file folder exists """
+        scratch_locs = self.dbcfgs['scratch_locs'].split(',')
+        for loc in scratch_locs:
+            if not os.path.exists(loc):
+                err('Scratch file location \'%s\' doesn\'t exist' % loc)
+
     def check_traf_proc(self):
         """ check if previous installed trafodion processes exist """
         mon_process = cmd_output('ps -ef|grep -v grep|grep -c "monitor COLD"')

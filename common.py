@@ -42,11 +42,11 @@ from collections import defaultdict
 __VERSION__ = 'v1.0.0'
 INSTALLER_LOC = sys.path[0]
 
-CFG_LOC = INSTALLER_LOC + '/configs'
-USER_PROMPT_FILE = CFG_LOC + '/prompt.json'
-SCRCFG_FILE = CFG_LOC + '/script.json'
-VERSION_FILE = CFG_LOC + '/version.json'
-MODCFG_FILE = CFG_LOC + '/mod_cfgs.json'
+#CFG_LOC = INSTALLER_LOC + '/configs'
+USER_PROMPT_FILE = INSTALLER_LOC + '/prompt.json'
+SCRCFG_FILE = INSTALLER_LOC + '/script.json'
+VERSION_FILE = INSTALLER_LOC + '/version.json'
+MODCFG_FILE = INSTALLER_LOC + '/mod_cfgs.json'
 
 DBCFG_FILE = INSTALLER_LOC + '/db_config'
 DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
@@ -107,7 +107,7 @@ def cmd_output(cmd):
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
     
-    return stdout if stdout else stderr
+    return stdout.strip() if stdout else stderr
 
 def mod_file(template_file, change_items):
     """
@@ -249,6 +249,7 @@ class ParseHttp:
         self.h.add_credentials(self.user, self.passwd)
         self.headers = {}
         self.headers['X-Requested-By'] = 'trafodion'
+        self.headers['Content-Type'] = 'application/json'
         self.headers['Authorization'] = 'Basic %s' % (base64.b64encode('%s:%s' % (self.user, self.passwd)))
 
     def _request(self, url, method, body=None):

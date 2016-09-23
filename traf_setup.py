@@ -40,22 +40,9 @@ def run():
     TRAF_LIB_PATH = SQ_ROOT + '/export/lib'
     SCRATCH_LOCS = dbcfgs['scratch_locs'].split(',')
 
-    DCS_INSTALL_ENV = 'export DCS_INSTALL_DIR=%s/dcs-%s' % (SQ_ROOT, TRAF_VER)
-    REST_INSTALL_ENV = 'export REST_INSTALL_DIR=%s/rest-%s' % (SQ_ROOT, TRAF_VER)
-
-    DCS_CONF_DIR = '%s/dcs-%s/conf' % (SQ_ROOT, TRAF_VER)
-    DCS_SRV_FILE = DCS_CONF_DIR + '/servers'
-    DCS_MASTER_FILE = DCS_CONF_DIR + '/master'
-    DCS_BKMASTER_FILE = DCS_CONF_DIR + '/backup-masters'
-    DCS_ENV_FILE = DCS_CONF_DIR + '/dcs-env.sh'
-    DCS_SITE_FILE = DCS_CONF_DIR + '/dcs-site.xml'
-    REST_SITE_FILE = '%s/rest-%s/conf/rest-site.xml' % (SQ_ROOT, TRAF_VER)
-    TRAFCI_FILE =  SQ_ROOT + '/trafci/bin/trafci' 
-    SQENV_FILE = SQ_ROOT + '/sqenvcom.sh'
-
     SUDOER_FILE = '/etc/sudoers.d/trafodion'
     SUDOER_CFG = """
-## Allow $BACKUP_USER id to run commands needed for backup and restore
+## Allow trafodion id to run commands needed for backup and restore
 %%%s ALL =(hbase) NOPASSWD: /usr/bin/hbase"
 """ % TRAF_USER
 
@@ -63,8 +50,11 @@ def run():
     run_cmd('sysctl -w kernel.pid_max=65535 2>&1 > /dev/null')
     run_cmd('echo "kernel.pid_max=65535" >> /etc/sysctl.conf')
 
-    # set permission for scratch file dir
-    for loc in SCRATCH_LOCS: run_cmd('chown %s %s' % (TRAF_USER, loc))
+    ### set permission for scratch file dir ###
+    for loc in SCRATCH_LOCS:
+        # don't set permission for HOME folder
+        if TRAF_HOME not in loc:
+            run_cmd('chmod 777 %s' % loc)
 
     ### copy jar files ###
     hbase_lib_path = '/usr/lib/hbase/lib'
@@ -82,6 +72,8 @@ def run():
         DISTRO += hbase_ver
 
     distro, v1, v2 = re.search('(\w+)(\d)\.(\d)', DISTRO).groups()
+    if v2 == '6': v2 = '5'
+    if v2 == '8': v2 = '7'
     hbase_trx_jar = '%s/hbase-trx-%s%s_%s-%s.jar' % (TRAF_LIB_PATH, distro.lower(), v1, v2, TRAF_VER)
     if not os.path.exists(hbase_trx_jar):
         err('Cannot find hbase trx jar file \'%s\'' % hbase_trx_jar)
@@ -96,54 +88,8 @@ def run():
     # set permission
     run_cmd('chmod +r %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)
 
-    ### dcs setting ###
-    # servers
-    nodes = dbcfgs['node_list'].split(',')
-    dcs_cnt = dbcfgs['dcs_cnt_per_node']
-    dcs_servers = ''
-    for node in nodes:
-        dcs_servers += '%s %s\n' % (node, dcs_cnt)
-
-    write_file(DCS_SRV_FILE, dcs_servers)
-
-    ### modify dcs config files ###
-    # modify master
-    dcs_master = nodes[0]
-    append_file(DCS_MASTER_FILE, dcs_master)
-
-    # modify sqenvcom.sh
-    append_file(SQENV_FILE, DCS_INSTALL_ENV)
-    append_file(SQENV_FILE, REST_INSTALL_ENV)
-
-    # modify dcs-env.sh
-    mod_file(DCS_ENV_FILE, {'.*DCS_MANAGES_ZK=.*':'export DCS_MANAGES_ZK=false'})
-
-    # modify dcs-site.xml
-    net_interface = cmd_output('netstat -rn | grep "^0.0.0.0" | awk \'{print $8}\'').strip()
-    hb = ParseXML(HBASE_XML_FILE)
-    zk_hosts = hb.get_property('hbase.zookeeper.quorum')
-    zk_port = hb.get_property('hbase.zookeeper.property.clientPort')
-
-    p = ParseXML(DCS_SITE_FILE)
-    p.add_property('dcs.zookeeper.property.clientPort', zk_port)
-    p.add_property('dcs.zookeeper.quorum', zk_hosts)
-    p.add_property('dcs.dns.interface', net_interface)
-
     if dbcfgs['dcs_ha'] == 'Y':
-        dcs_floating_ip = dbcfgs['dcs_floating_ip']
-        dcs_backup_nodes = dbcfgs['dcs_backup_nodes']
-        p.add_property('dcs.master.floating.ip', 'true')
-        p.add_property('dcs.master.floating.ip.external.interface', net_interface)
-        p.add_property('dcs.master.floating.ip.external.ip.address', dcs_floating_ip)
-        p.rm_property('dcs.dns.interface')
-
-        # modify backup_master
-        write_file(DCS_BKMASTER_FILE, dcs_backup_nodes)
-
-        # modify trafci
-        mod_file(TRAFCI_FILE, {'HNAME=.*':'HNAME=%s:23400' % dcs_master})
-
-        # set trafodion sudoer file
+        # set trafodion sudoer file for specific cmds
         SUDOER_CFG += """
 ## Trafodion Floating IP commands
 Cmnd_Alias IP = /sbin/ip
@@ -153,16 +99,7 @@ Cmnd_Alias ARP = /sbin/arping
 %%%s ALL = NOPASSWD: IP, ARP
 """ % TRAF_USER
 
-    p.write_xml()
-
-    ### rest setting ###
-    p = ParseXML(REST_SITE_FILE)
-    p.add_property('rest.zookeeper.property.clientPort', zk_port)
-    p.add_property('rest.zookeeper.quorum', zk_hosts)
-    p.write_xml()
-
-
-    ### set trafodion sudoer file ###
+    ### write trafodion sudoer file ###
     with open(SUDOER_FILE, 'w') as f:
         f.write(SUDOER_CFG)
 
