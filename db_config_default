@@ -16,10 +16,6 @@ mgr_url =
 mgr_user = admin
 mgr_pwd = admin
 
-# db admin user and password for db manager, ignore it if installing Apache Trafodion
-db_admin_user = admin
-db_admin_pwd = traf123
-
 # trafodion tar package file location
 traf_package = 
 
@@ -69,6 +65,9 @@ local_repo_dir =
 
 # set it to 'Y' if enable LDAP security
 ldap_security = N
+# LDAP user name and password to be assigned as DB admin privilege, ignore it if installing Apache Trafodion
+db_admin_user = admin
+db_admin_pwd = traf123
 # if LDAP security is enabled, provide the following items
 ldap_hosts = 
 # 389 for no encryption or TLS, 636 for SSL

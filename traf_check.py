@@ -59,7 +59,8 @@ class Check(object):
 
     def check_java(self):
         """ check JDK version """
-        jdk_ver = cmd_output('javac -version')
+        jdk_path = self.dbcfgs['java_home']
+        jdk_ver = cmd_output('%s/javac -version' % jdk_path)
         try:
             jdk_ver = re.search('(\d\.\d)', jdk_ver).groups()[0]
         except AttributeError:

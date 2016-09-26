@@ -108,7 +108,7 @@ class RemoteRun(Remote):
 
         self.__run_ssh(int_cmd)
         if self.rc != 0:
-            msg = 'Host [%s]: Failed to run internal commands, check SSH password or connectivity' % self.host
+            msg = 'Host [%s]: Failed to run ssh commands, check SSH password or connectivity' % self.host
             self.logger.error(msg)
             err_m(msg)
 
@@ -175,7 +175,10 @@ def run(dbcfgs, options, mode='install'):
     if upgrade:
         skipped_scripts += ['hadoop_mods', 'traf_user', 'traf_dep']
 
-    if dbcfgs['traf_start'] == 'N':
+    if dbcfgs['dbmgr'].upper() == 'N':
+        skipped_scripts += ['dbmgr_setup']
+
+    if dbcfgs['traf_start'].upper() == 'N':
         skipped_scripts += ['traf_start']
 
     if 'APACHE' in dbcfgs['distro']:
@@ -183,6 +186,13 @@ def run(dbcfgs, options, mode='install'):
     else:
         skipped_scripts += ['apache_mods', 'apache_restart']
 
+
+    # set ssh config file to avoid known hosts verify on current installer node
+    SSH_CFG_FILE = os.environ['HOME'] + '/.ssh/config'
+    ssh_cfg = 'StrictHostKeyChecking=no\nNoHostAuthenticationForLocalhost=yes\n'
+    with open(SSH_CFG_FILE, 'w') as f:
+        f.write(ssh_cfg)
+    run_cmd('chmod 600 %s' % SSH_CFG_FILE)
 
     def run_local_script(script, json_string, req_pwd):
         cmd = '%s/%s \'%s\'' % (INSTALLER_LOC, script, json_string)
@@ -255,8 +265,8 @@ def run(dbcfgs, options, mode='install'):
             else:
                 print '\n*** Start running script [%s]:' % script
 
-            # if install on localhost only
             #TODO: timeout exit
+            # if install on localhost only
             if not remote_instances:
                 run_local_script(script, dbcfgs_json, req_pwd)
             else:

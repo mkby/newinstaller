@@ -180,7 +180,7 @@ class Remote(object):
         cmd = []
         if self.sshpass and self.pwd: cmd = ['sshpass','-p', self.pwd]
         cmd += [method]
-        if not self.pwd: cmd += ['-oPasswordAuthentication=no']
+        if not (self.sshpass and self.pwd): cmd += ['-oPasswordAuthentication=no']
         return cmd
 
     def _execute(self, cmd, verbose=False, shell=False):

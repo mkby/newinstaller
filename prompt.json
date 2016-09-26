@@ -3,30 +3,36 @@
   {   
       "prompt":"Start instance after installation",
       "default":"Y",
-      "isYN":"Y"
+      "isYN":true
   },
   "hdfs_user":
   {
       "prompt":"Enter hadoop user name",
       "default":"hdfs",
-      "isuser": "Y"
+      "isuser":true
   },
   "hbase_user":
   {
       "prompt":"Enter hbase user name",
       "default":"hbase",
-      "isuser": "Y"
+      "isuser":true
+  },
+  "dbmgr":
+  {
+      "prompt":"Enable DB Manager",
+      "default":"Y",
+      "isYN":true
   },
   "dcs_ha":
   {
       "prompt":"Enable DCS High Avalability",
       "default":"N",
-      "isYN":"Y"
+      "isYN":true
   },
   "dcs_floating_ip":
   {
       "prompt":"Enter Floating IP address for DCS HA",
-      "isIP":"Y"
+      "isIP":true
   },
   "dcs_interface":
   {
@@ -41,7 +47,7 @@
   {
       "prompt":"Enable LDAP security",
       "default":"N",
-      "isYN":"Y"
+      "isYN":true
   },
   "ldap_hosts":
   {
@@ -51,7 +57,7 @@
   {
       "prompt":"Enter LDAP Port number (Example: 389 for no encryption or TLS, 636 for SSL)",
       "default":"389",
-      "isdigit":"Y"
+      "isdigit":true
   },
   "ldap_identifiers":
   {
@@ -61,7 +67,7 @@
   {
       "prompt":"Enter LDAP Encryption Level (0: Encryption not used, 1: SSL, 2: TLS)",
       "default":"0",
-      "isdigit":"Y"
+      "isdigit":true
   },
   "ldap_certpath":
   {
@@ -71,7 +77,7 @@
   {
       "prompt":"If Requred search user name/password",
       "default":"N",
-      "isYN":"Y"
+      "isYN":true
   },
   "ldap_user":
   {
@@ -91,7 +97,7 @@
   "local_repo_dir":
   {
       "prompt":"Enter local repository folder location to install trafodion RPM dependencies",
-      "isexist": "Y"
+      "isexist":true
   },
   "java_home":
   {
@@ -102,7 +108,7 @@
   {   
       "prompt":"Enter number of DCS client connections per node",
       "default":"4",
-      "isdigit":"Y"
+      "isdigit":true
   },
   "first_rsnode":
   {
@@ -129,38 +135,38 @@
   {
       "prompt":"Enter HDP/CDH web manager user name",
       "default":"admin",
-      "isuser": "Y"
+      "isuser":true
   },
   "mgr_pwd":
   {
       "prompt":"Enter HDP/CDH web manager user password",
-      "ispasswd":"Y"
+      "ispasswd":true
   },
   "traf_user":
   {
       "prompt":"Enter trafodion user name",
       "default":"trafodion",
-      "isuser": "Y"
+      "isuser":true
   },
   "traf_pwd":
   {
       "prompt":"Enter trafodion user password",
-      "ispasswd":"Y"
+      "ispasswd":true
   },
   "traf_package":
   {
       "prompt":"Enter full path to Trafodion tar file",
-      "isexist": "Y"
+      "isexist":true
   },
   "db_admin_user":
   {
-      "prompt":"Enter DB Admin user name for esgynDB manager",
+      "prompt":"Enter LDAP user name to be assigned DB Admin privileges",
       "default":"admin",
-      "isuser": "Y"
+      "isuser":true
   },
   "db_admin_pwd":
   {
-      "prompt":"Enter DB Admin user password for esgynDB manager",
+      "prompt":"Enter LDAP user password to be assigned DB Admin privileges",
       "default":"traf123"
   },
   "node_list":
@@ -171,12 +177,12 @@
   {
       "prompt":"Select the above cluster number for installing Trafodion",
       "default":"1",
-      "isdigit":"Y"
+      "isdigit":true
   },
   "use_hbase_node":
   {
       "prompt":"Use same Trafodion nodes as HBase RegionServer nodes",
       "default":"Y",
-      "isYN":"Y"
+      "isYN":true
   }
 }

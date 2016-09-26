@@ -40,11 +40,11 @@ def run():
     sqconfig_file = sq_root + '/sql/scripts/sqconfig'
 
     core, processor = run_cmd("lscpu|grep -E '(^CPU\(s\)|^Socket\(s\))'|awk '{print $2}'").split('\n')[:2]
-    core = str(int(core)-1)
+    core = int(core)-1 if int(core) <= 16 else 15
 
     lines = ['begin node\n']
     for node_id, node in enumerate(nodes):
-        line = 'node-id=%s;node-name=%s;cores=0-%s;processors=%s;roles=connection,aggregation,storage\n' % (node_id, node, core, processor)
+        line = 'node-id=%s;node-name=%s;cores=0-%d;processors=%s;roles=connection,aggregation,storage\n' % (node_id, node, core, processor)
         lines.append(line)
 
     lines.append('end node\n')

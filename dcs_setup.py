@@ -102,6 +102,9 @@ def run():
     p.add_property('rest.zookeeper.quorum', zk_hosts)
     p.write_xml()
 
+    ### run sqcertgen ###
+    run_cmd('sqcertgen')
+
 # main
 try:
     dbcfgs_json = sys.argv[1]

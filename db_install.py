@@ -290,7 +290,7 @@ def get_cluster_cfgs(cfgs):
     return cluster_cfgs
 
     
-def user_input(no_dbmgr=False, apache_hadoop=False, offline=False, prompt_mode=True):
+def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
     """ get user's input and check input value """
     global cfgs
     # load from temp config file if in prompt mode
@@ -333,11 +333,9 @@ def user_input(no_dbmgr=False, apache_hadoop=False, offline=False, prompt_mode=T
     else:
         cfgs['req_java8'] = 'N'
         
-    # no db manager in Trafodion
-    if not 'trafodion' in cfgs['traf_basename']:
-        if not no_dbmgr:
-            g('db_admin_user')
-            g('db_admin_pwd')
+
+    if 'esgynDB' in cfgs['traf_basename']:
+        g('dbmgr')
 
     if apache_hadoop:
         g('hadoop_home')
@@ -424,6 +422,10 @@ def user_input(no_dbmgr=False, apache_hadoop=False, offline=False, prompt_mode=T
     # ldap security
     g('ldap_security')
     if cfgs['ldap_security'].upper() == 'Y':
+        # no db manager in Trafodion
+        if cfgs['dbmgr'].upper() == 'Y':
+            g('db_admin_user')
+            g('db_admin_pwd')
         g('ldap_hosts')
         g('ldap_port')
         g('ldap_identifiers')
@@ -493,10 +495,6 @@ def get_options():
                 help="Upgrade install, it is useful when reinstalling Trafodion.")
     parser.add_option("--apache-hadoop", action="store_true", dest="apache", default=False,
                 help="Install Trafodion on top of Apache Hadoop.")
-    parser.add_option("--no-dbmgr", action="store_true", dest="nodbmgr", default=False,
-                help="Do not enable and configure esgynDB manager.")
-    parser.add_option("--dbmgr-only", action="store_true", dest="dbmgr", default=False,
-                help="Enable esgynDB manager only.")
     parser.add_option("--offline", action="store_true", dest="offline", default=False,
                 help="Enable local repository for offline installing Trafodion.")
     parser.add_option("--version", action="store_true", dest="version", default=False,
@@ -528,8 +526,6 @@ def main():
     if options.build and options.offline:
         log_err('Wrong parameter, cannot specify both --build and --offline')
 
-    if options.dbmgr and options.nodbmgr:
-        log_err('Wrong parameter, cannot specify both --dbmgr-only and --no-dbmgr')
 
     if options.method:
         if options.method not in ['sudo','su','pbrun','pfexec','runas','doas']:
@@ -542,15 +538,12 @@ def main():
     else:
         config_file = DBCFG_FILE
 
-    # must install esgynDB first if using dbmgr-only mode
-    if options.dbmgr and not os.path.exists(config_file):
-        log_err('Must specify the config file, which means you have previously installed esgynDB.')
 
     # not specified config file and default config file doesn't exist either
     p = ParseInI(config_file)
     if options.build or (not os.path.exists(config_file)): 
         if options.build: format_output('DryRun Start')
-        user_input(options.nodbmgr, options.apache, options.offline, prompt_mode=True)
+        user_input(options.apache, options.offline, prompt_mode=True)
 
         # save config file as json format
         print '\n** Generating config file to save configs ... \n'
@@ -562,7 +555,7 @@ def main():
         cfgs = p.load()
         if options.offline and cfgs['offline_mode'] != 'Y':
             log_err('To enable offline mode, must set "offline_mode = Y" in config file')
-        user_input(options.nodbmgr, options.apache, options.offline, prompt_mode=False)
+        user_input(options.apache, options.offline, prompt_mode=False)
 
     if options.offline:
         http_start(cfgs['local_repo_dir'], cfgs['repo_port'])

@@ -102,7 +102,7 @@ class Discover(object):
         try:
             return re.search('(\d\.\d)', jdk_ver).groups()[0]
         except AttributeError:
-            return 'no_def_Java'
+            return 'no_default_Java'
 
     @deco
     def get_hive(self):
@@ -177,7 +177,7 @@ class Discover(object):
     @deco
     def get_traf_status(self):
         """ get trafodion running status """
-        mon_process = cmd_output('ps -ef|grep -v grep|grep -c "monitor COLD"')
+        mon_process = cmd_output('ps -ef|grep -c "monitor COLD"|grep -v grep')
         if int(mon_process) > 1:
             return 'Running'
         else:

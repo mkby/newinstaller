@@ -49,8 +49,13 @@ def run():
     REGIONSERVER_COLLECTOR = '%s/tcollector/collectors/0/hbase_regionserver.py' % MGBLTY_INSTALL_DIR
     START_STOP = '%s/tcollector/startstop' % MGBLTY_INSTALL_DIR
 
-    db_admin_user = dbcfgs['db_admin_user']
-    db_admin_pwd = dbcfgs['db_admin_pwd']
+    if dbcfgs['ldap_security'] == 'Y':
+        db_admin_user = dbcfgs['db_admin_user']
+        db_admin_pwd = dbcfgs['db_admin_pwd']
+    else:
+        db_admin_user = 'admin'
+        db_admin_pwd = 'admin'
+
     rest_port = '4200'
     dm_http_port = '4205'
     dm_https_port = '4206'

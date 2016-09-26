@@ -39,6 +39,8 @@ def get_options():
     parser.add_option("-u", "--remote-user", dest="user", metavar="USER",
                 help="Specify ssh login user for remote server, \
                       if not provided, use current login user as default.")
+    parser.add_option("--no-passwd", action="store_true", dest="pwd", default=True,
+                help="Not Prompt SSH login password for remote hosts.")
 
     (options, args) = parser.parse_args()
     return options

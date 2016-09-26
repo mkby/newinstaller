@@ -98,9 +98,9 @@ def run():
         'unzip'
     ]
 
-    # It means db manager will be installed
-    if dbcfgs['db_admin_user']:
-        package_list += ['gnuplot']
+    # TODO: how to jurge DBMGR
+    #if dbcfgs['db_admin_user']:
+    #    package_list += ['gnuplot']
 
     all_pkg_list = run_cmd('rpm -qa')
     for pkg in package_list:
