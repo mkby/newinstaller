@@ -85,6 +85,7 @@ def run():
         'apr-util',
         'expect',
         'gzip',
+        'gnuplot',
         'libiodbc-devel',
         'lzo',
         'lzop',
@@ -97,10 +98,6 @@ def run():
         'unixODBC-devel',
         'unzip'
     ]
-
-    # TODO: how to jurge DBMGR
-    #if dbcfgs['db_admin_user']:
-    #    package_list += ['gnuplot']
 
     all_pkg_list = run_cmd('rpm -qa')
     for pkg in package_list:

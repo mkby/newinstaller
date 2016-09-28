@@ -17,12 +17,6 @@
       "default":"hbase",
       "isuser":true
   },
-  "dbmgr":
-  {
-      "prompt":"Enable DB Manager",
-      "default":"Y",
-      "isYN":true
-  },
   "dcs_ha":
   {
       "prompt":"Enable DCS High Avalability",

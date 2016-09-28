@@ -175,9 +175,6 @@ def run(dbcfgs, options, mode='install'):
     if upgrade:
         skipped_scripts += ['hadoop_mods', 'traf_user', 'traf_dep']
 
-    if dbcfgs['dbmgr'].upper() == 'N':
-        skipped_scripts += ['dbmgr_setup']
-
     if dbcfgs['traf_start'].upper() == 'N':
         skipped_scripts += ['traf_start']
 

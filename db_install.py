@@ -334,8 +334,6 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
         cfgs['req_java8'] = 'N'
         
 
-    if 'esgynDB' in cfgs['traf_basename']:
-        g('dbmgr')
 
     if apache_hadoop:
         g('hadoop_home')
@@ -423,7 +421,7 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
     g('ldap_security')
     if cfgs['ldap_security'].upper() == 'Y':
         # no db manager in Trafodion
-        if cfgs['dbmgr'].upper() == 'Y':
+        if 'esgynDB' in cfgs['traf_basename']:
             g('db_admin_user')
             g('db_admin_pwd')
         g('ldap_hosts')
