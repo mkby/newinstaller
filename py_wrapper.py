@@ -101,7 +101,7 @@ class RemoteRun(Remote):
         else:
             cmd += user_cmd.split()
 
-        self._execute(cmd, verbose=verbose, shell=shell)
+        self.execute(cmd, verbose=verbose, shell=shell)
 
     def __run_sshcmd(self, int_cmd):
         """ run internal used ssh command """
@@ -168,15 +168,16 @@ def run(dbcfgs, options, mode='install'):
     # Check if install on localhost
     islocal = lambda h, lh: True if len(h) == 1 and (h[0] == 'localhost' or h[0] == lh) else False
 
-    # handle skipped scripts
+    # handle skipped scripts, skip them if no need to run
     skipped_scripts = []
-    
-    # set skipped scripts which no need to run on an upgrade install
     if upgrade:
-        skipped_scripts += ['hadoop_mods', 'traf_user', 'traf_dep']
+        skipped_scripts += ['hadoop_mods', 'apache_mods', 'apache_restart', 'traf_dep']
 
     if dbcfgs['traf_start'].upper() == 'N':
         skipped_scripts += ['traf_start']
+
+    if dbcfgs['ldap_security'].upper() == 'N':
+        skipped_scripts += ['traf_ldap']
 
     if 'APACHE' in dbcfgs['distro']:
         skipped_scripts += ['hadoop_mods']

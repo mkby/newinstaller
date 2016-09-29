@@ -53,6 +53,9 @@ def run():
 
     if not cmd_output('getent passwd %s' % TRAF_USER):
         run_cmd('useradd --shell /bin/bash -m %s -g %s --password "$(openssl passwd %s)"' % (TRAF_USER, TRAF_GROUP, TRAF_PWD))
+    elif not os.path.exists(TRAF_USER_DIR):
+        run_cmd('mkdir -p %s' % TRAF_USER_DIR)
+        run_cmd('chmod 700 %s' % TRAF_USER_DIR)
 
     # set ssh key
     run_cmd_as_user(TRAF_USER, 'echo -e "y" | ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa')
@@ -85,7 +88,7 @@ def run():
         run_cmd('cp %s %s.bak' % ((BASHRC_FILE,) *2))
 
     # copy bashrc to trafodion's home
-    run_cmd('cp %s/bashrc.template %s' % (TMP_DIR, BASHRC_FILE))
+    run_cmd('cp %s %s' % (BASHRC_TEMPLATE, BASHRC_FILE))
     run_cmd('chown -R %s:%s %s*' % (TRAF_USER, TRAF_GROUP, BASHRC_FILE))
 
     # set ulimits for trafodion user

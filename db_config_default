@@ -20,9 +20,9 @@ mgr_pwd = admin
 traf_package = 
 
 # using the same node list as HBase regionserver
-use_hbase_node = Y
+use_data_node = Y
 # trafodion node list, seperated by comma, i.e. n01,n02,n03,n04
-# if use_hbase_node is enabled, no need to set it
+# if use_data_node is enabled, no need to set it
 node_list =
 
 # the number of dcs servers on each node
@@ -46,7 +46,7 @@ dcs_floating_ip =
 # network interface that dcs used
 dcs_interface =
 # backup dcs master nodes, seperated by comma if more than one
-dcs_bknodes =
+dcs_backup_nodes =
 
 
 ##################################
@@ -65,9 +65,11 @@ local_repo_dir =
 
 # set it to 'Y' if enable LDAP security
 ldap_security = N
-# LDAP user name and password to be assigned as DB admin privilege, ignore it if installing Apache Trafodion
+# LDAP user name and password to be assigned as DB admin privilege
 db_admin_user = admin
 db_admin_pwd = traf123
+# LDAP user to be assigned DB root privileges (DB__ROOT)
+db_root_user = trafodion
 # if LDAP security is enabled, provide the following items
 ldap_hosts = 
 # 389 for no encryption or TLS, 636 for SSL

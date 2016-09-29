@@ -385,11 +385,11 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
 
     # manually set node list in apache hadoop
     if apache_hadoop:
-        cfgs['use_hbase_node'] = 'N'
+        cfgs['use_data_node'] = 'N'
     else:
-        g('use_hbase_node')
+        g('use_data_node')
 
-    if cfgs['use_hbase_node'].upper() == 'N':
+    if cfgs['use_data_node'].upper() == 'N':
         g('node_list')
         node_lists = expNumRe(cfgs['node_list'])
 
@@ -420,10 +420,9 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
     # ldap security
     g('ldap_security')
     if cfgs['ldap_security'].upper() == 'Y':
-        # no db manager in Trafodion
-        if 'esgynDB' in cfgs['traf_basename']:
-            g('db_admin_user')
-            g('db_admin_pwd')
+        g('db_root_user')
+        g('db_admin_user')
+        g('db_admin_pwd')
         g('ldap_hosts')
         g('ldap_port')
         g('ldap_identifiers')
@@ -448,9 +447,9 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
     if cfgs['dcs_ha'].upper() == 'Y':
         g('dcs_floating_ip')
         g('dcs_interface')
-        g('dcs_bknodes')
+        g('dcs_backup_nodes')
         # check dcs backup nodes should exist in node list
-        if sorted(list(set((cfgs['dcs_bknodes'] + ',' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
+        if sorted(list(set((cfgs['dcs_backup_nodes'] + ',' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
             log_err('Invalid DCS backup nodes, please pick up from node list')
 
     # set other config to cfgs

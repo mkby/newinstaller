@@ -44,7 +44,7 @@ def run():
     DCS_ENV_FILE = DCS_CONF_DIR + '/dcs-env.sh'
     DCS_SITE_FILE = DCS_CONF_DIR + '/dcs-site.xml'
     REST_SITE_FILE = '%s/rest-%s/conf/rest-site.xml' % (SQ_ROOT, TRAF_VER)
-    TRAFCI_FILE =  SQ_ROOT + '/trafci/bin/trafci' 
+    TRAFCI_FILE = SQ_ROOT + '/trafci/bin/trafci' 
     SQENV_FILE = SQ_ROOT + '/sqenvcom.sh'
 
     ### dcs setting ###
@@ -69,6 +69,9 @@ def run():
     # modify dcs-env.sh
     mod_file(DCS_ENV_FILE, {'.*DCS_MANAGES_ZK=.*':'export DCS_MANAGES_ZK=false'})
 
+    # modify trafci
+    mod_file(TRAFCI_FILE, {'HNAME=.*':'HNAME=%s:23400' % dcs_master})
+
     # modify dcs-site.xml
     net_interface = cmd_output('netstat -rn | grep "^0.0.0.0" | awk \'{print $8}\'').strip()
     hb = ParseXML(HBASE_XML_FILE)
@@ -90,9 +93,6 @@ def run():
 
         # modify backup_master
         write_file(DCS_BKMASTER_FILE, dcs_backup_nodes)
-
-        # modify trafci
-        mod_file(TRAFCI_FILE, {'HNAME=.*':'HNAME=%s:23400' % dcs_master})
 
     p.write_xml()
 

@@ -96,7 +96,7 @@
   "java_home":
   {
       "prompt":"Specify location of Java(JDK) on trafodion nodes",
-      "default":"/usr/java/jdk1.7.0_67-cloudera"
+      "default":"/usr/lib/jvm/java-1.7.0-openjdk.x86_64"
   },
   "dcs_cnt_per_node":
   {   
@@ -152,6 +152,12 @@
       "prompt":"Enter full path to Trafodion tar file",
       "isexist":true
   },
+  "db_root_user":
+  {
+      "prompt":"Enter LDAP name to be assigned DB root privileges (DB__ROOT)",
+      "default":"trafodion",
+      "isuser":true
+  },
   "db_admin_user":
   {
       "prompt":"Enter LDAP user name to be assigned DB Admin privileges",
@@ -173,9 +179,9 @@
       "default":"1",
       "isdigit":true
   },
-  "use_hbase_node":
+  "use_data_node":
   {
-      "prompt":"Use same Trafodion nodes as HBase RegionServer nodes",
+      "prompt":"Install Trafodion nodes on all DataNodes",
       "default":"Y",
       "isYN":true
   }

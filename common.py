@@ -183,7 +183,7 @@ class Remote(object):
         if not (self.sshpass and self.pwd): cmd += ['-oPasswordAuthentication=no']
         return cmd
 
-    def _execute(self, cmd, verbose=False, shell=False):
+    def execute(self, cmd, verbose=False, shell=False):
         try:
             if verbose: print 'cmd:', cmd
 
@@ -218,7 +218,7 @@ class Remote(object):
         else:
             cmd += ['%s:%s/' % (self.host, remote_folder)]
 
-        self._execute(cmd)
+        self.execute(cmd)
         if self.rc != 0: err('Failed to copy files to remote nodes')
 
     def fetch(self, files, local_folder='.'):
@@ -231,7 +231,7 @@ class Remote(object):
             cmd += ['%s:~/{%s}' % (self.host, ','.join(files))]
         cmd += [local_folder]
 
-        self._execute(cmd)
+        self.execute(cmd)
         if self.rc != 0: err('Failed to fetch files from remote nodes')
 
 

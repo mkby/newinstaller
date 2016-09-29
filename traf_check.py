@@ -57,6 +57,7 @@ class Check(object):
         if not os.path.exists(hbase_xml_file):
             err('HBase xml file is not found')
 
+    #TODO: check for sub release version
     def check_java(self):
         """ check JDK version """
         jdk_path = self.dbcfgs['java_home']

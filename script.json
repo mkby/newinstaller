@@ -37,6 +37,11 @@
         "run_as_traf": "yes"
     },
     {
+        "script": "traf_ldap.py",
+        "node": "all",
+        "run_as_traf": "yes"
+    },
+    {
         "script": "hadoop_mods.py",
         "node": "local"
     },
