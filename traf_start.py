@@ -36,7 +36,7 @@ def run():
     run_cmd('echo "initialize trafodion;" | sqlci')
 
     if dbcfgs['ldap_security'] == 'Y':
-        run_cmd('echo "initialize authorization; alter user DB_ROOT set external name \"%s\";" | sqlci' % dbcfgs['db_root_name'])
+        run_cmd('echo "initialize authorization; alter user DB_ROOT set external name \"%s\";" | sqlci' % dbcfgs['db_root_user'])
 # main
 try:
     dbcfgs_json = sys.argv[1]

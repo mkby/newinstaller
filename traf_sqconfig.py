@@ -40,7 +40,7 @@ def run():
     sqconfig_file = sq_root + '/sql/scripts/sqconfig'
 
     core, processor = run_cmd("lscpu|grep -E '(^CPU\(s\)|^Socket\(s\))'|awk '{print $2}'").split('\n')[:2]
-    core = int(core)-1 if int(core) <= 16 else 15
+    core = int(core)-1 if int(core) <= 256 else 255
 
     lines = ['begin node\n']
     for node_id, node in enumerate(nodes):
@@ -58,7 +58,7 @@ def run():
     lines.append('begin overflow\n')
 
     with open(sqconfig_file, 'w') as f:
-        f.writelines(lines)     
+        f.writelines(lines)
 
     print 'sqconfig generated successfully!'
 

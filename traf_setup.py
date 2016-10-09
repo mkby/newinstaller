@@ -71,9 +71,10 @@ def run():
         hbase_ver = re.search('HBase (\d\.\d)', hbase_ver).groups()[0]
         DISTRO += hbase_ver
 
-    distro, v1, v2 = re.search('(\w+)(\d)\.(\d)', DISTRO).groups()
-    if v2 == '6': v2 = '5'
-    if v2 == '8': v2 = '7'
+    distro, v1, v2 = re.search('(\w+)-*(\d)\.(\d)', DISTRO).groups()
+    if distro == 'CDH':
+        if v2 == '6': v2 = '5'
+        if v2 == '8': v2 = '7'
     hbase_trx_jar = '%s/hbase-trx-%s%s_%s-%s.jar' % (TRAF_LIB_PATH, distro.lower(), v1, v2, TRAF_VER)
     if not os.path.exists(hbase_trx_jar):
         err('Cannot find hbase trx jar file \'%s\'' % hbase_trx_jar)
