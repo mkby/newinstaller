@@ -448,7 +448,7 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
         g('dcs_interface')
         g('dcs_backup_nodes')
         # check dcs backup nodes should exist in node list
-        if sorted(list(set((cfgs['dcs_bknodes'] + ',' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
+        if sorted(list(set((cfgs['dcs_backup_nodes'] + ',' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
             log_err('Invalid DCS backup nodes, please pick up from node list')
 
     # set other config to cfgs
