@@ -8,16 +8,19 @@ traf_user = trafodion
 traf_pwd = traf123
 
 # trafodion used java(JDK) path on trafodion nodes
-java_home = 
+java_home =
 
 # cloudera/ambari management url(i.e. http://192.168.0.1:7180) and username/password
 # include 'http' or 'https'
-mgr_url = 
+mgr_url =
 mgr_user = admin
 mgr_pwd = admin
+# set the cluster number if multiple clusters managed by one Cloudera manager
+# ignore it if only one cluster being managed
+cluster_no = 1
 
 # trafodion tar package file location
-traf_package = 
+traf_package =
 
 # using the same node list as HBase regionserver
 use_data_node = Y
@@ -42,7 +45,7 @@ traf_start = Y
 # set it to 'Y' if enable DCS HA
 dcs_ha = N
 # if HA is enabled, provide floating ip, network interface and the hostname of backup dcs master nodes
-dcs_floating_ip = 
+dcs_floating_ip =
 # network interface that dcs used
 dcs_interface =
 # backup dcs master nodes, seperated by comma if more than one
@@ -56,7 +59,7 @@ dcs_backup_nodes =
 # set offline mode to Y if no internet connection
 offline_mode = N
 # if offline mode is set, you must provide a local repository directory with all needed RPMs
-local_repo_dir = 
+local_repo_dir =
 
 
 ##################################
@@ -71,12 +74,12 @@ db_admin_pwd = traf123
 # LDAP user to be assigned DB root privileges (DB__ROOT)
 db_root_user = trafodion
 # if LDAP security is enabled, provide the following items
-ldap_hosts = 
+ldap_hosts =
 # 389 for no encryption or TLS, 636 for SSL
 ldap_port = 389
 ldap_identifiers =
 ldap_encrypt = 0
-ldap_certpath = 
+ldap_certpath =
 # provide if have
 ladp_user =
-ladp_pwd = 
+ladp_pwd =

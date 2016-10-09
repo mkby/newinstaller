@@ -1,21 +1,9 @@
-{  
+{
   "traf_start":
-  {   
+  {
       "prompt":"Start instance after installation",
       "default":"Y",
       "isYN":true
-  },
-  "hdfs_user":
-  {
-      "prompt":"Enter hadoop user name",
-      "default":"hdfs",
-      "isuser":true
-  },
-  "hbase_user":
-  {
-      "prompt":"Enter hbase user name",
-      "default":"hbase",
-      "isuser":true
   },
   "dcs_ha":
   {
@@ -33,7 +21,7 @@
       "prompt":"Enter interface for Floating IP address",
       "default":"eth0"
   },
-  "dcs_bknodes":
+  "dcs_backup_nodes":
   {
       "prompt":"Enter DCS Backup Master Nodes for DCS HA (comma separated)"
   },
@@ -65,7 +53,8 @@
   },
   "ldap_certpath":
   {
-      "prompt":"Enter full path to TLS certificate file (*.pem)"
+      "prompt":"Enter full path to TLS certificate file (*.pem)",
+      "isexist":true
   },
   "ldap_userinfo":
   {
@@ -96,10 +85,11 @@
   "java_home":
   {
       "prompt":"Specify location of Java(JDK) on trafodion nodes",
+      "isremote_exist":true,
       "default":"/usr/lib/jvm/java-1.7.0-openjdk.x86_64"
   },
   "dcs_cnt_per_node":
-  {   
+  {
       "prompt":"Enter number of DCS client connections per node",
       "default":"4",
       "isdigit":true
@@ -108,17 +98,32 @@
   {
       "prompt":"Enter the hostname of first Apache HBase RegionServer node"
   },
+  "hdfs_user":
+  {
+      "prompt":"Enter hadoop user name",
+      "default":"hdfs",
+      "isuser":true
+  },
+  "hbase_user":
+  {
+      "prompt":"Enter hbase user name",
+      "default":"hbase",
+      "isuser":true
+  },
   "hadoop_home":
   {
-      "prompt":"Enter Apache Hadoop directory location"
+      "prompt":"Enter Apache Hadoop directory location",
+      "isremote_exist":true
   },
   "hbase_home":
   {
-      "prompt":"Enter Apache HBase directory location"
+      "prompt":"Enter Apache HBase directory location",
+      "isremote_exist":true
   },
   "hive_home":
   {
       "prompt":"Enter Apache Hive directory location if exists",
+      "isremote_exist":true,
       "default":"NO_HIVE"
   },
   "mgr_url":

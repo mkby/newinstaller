@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf8 -*- 
+# -*- coding: utf8 -*-
 
 # @@@ START COPYRIGHT @@@
 #
@@ -91,7 +91,7 @@ class HadoopDiscover:
             cfg = self.hg.get('%s/services/%s/config' % (self.cluster_url, service_name))
             if cfg.has_key('items'):
                 for item in cfg['items']:
-                    if item['name'] == 'process_username': 
+                    if item['name'] == 'process_username':
                         return item['value']
             return hadoop_type
 
@@ -133,12 +133,12 @@ class HadoopDiscover:
         """ get list of HBase RegionServer nodes in HDP """
         hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url )
         self.rsnodes = [ c['HostRoles']['host_name'] for c in hdp['host_components'] ]
-        
+
 
 class UserInput:
     def __init__(self):
         self.in_data = ParseJson(USER_PROMPT_FILE).load()
-    
+
     def _basic_check(self, name, answer):
         isYN = self.in_data[name].has_key('isYN')
         isdigit = self.in_data[name].has_key('isdigit')
@@ -186,17 +186,17 @@ class UserInput:
 
         if isYN:
             prompt = prompt + ' (Y/N) '
-    
+
         if default:
             prompt = prompt + ' [' + default + ']: '
         else:
             prompt = prompt + ': '
-    
+
         # no default value for password
         if ispasswd:
             orig = getpass.getpass(prompt)
             confirm = getpass.getpass('Confirm ' + prompt)
-            if orig == confirm: 
+            if orig == confirm:
                 #answer = base64.b64encode(confirm)
                 answer = confirm
             else:
@@ -207,9 +207,9 @@ class UserInput:
             except UnicodeEncodeError:
                 log_err('Character Encode error, check user input')
             if not answer and default: answer = default
-    
+
         return answer
-    
+
     def get_input(self, name, user_defined='', prompt_mode=True):
         if self.in_data.has_key(name):
             if prompt_mode:
@@ -218,7 +218,7 @@ class UserInput:
 
             # check basic values from global configs
             self._basic_check(name, cfgs[name])
-        else: 
+        else:
             # should not go to here, just in case
             log_err('Invalid prompt')
 
@@ -245,7 +245,7 @@ class UserInput:
                 pt.add_row([key, value])
         print pt
         confirm = self.get_confirm()
-        if confirm != 'Y': 
+        if confirm != 'Y':
             if os.path.exists(DBCFG_FILE): os.remove(DBCFG_FILE)
             log_err('User quit')
 
@@ -289,7 +289,7 @@ def get_cluster_cfgs(cfgs):
 
     return cluster_cfgs
 
-    
+
 def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
     """ get user's input and check input value """
     global cfgs
@@ -332,7 +332,6 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
         cfgs['req_java8'] = 'Y'
     else:
         cfgs['req_java8'] = 'N'
-        
 
 
     if apache_hadoop:
@@ -345,7 +344,7 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
         cfgs['distro'] = 'APACHE'
     else:
         g('mgr_url')
-        if not ('http:' in cfgs['mgr_url'] or 'https:' in cfgs['mgr_url']): 
+        if not ('http:' in cfgs['mgr_url'] or 'https:' in cfgs['mgr_url']):
             cfgs['mgr_url'] = 'http://' + cfgs['mgr_url']
 
         g('mgr_user')
@@ -376,7 +375,7 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
         discover = HadoopDiscover(distro, cluster_name, cfgs['hdfs_service_name'], cfgs['hbase_service_name'])
         rsnodes = discover.get_rsnodes()
         hadoop_users = discover.get_hadoop_users()
-        
+
         cfgs['distro'] = distro
         cfgs['cluster_name'] = cluster_name.replace(' ', '%20')
         cfgs['hdfs_user'] = hadoop_users['hdfs_user']
@@ -449,7 +448,7 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
         g('dcs_interface')
         g('dcs_backup_nodes')
         # check dcs backup nodes should exist in node list
-        if sorted(list(set((cfgs['dcs_backup_nodes'] + ',' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
+        if sorted(list(set((cfgs['dcs_bknodes'] + ',' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
             log_err('Invalid DCS backup nodes, please pick up from node list')
 
     # set other config to cfgs
@@ -461,7 +460,7 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
 
     cfgs['traf_user'] = 'trafodion'
     cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
-    
+
     u.notify_user()
 
 
@@ -487,7 +486,7 @@ def get_options():
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                 help="Verbose mode, will print commands.")
     parser.add_option("--build", action="store_true", dest="build", default=False,
-                help="Build the config file in guided mode only.") 
+                help="Build the config file in guided mode only.")
     parser.add_option("--upgrade", action="store_true", dest="upgrade", default=False,
                 help="Upgrade install, it is useful when reinstalling Trafodion.")
     parser.add_option("--apache-hadoop", action="store_true", dest="apache", default=False,
@@ -513,7 +512,7 @@ def main():
     else:
         from py_wrapper import run
 
-    if not options.ansible: 
+    if not options.ansible:
         if options.method: log_err('Wrong parameter, cannot specify ansible option without ansible enabled')
 
     if options.version: version()
@@ -529,7 +528,7 @@ def main():
             log_err('Wrong method, valid methods: [ sudo | su | pbrun | pfexec | runas | doas ].')
 
     if options.cfgfile:
-        if not os.path.exists(options.cfgfile): 
+        if not os.path.exists(options.cfgfile):
             log_err('Cannot find config file \'%s\'' % options.cfgfile)
         config_file = options.cfgfile
     else:
@@ -538,7 +537,7 @@ def main():
 
     # not specified config file and default config file doesn't exist either
     p = ParseInI(config_file)
-    if options.build or (not os.path.exists(config_file)): 
+    if options.build or (not os.path.exists(config_file)):
         if options.build: format_output('DryRun Start')
         user_input(options.apache, options.offline, prompt_mode=True)
 
@@ -557,7 +556,7 @@ def main():
     if options.offline:
         http_start(cfgs['local_repo_dir'], cfgs['repo_port'])
     else:
-        cfgs['offline_mode'] = 'N' 
+        cfgs['offline_mode'] = 'N'
 
 
     if not options.build:
