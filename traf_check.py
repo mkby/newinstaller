@@ -61,7 +61,7 @@ class Check(object):
     def check_java(self):
         """ check JDK version """
         jdk_path = self.dbcfgs['java_home']
-        jdk_ver = cmd_output('%s/javac -version' % jdk_path)
+        jdk_ver = cmd_output('%s/bin/javac -version' % jdk_path)
         try:
             jdk_ver = re.search('(\d\.\d)', jdk_ver).groups()[0]
         except AttributeError:
@@ -83,11 +83,11 @@ class Check(object):
             if not os.path.exists(loc):
                 err('Scratch file location \'%s\' doesn\'t exist' % loc)
 
-    def check_traf_proc(self):
-        """ check if previous installed trafodion processes exist """
-        mon_process = cmd_output('ps -ef|grep -v grep|grep -c "monitor COLD"')
-        if int(mon_process) > 0:
-            err('Trafodion process is found, please stop it first')
+    #def check_traf_proc(self):
+    #    """ check if previous installed trafodion processes exist """
+    #    mon_process = cmd_output('ps -ef|grep -v grep|grep -c "monitor COLD"')
+    #    if int(mon_process) > 0:
+    #        err('Trafodion process is found, please stop it first')
 
     def check_hbase_ver(self):
         """ check Apache HBase version if Apache Hadoop """

@@ -78,7 +78,6 @@ def run():
 
             print 'Installing pdsh ...'
             run_cmd('yum install -y %s' % pdsh_pkg)
-        
 
     package_list= [
         'apr',
@@ -101,7 +100,7 @@ def run():
 
     all_pkg_list = run_cmd('rpm -qa')
     for pkg in package_list:
-        if pkg in all_pkg_list: 
+        if pkg in all_pkg_list:
             print 'Package %s had already been installed' % pkg
         else:
             print 'Installing %s ...' % pkg
