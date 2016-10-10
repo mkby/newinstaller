@@ -63,7 +63,7 @@ class Check(object):
         jdk_path = self.dbcfgs['java_home']
         jdk_ver = cmd_output('%s/bin/javac -version' % jdk_path)
         try:
-            jdk_ver = re.search('(\d\.\d)', jdk_ver).groups()[0]
+            jdk_ver = re.search('javac (\d\.\d)', jdk_ver).groups()[0]
         except AttributeError:
             err('No JDK found')
 
