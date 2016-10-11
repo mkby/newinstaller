@@ -32,9 +32,9 @@ import time
 import base64
 import subprocess
 import logging
-try: 
-  import xml.etree.cElementTree as ET 
-except ImportError: 
+try:
+  import xml.etree.cElementTree as ET
+except ImportError:
   import xml.etree.ElementTree as ET
 from ConfigParser import ConfigParser
 from collections import defaultdict
@@ -153,7 +153,7 @@ class Version(object):
         return self.support_ver[component]
 
 class Remote(object):
-    """ 
+    """
         copy files to/fetch files from remote host using ssh
         can also use paramiko, but it's not a build-in module
     """
@@ -194,7 +194,7 @@ class Remote(object):
                 p = subprocess.Popen(cmd, stdin=slave, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             self.stdout, self.stderr = p.communicate()
-            if p.returncode: 
+            if p.returncode:
                 self.rc = p.returncode
                 # 'ssh -tt' will overwrite stderr, so manually handle it
                 if MARK in self.stdout:
@@ -236,7 +236,7 @@ class Remote(object):
 
 
 class ParseHttp:
-    def __init__(self, user, passwd):
+    def __init__(self, user, passwd, json_type=True):
         # httplib2 is not installed by default
         try:
             import httplib2
@@ -245,11 +245,12 @@ class ParseHttp:
 
         self.user = user
         self.passwd = passwd
-        self.h = httplib2.Http(disable_ssl_certificate_validation=True)  
+        self.h = httplib2.Http(disable_ssl_certificate_validation=True)
         self.h.add_credentials(self.user, self.passwd)
         self.headers = {}
         self.headers['X-Requested-By'] = 'trafodion'
-        self.headers['Content-Type'] = 'application/json'
+        if json_type:
+            self.headers['Content-Type'] = 'application/json'
         self.headers['Authorization'] = 'Basic %s' % (base64.b64encode('%s:%s' % (self.user, self.passwd)))
 
     def _request(self, url, method, body=None):
@@ -281,7 +282,7 @@ class ParseHttp:
 
 
 class ParseXML:
-    """ handle *-site.xml with format 
+    """ handle *-site.xml with format
         <property><name></name><value></value></proerty>
     """
     def __init__(self, xml_file):
@@ -291,7 +292,7 @@ class ParseXML:
             self._tree = ET.parse(self.__xml_file)
         except Exception as e:
             err_m('failed to parsing xml: %s' % e)
-            
+
         self._root = self._tree.getroot()
         self._properties = self._root.findall('property')
         # name, value list
@@ -475,7 +476,7 @@ def time_elapse(func):
         seconds = seconds % 3600
         minutes = seconds / 60
         seconds = seconds % 60
-        print '\nInstallation time: %d hour(s) %d minute(s) %d second(s)' % (hours, minutes, seconds)
+        print '\nTime Cost: %d hour(s) %d minute(s) %d second(s)' % (hours, minutes, seconds)
         return output
     return wrapper
 

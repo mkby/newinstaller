@@ -71,7 +71,7 @@ class CDHMod:
             stat = self.p.get(stat_url)
             if retry_cnt == maxcnt: return False
         return True
-            
+
     def mod(self):
         hdfs_service = dbcfgs['hdfs_service_name']
         hbase_service = dbcfgs['hbase_service_name']
@@ -94,7 +94,7 @@ class CDHMod:
         restart_url = RESTART_URL_PTR % (self.url, self.cluster_name)
         deploy_cfg_url = DEPLOY_CFG_URL_PTR % (self.url, self.cluster_name)
 
-        print 'Restarting CDH services ...' 
+        print 'Restarting CDH services ...'
         rc1 = self.p.post(restart_url)
         if self.__retry_check(rc1['id'], 40, 15):
             print 'Restart CDH successfully!'
@@ -113,7 +113,7 @@ class HDPMod:
     def __init__(self, user, passwd, url, cluster_name):
         self.url = url
         self.cluster_name = cluster_name
-        self.p = ParseHttp(user, passwd)
+        self.p = ParseHttp(user, passwd, json_type=False)
 
     def mod(self):
         cluster_url = CLUSTER_URL_PTR % (self.url, self.cluster_name)
@@ -189,7 +189,6 @@ class HDPMod:
             print 'HDP services started successfully!'
         else:
             print 'HDP services had already been started'
-            
 
 def run():
     if 'CDH' in dbcfgs['distro']:
