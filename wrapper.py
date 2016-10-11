@@ -34,9 +34,10 @@ from common import *
 class RemoteRun(Remote):
     """ run commands or scripts remotely using ssh """
 
-    def __init__(self, host, logger, user='', pwd=''):
+    def __init__(self, host, logger, user='', pwd='', quiet=False):
         super(RemoteRun, self).__init__(host, user, pwd)
 
+        self.quiet = quiet # no output
         self.logger = logger
         # create tmp folder
         self.__run_sshcmd('mkdir -p %s' % TMP_DIR)
@@ -74,12 +75,12 @@ class RemoteRun(Remote):
         self.logger.info(format1)
 
         if self.rc == 0:
-            state_ok(format2)
+            if not self.quiet: state_ok(format2)
             self.logger.info(format2 + ' ran successfully!')
         else:
-            state_fail(format2)
+            if not self.quiet: state_fail(format2)
             msg = 'Host [%s]: Failed to run \'%s\'' % (self.host, script)
-            if self.stderr: 
+            if self.stderr:
                 msg += ': ' + self.stderr
                 print '\n ' + self.stderr
             self.logger.error(msg)
@@ -89,19 +90,19 @@ class RemoteRun(Remote):
         """ @params: user_cmd should be a string """
         cmd = self._commands('ssh')
         cmd += ['-tt'] # force tty allocation
-        if self.user: 
+        if self.user:
             cmd += ['%s@%s' % (self.user, self.host)]
         else:
             cmd += [self.host]
 
         # if shell=True, cmd should be a string not list
-        if shell: 
+        if shell:
             cmd = ' '.join(cmd) + ' '
             cmd += user_cmd
         else:
             cmd += user_cmd.split()
 
-        self.execute(cmd, verbose=verbose, shell=shell)
+        self._execute(cmd, verbose=verbose, shell=shell)
 
     def __run_sshcmd(self, int_cmd):
         """ run internal used ssh command """
@@ -207,7 +208,7 @@ def run(dbcfgs, options, mode='install'):
         rc = p.returncode
         if rc != 0:
             msg = 'Failed to run \'%s\'' % script
-            if stderr: 
+            if stderr:
                 msg += ': ' + stderr
                 print stderr
             logger.error(msg)
@@ -218,18 +219,20 @@ def run(dbcfgs, options, mode='install'):
             logger.info('Script [%s] ran successfully!' % script)
 
         return stdout
-    
+
     # run sub scripts
     try:
-        
         if enable_pwd and not islocal(hosts, local_host):
-            pwd = getpass.getpass('Input SSH Password: ')
+            pwd = getpass.getpass('Input remote host SSH Password: ')
         else:
             pwd = ''
 
         remote_instances = []
         if not islocal(hosts, local_host):
-            remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd) for host in hosts]
+            if mode == 'discover':
+                remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd, quiet=True) for host in hosts]
+            else:
+                remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd) for host in hosts]
             first_instance = remote_instances[0]
             for instance in remote_instances:
                 if instance.host == dbcfgs['first_rsnode']:
@@ -252,7 +255,7 @@ def run(dbcfgs, options, mode='install'):
                 req_pwd = True
 
             status = Status(STAT_FILE, script)
-            if status.get_status(): 
+            if status.get_status():
                 msg = 'Script [%s] had already been executed' % script
                 state_skip(msg)
                 logger.info(msg)
@@ -292,7 +295,7 @@ def run(dbcfgs, options, mode='install'):
                             err_m('Script failed to run on one or more nodes, exiting ...\nCheck log file %s for details.' % LOG_FILE)
 
                         script_output += [{r.host:r.stdout.strip()} for r in parted_remote_inst]
-        
+
                 else:
                     # should not go to here
                     err_m('Invalid configuration for %s' % SCRCFG_FILE)

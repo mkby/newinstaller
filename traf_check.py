@@ -37,16 +37,6 @@ class Check(object):
         self.dbcfgs = json.loads(dbcfgs_json)
         self.version = Version()
 
-    def check_linux(self):
-        """ check Linux version """
-        os_dist, os_ver = platform.dist()[:2]
-
-        if os_dist not in self.version.get_version('linux'):
-            err('Linux distribution %s doesn\'t support' % os_dist)
-        else:
-            if not os_ver.split('.')[0] in self.version.get_version(os_dist):
-                err('%s version %s doesn\'t support' % (os_dist, os_ver))
-
     def check_sudo(self):
         """ check sudo access """
         run_cmd('sudo -n echo -n "check sudo access" > /dev/null 2>&1')
@@ -82,24 +72,6 @@ class Check(object):
         for loc in scratch_locs:
             if not os.path.exists(loc):
                 err('Scratch file location \'%s\' doesn\'t exist' % loc)
-
-    #def check_traf_proc(self):
-    #    """ check if previous installed trafodion processes exist """
-    #    mon_process = cmd_output('ps -ef|grep -v grep|grep -c "monitor COLD"')
-    #    if int(mon_process) > 0:
-    #        err('Trafodion process is found, please stop it first')
-
-    def check_hbase_ver(self):
-        """ check Apache HBase version if Apache Hadoop """
-        if self.dbcfgs.has_key('hbase_home'): # apache distro
-            hbase_home = self.dbcfgs['hbase_home']
-            support_hbase_ver = self.version.get_version('hbase')
-            hbase_ver = cmd_output('%s/bin/hbase version | head -n1' % hbase_home)
-            hbase_ver = re.search('HBase (\d\.\d)', hbase_ver).groups()[0]
-            if hbase_ver not in support_hbase_ver:
-                err('Unsupported HBase version %s' % hbase_ver)
-        else:
-            pass
 
 
 def run():

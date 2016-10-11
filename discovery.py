@@ -114,6 +114,8 @@ def main():
     results = run(cfgs, options, mode='discover')
 
 
+    print results
+
     format_output('Discover results')
 
     if len(results) > 4:

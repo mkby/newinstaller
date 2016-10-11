@@ -123,7 +123,6 @@
   "hive_home":
   {
       "prompt":"Enter Apache Hive directory location if exists",
-      "isremote_exist":true,
       "default":"NO_HIVE"
   },
   "mgr_url":
