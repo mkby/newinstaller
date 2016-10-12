@@ -378,7 +378,7 @@ def user_input(options, prompt_mode=True):
         else:
             try:
                 cluster_name = content['items'][0]['name']
-            except IndexError:
+            except (IndexError, KeyError):
                 cluster_name = content['items'][0]['Clusters']['cluster_name']
 
         discover = HadoopDiscover(cfgs['mgr_user'], cfgs['mgr_pwd'], cfgs['mgr_url'], cluster_name)

@@ -31,6 +31,14 @@ def run():
     """ create trafodion user, bashrc, setup passwordless SSH """
     dbcfgs = json.loads(dbcfgs_json)
 
+    DISTRO = dbcfgs['distro']
+    if 'CDH' in DISTRO:
+        hadoop_type = 'cloudera'
+    elif 'HDP' in DISTRO:
+        hadoop_type = 'hortonworks'
+    elif 'APACHE' in DISTRO:
+        hadoop_type = 'apache'
+
     TRAF_USER = dbcfgs['traf_user']
     #TRAF_PWD = base64.b64decode(dbcfgs['traf_pwd'])
     TRAF_PWD = dbcfgs['traf_pwd']
@@ -76,13 +84,14 @@ def run():
     nodes = dbcfgs['node_list'].split(',')
     change_items = {
     '{{ sq_home }}': SQ_ROOT,
+    '{{ hadoop_type }}': hadoop_type,
     '{{ node_list }}': ' '.join(nodes),
     '{{ node_count }}':str(len(nodes)),
     '{{ my_nodes }}': ' -w ' + ' -w '.join(nodes)
     }
 
     mod_file(BASHRC_TEMPLATE, change_items)
-        
+
     # backup bashrc if exsits
     if os.path.exists(BASHRC_FILE):
         run_cmd('cp %s %s.bak' % ((BASHRC_FILE,) *2))
