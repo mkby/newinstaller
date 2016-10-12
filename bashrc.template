@@ -47,6 +47,7 @@ export MY_SQROOT=$SQ_HOME
 export NODE_LIST="{{ node_list }}"
 export MY_NODES="{{ my_nodes }}"
 export node_count="{{ node_count }}"
+export HADOOP_TYPE="{{ hadoop_type }}"
 
 #-------------------------------------------
 # Execute the sqenv.sh script if it exists.
