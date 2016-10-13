@@ -11,10 +11,13 @@ traf_pwd = traf123
 # if not provided, installer will auto detect installed JDK
 java_home =
 
-# cloudera/ambari management url(i.e. http://192.168.0.1:7180) and username/password
-# include 'http' or 'https'
+# cloudera/ambari management url(i.e. http://192.168.0.1:7180 or just 192.168.0.1)
+# if 'http' or 'https' prefix is not provided, the default one is 'http'
+# if port is not provided, the default port is cloudera port '7180'
 mgr_url =
+# user name for cloudera/ambari management url
 mgr_user = admin
+# password for cloudera/ambari management url
 mgr_pwd = admin
 # set the cluster number if multiple clusters managed by one Cloudera manager
 # ignore it if only one cluster being managed

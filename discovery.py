@@ -27,7 +27,7 @@ from prettytable import PrettyTable
 from optparse import OptionParser
 from collections import defaultdict
 from common import *
-from py_wrapper import run
+import wrapper
 
 def get_options():
     usage = 'usage: %prog [options]\n'
@@ -111,10 +111,7 @@ def main():
         cfgs['node_list'] = ','.join(node_lists)
 
 
-    results = run(cfgs, options, mode='discover')
-
-
-    print results
+    results = wrapper.run(cfgs, options, mode='discover')
 
     format_output('Discover results')
 

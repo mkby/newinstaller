@@ -146,7 +146,7 @@ class Discover(object):
             return OK
 
     @deco
-    def get_hadoop_security(self):
+    def get_secure_hadoop(self):
         if self.dbcfgs.has_key('hdfs_home'): # apache distro
             CORE_SITE_XML = '%s/conf/core-site.xml' % self.dbcfgs['hdfs_home']
         else:

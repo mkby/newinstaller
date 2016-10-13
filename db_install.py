@@ -354,6 +354,10 @@ def user_input(options, prompt_mode=True):
         if not ('http:' in cfgs['mgr_url'] or 'https:' in cfgs['mgr_url']):
             cfgs['mgr_url'] = 'http://' + cfgs['mgr_url']
 
+        # set cloudera default port 7180 if not provided by user
+        if not re.search(':\d+', cfgs['mgr_url']):
+            cfgs['mgr_url'] += ':7180'
+
         g('mgr_user')
         g('mgr_pwd')
 
@@ -404,13 +408,12 @@ def user_input(options, prompt_mode=True):
     ### discover system settings, return a dict
     discover_results = wrapper.run(cfgs, options, mode='discover')
 
-    # check discover results
+    # check discover results, return error if fails on any sinlge node
     need_java_home = 0
     for result in discover_results:
         host, content = result.items()[0]
         content_dict = json.loads(content)
-        # this value will be overwritten by the value of last nodes
-        # need a better way to handle it
+
         java_home = content_dict['default_java']
         if java_home == 'N/A':
             need_java_home += 1
@@ -423,7 +426,7 @@ def user_input(options, prompt_mode=True):
         if content_dict['hbase'] == 'N/S':
             log_err('HBase version is not supported')
 
-        if content_dict['hadoop_security'] == 'kerberos':
+        if content_dict['secure_hadoop'] == 'kerberos':
             cfgs['secure_hadoop'] = 'Y'
         else:
             cfgs['secure_hadoop'] = 'N'
