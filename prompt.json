@@ -25,6 +25,36 @@
   {
       "prompt":"Enter DCS Backup Master Nodes for DCS HA (comma separated)"
   },
+  "kdc_server":
+  {
+      "prompt":"Enter KDC server address"
+  },
+  "admin_principal":
+  {
+      "prompt":"Enter admin principal (include realm)"
+  },
+  "hdfs_keytab":
+  {
+      "prompt":"Enter fully qualified name for HDFS keytab"
+  },
+  "hbase_keytab":
+  {
+      "prompt":"Enter fully qualified name for HBase keytab"
+  },
+  "max_lifetime":
+  {
+      "prompt":"Enter max lifetime for Trafodion principal (valid format required)",
+      "default":"24hours"
+  },
+  "max_renew_lifetime":
+  {
+      "prompt":"Enter renew lifetime for Trafodion principal (valid format required)",
+      "default":"7days"
+  },
+  "traf_keytab":
+  {
+      "prompt":"Enter Trafodion keytab name"
+  },
   "ldap_security":
   {
       "prompt":"Enable LDAP security",
@@ -33,7 +63,7 @@
   },
   "ldap_hosts":
   {
-      "prompt":"Enter list of LDAP Hostnames (blank separated)"
+      "prompt":"Enter list of LDAP Hostnames (comma separated)"
   },
   "ldap_port":
   {

@@ -423,6 +423,11 @@ def user_input(options, prompt_mode=True):
         if content_dict['hbase'] == 'N/S':
             log_err('HBase version is not supported')
 
+        if content_dict['hadoop_security'] == 'kerberos':
+            cfgs['secure_hadoop'] = 'Y'
+        else:
+            cfgs['secure_hadoop'] = 'N'
+
     if offline:
         g('local_repo_dir')
         if not glob('%s/repodata' % cfgs['local_repo_dir']):

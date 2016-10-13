@@ -29,7 +29,7 @@ import sys
 import os
 import platform
 from glob import glob
-from common import cmd_output, err, Version
+from common import cmd_output, err, Version, ParseXML
 
 PREFIX = 'get_'
 NA = 'N/A' # not available
@@ -144,6 +144,15 @@ class Discover(object):
             return NA
         else:
             return OK
+
+    @deco
+    def get_hadoop_security(self):
+        if self.dbcfgs.has_key('hdfs_home'): # apache distro
+            CORE_SITE_XML = '%s/conf/core-site.xml' % self.dbcfgs['hdfs_home']
+        else:
+            CORE_SITE_XML = '/etc/hadoop/conf/core-site.xml'
+        p = ParseXML(CORE_SITE_XML)
+        return p.get_property('hadoop.security.authentication')
 
     @deco
     def get_hbase(self):
