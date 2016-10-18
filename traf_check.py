@@ -58,12 +58,12 @@ class Check(object):
             err('No JDK found')
 
         if self.dbcfgs['req_java8'] == 'Y': # only allow JDK1.8
-            support_java = ['1.8']
+            support_java = '1.8'
         else:
             support_java = self.version.get_version('java')
 
         if jdk_ver not in support_java:
-            err('Unsupported JDK version %s' % jdk_ver)
+            err('Unsupported JDK version %s, supported version: %s' % (jdk_ver, support_java))
 
 
     def check_scratch_loc(self):

@@ -106,7 +106,7 @@ def cmd_output(cmd):
     """ return command output but not check return value """
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
-    
+
     return stdout.strip() if stdout else stderr
 
 def mod_file(template_file, change_items):
@@ -440,7 +440,7 @@ def set_ansible_cfgs(host_content):
             err_m('Failed to open %s file' % filename)
     write_file(ansible_cfg, content)
     write_file(hosts_file, host_content)
-    
+
     return log_path
 
 def format_output(text):

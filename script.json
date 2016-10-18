@@ -27,6 +27,10 @@
         "node": "all"
     },
     {
+        "script": "traf_kerberos.py",
+        "node": "all"
+    },
+    {
         "script": "dcs_setup.py",
         "node": "all",
         "run_as_traf": "yes"

@@ -33,6 +33,11 @@
   {
       "prompt":"Enter admin principal (include realm)"
   },
+  "kdcadmin_pwd":
+  {
+      "prompt":"Enter password for admin principal",
+      "ispasswd":true
+  },
   "hdfs_keytab":
   {
       "prompt":"Enter fully qualified name for HDFS keytab"

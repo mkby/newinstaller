@@ -1,4 +1,7 @@
 [def]
+# NOTICE: if you are using CDH/HDP hadoop distro,
+# you can only specifiy management url address for a quick install
+
 ##################################
 # Common Settings
 ##################################
@@ -82,3 +85,15 @@ ldap_certpath =
 # provide if have
 ladp_user =
 ladp_pwd =
+
+##################################
+# Kerberos security configuration
+##################################
+# if kerberos is enabled in your hadoop system, provide below info
+
+# KDC server address
+kdc_server =
+# include realm, i.e. admin/admin@EXAMPLE.COM
+admin_principal =
+# admin password for admin principal, it is used to create trafodion user's principal and keytab
+kdcadmin_pwd =

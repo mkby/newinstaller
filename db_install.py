@@ -302,7 +302,7 @@ class UserInput:
 
         for key,value in sorted(cfgs.items()):
             if self.in_data.has_key(key) and value:
-        #        if self.in_data[k].has_key('ispasswd'): continue
+                if self.in_data[key].has_key('ispasswd'): continue
                 pt.add_row([key, value])
         print pt
         confirm = self.get_confirm()
@@ -467,6 +467,10 @@ def user_input(options, prompt_mode=True):
     g('traf_start')
 
     # TODO add kerberos
+    if cfgs['secure_hadoop'] == 'Y':
+        g('kdc_server')
+        g('admin_principal')
+        g('kdcadmin_pwd')
 
     # ldap security
     g('ldap_security')
