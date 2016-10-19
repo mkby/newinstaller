@@ -38,7 +38,7 @@ def run():
         parcel_lib = '/opt/cloudera/parcels/CDH/lib/hbase/lib'
         if os.path.exists(parcel_lib): hdfs_bin = '/opt/cloudera/parcels/CDH/bin/hdfs'
     elif 'APACHE' in DISTRO:
-        hdfs_bin = dbcfgs['hdfs_home'] + '/bin/hdfs'
+        hdfs_bin = dbcfgs['hadoop_home'] + '/bin/hdfs'
 
     traf_loc = '/user/trafodion'
     traf_user = dbcfgs['traf_user']
