@@ -81,7 +81,7 @@ def run():
     zk_hosts = hb.get_property('hbase.zookeeper.quorum')
     timezone = cmd_output('%s/tools/gettimezone.sh' % SQ_ROOT).split('\n')[0]
 
-    mod_file(OPENTSDB_CONFIG, 
+    mod_file(OPENTSDB_CONFIG,
              {'tsd.network.port = .*':'tsd.network.port = %s' % tsd_port,
               'tsd.core.timezone = .*':'tsd.core.timezone = %s' % timezone,
               'tsd.storage.hbase.zk_quorum = .*':'tsd.storage.hbase.zk_quorum = %s' % zk_hosts})
@@ -90,7 +90,7 @@ def run():
     if 'HDP' in DISTRO:
         hm_info_port = hb.get_property('hbase.master.info.port')
         rs_info_port = hb.get_property('hbase.regionserver.info.port')
-        mod_file(OPENTSDB_CONFIG, 
+        mod_file(OPENTSDB_CONFIG,
                 {'tsd.storage.hbase.zk_basedir = .*':'tsd.storage.hbase.zk_basedir = /hbase-unsecure'})
         # edit hbase master collector
         mod_file(HBASE_COLLECTOR, {'60010':hm_info_port})
@@ -103,7 +103,7 @@ def run():
     # edit logback xml
     #mod_file(LOGBACK_XML, {'/var/log/opentsdb':'../../log'})
 
-    # set 755 for bosun bin 
+    # set 755 for bosun bin
     run_cmd('chmod 755 %s/bosun/bin/bosun-linux-amd64' % MGBLTY_INSTALL_DIR)
 
     # edit bashrc
@@ -114,7 +114,10 @@ def run():
     # run below commands on first node only
     if first_node in local_host:
         # create opentsdb table in hbase
-        run_cmd('export HBASE_HOME=/usr; export COMPRESSION=GZ; %s/create_table.sh' % MGBLTY_TOOLS_DIR)
+        if dbcfgs.has_key('hbase_home'):
+            run_cmd('export HBASE_HOME=%s; export COMPRESSION=GZ; %s/create_table.sh' % (dbcfgs['hbase_home'], MGBLTY_TOOLS_DIR))
+        else:
+            run_cmd('export HBASE_HOME=/usr; export COMPRESSION=GZ; %s/create_table.sh' % MGBLTY_TOOLS_DIR)
         # register metrics
         run_cmd('export MGBLTY_INSTALL_DIR=%s; %s/register_metrics.sh' % (MGBLTY_INSTALL_DIR, MGBLTY_TOOLS_DIR))
 
