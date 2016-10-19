@@ -23,11 +23,12 @@
 
 ### this script should be run on all nodes with sudo user ###
 
+import sys
+import json
 from common import ParseJson, ParseXML, err
 
-dbcfgs = json.loads(dbcfgs_json)
-
 def run():
+    dbcfgs = json.loads(dbcfgs_json)
     if 'APACHE' in dbcfgs['distro']:
         modcfgs = ParseJson(MODCFG_FILE).load()
         MOD_CFGS = modcfgs['MOD_CFGS']
