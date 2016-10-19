@@ -172,7 +172,7 @@ def run(dbcfgs, options, mode='install'):
     # handle skipped scripts, skip them if no need to run
     skipped_scripts = []
     if upgrade:
-        skipped_scripts += ['hadoop_mods', 'apache_mods', 'apache_restart', 'traf_dep']
+        skipped_scripts += ['hadoop_mods', 'apache_mods', 'apache_restart', 'traf_dep', 'traf_kerberos']
 
     if dbcfgs['secure_hadoop'] == 'N':
         skipped_scripts += ['traf_kerberos']

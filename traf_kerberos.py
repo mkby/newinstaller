@@ -48,7 +48,11 @@ def run():
     hdfs_user = 'hdfs'
     hbase_user = 'hbase'
     realm = re.match('.*@(.*)', admin_principal).groups()[0]
+    traf_keytab_dir = '/etc/%s/keytab' % traf_user
+    traf_keytab = '%s/%s.keytab' % (traf_keytab_dir, traf_user)
     traf_principal = '%s/%s@%s' % (traf_user, host_name, realm)
+    hdfs_principal = '%s/%s@%s' % (hdfs_user, host_name, realm)
+    hbase_principal = '%s/%s@%s' % (hbase_user, host_name, realm)
 
     ### setting start ###
     print 'Checking KDC server connection'
@@ -58,27 +62,28 @@ def run():
     principal_exists = cmd_output('%s listprincs | grep -c %s' % (kadmin_cmd, traf_principal))
     if int(principal_exists) == 0: # not exist
         run_cmd('%s \'addprinc -randkey %s\'' % (kadmin_cmd, traf_principal))
+        # Adjust principal's maxlife and maxrenewlife
+        run_cmd('%s \'modprinc -maxlife %s -maxrenewlife %s\' %s >/dev/null 2>&1' % (kadmin_cmd, maxlife, max_renewlife, traf_principal))
 
-    # Adjust principal's maxlife and maxrenewlife
-    run_cmd('%s \'modprinc -maxlife %s -maxrenewlife %s\' %s >/dev/null 2>&1' % (kadmin_cmd, maxlife, max_renewlife, traf_principal))
-
-    # create keytab for trafodion
-    # TODO: need skip add keytab if exist?
-    traf_keytab_dir = '/etc/%s/keytab' % traf_user
     run_cmd('mkdir -p %s' % traf_keytab_dir)
 
-    traf_keytab = '%s/%s.keytab' % (traf_keytab_dir, traf_user)
-
-    print 'Create keytab file for hdfs/hbase/trafodion user'
+    # TODO: need skip add keytab if exist?
+    print 'Create keytab file for trafodion user'
     run_cmd('%s \'ktadd -k %s %s\'' % (kadmin_cmd, traf_keytab, traf_principal))
-
-    # it's difficult to get the current using keytab file in CDH distro
-    # so temporarily create principals for hdfs/hbase user using trafodion principal
-    run_cmd('sudo -u %s kinit -kt %s %s' % (hdfs_user, traf_keytab, traf_principal))
-    run_cmd('sudo -u %s kinit -kt %s %s' % (hbase_user, traf_keytab, traf_principal))
-
-    # set permission after kinit for hdfs/hbase user
     run_cmd('chown %s %s' % (traf_user, traf_keytab))
+    run_cmd('chmod 400 %s' % traf_keytab)
+
+    # create principals for hdfs/hbase user
+    print 'Create principals for hdfs/hbase user'
+    if 'CDH' in distro:
+        hdfs_keytab = cmd_output('find /var/run/cloudera-scm-agent/process/ -name hdfs.keytab | head -n 1')
+        hbase_keytab = cmd_output('find /var/run/cloudera-scm-agent/process/ -name hbase.keytab | head -n 1')
+    elif 'HDP' in distro:
+        hdfs_keytab = '/etc/security/keytabs/hdfs.headless.keytab'
+        hbase_keytab = '/etc/security/keytabs/hbase.service.keytab'
+
+    run_cmd('sudo -u %s kinit -kt %s %s' % (hdfs_user, hdfs_keytab, hdfs_principal))
+    run_cmd('sudo -u %s kinit -kt %s %s' % (hbase_user, hbase_keytab, hbase_principal))
 
     print 'Done creating principals and keytabs'
 

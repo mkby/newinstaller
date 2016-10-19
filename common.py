@@ -97,7 +97,7 @@ def run_cmd(cmd):
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         err('Failed to run command %s: %s' % (cmd, stderr))
-    return stdout
+    return stdout.strip()
 
 def run_cmd_as_user(user, cmd):
     return run_cmd('sudo su - %s -c \'%s\'' % (user, cmd))

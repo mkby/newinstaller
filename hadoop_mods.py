@@ -58,14 +58,14 @@ class CDHMod:
         self.cluster_name = cluster_name
         self.p = ParseHttp(user, passwd)
 
-    def __retry_check(self, cid, maxcnt, interval):
+    def __retry_check(self, cid, maxcnt, interval, msg):
         stat_url = CMD_STAT_URL_PTR % (self.url, cid)
         stat = self.p.get(stat_url)
         retry_cnt = 0
         while not (stat['success'] == True and stat['active'] == False):
             retry_cnt += 1
             flush_str = '.' * retry_cnt
-            print '\rCheck CDH services restart status (timeout: %dmin) %s' % (maxcnt*interval/60, flush_str),
+            print '\rCheck CDH services %s status (timeout: %dmin) %s' % (msg, maxcnt*interval/60, flush_str),
             sys.stdout.flush()
             time.sleep(interval)
             stat = self.p.get(stat_url)
@@ -96,13 +96,13 @@ class CDHMod:
 
         print 'Restarting CDH services ...'
         rc1 = self.p.post(restart_url)
-        if self.__retry_check(rc1['id'], 40, 15):
+        if self.__retry_check(rc1['id'], 40, 15, 'restart'):
             print 'Restart CDH successfully!'
         else:
             err('Failed to restart CDH, max retry count reached')
 
         rc2 = self.p.post(deploy_cfg_url)
-        if self.__retry_check(rc2['id'], 30, 10):
+        if self.__retry_check(rc2['id'], 30, 10, 'deploy'):
             print 'Deploy client config successfully!'
         else:
             err('Failed to deploy CDH client config, max retry count reached')

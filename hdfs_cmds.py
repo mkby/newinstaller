@@ -59,6 +59,7 @@ def run():
         has_err = cmd_output('grep -c ERROR /tmp/hbase_shell.out')
         if int(has_err):
             err('Failed to grant HBase privileges to %s' % traf_user)
+        run_cmd('rm /tmp/hbase_shell.out')
 # main
 try:
     dbcfgs_json = sys.argv[1]

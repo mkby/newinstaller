@@ -25,18 +25,41 @@
 
 import sys
 import json
-from common import run_cmd, err
+from common import cmd_output, run_cmd, err
 
 def run():
     """ start trafodion instance """
     dbcfgs = json.loads(dbcfgs_json)
 
+    print 'Starting trafodion'
     run_cmd('sqstart')
 
-    run_cmd('echo "initialize trafodion;" | sqlci')
+    tmp_file = '/tmp/initialize.out'
+    if dbcfgs.has_key('upgrade') and dbcfgs['upgrade'].upper() == 'Y':
+        print 'Initialize trafodion upgrade'
+        run_cmd('echo "initialize trafodion, upgrade;" | sqlci > %s' % tmp_file)
+        init_output = cmd_output('cat %s' % tmp_file)
+        if 'ERROR' in init_output:
+            err('Failed to upgrade initialize trafodion:\n %s' % init_output)
+    else:
+        print 'Initialize trafodion'
+        run_cmd('echo "initialize trafodion;" | sqlci > %s' % tmp_file)
+        init_output = cmd_output('cat %s' % tmp_file)
+        if 'ERROR' in init_output:
+            err('Failed to initialize trafodion:\n %s' % init_output)
 
     if dbcfgs['ldap_security'] == 'Y':
-        run_cmd('echo "initialize authorization; alter user DB_ROOT set external name \"%s\";" | sqlci' % dbcfgs['db_root_user'])
+        run_cmd('echo "initialize authorization; alter user DB__ROOT set external name \"%s\";" | sqlci > %s' % (dbcfgs['db_root_user'], tmp_file))
+        if dbcfgs.has_key('db_admin_user'):
+            run_cmd('echo "alter user DB__ADMIN set external name \"%s\";" | sqlci >> %s' % (dbcfgs['db_admin_user'], tmp_file))
+
+        secure_output = cmd_output('cat %s' % tmp_file)
+        if 'ERROR' in secure_output:
+            err('Failed to setup security for trafodion:\n %s' % secure_output)
+
+    run_cmd('rm %s' % tmp_file)
+    print 'Start trafodion successfully.'
+
 # main
 try:
     dbcfgs_json = sys.argv[1]
