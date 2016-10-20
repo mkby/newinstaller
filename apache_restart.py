@@ -24,6 +24,7 @@
 ### this script should be run on first node with sudo user ###
 
 import json
+import sys
 from common import run_cmd, err
 
 

@@ -118,7 +118,7 @@ def mod_file(template_file, change_items):
         with open(template_file, 'r') as f:
             lines = f.read()
     except IOError:
-        err('Failed to open file %s to modify' % templat_file)
+        err('Failed to open file %s to modify' % template_file)
 
     for regexp,replace in change_items.iteritems():
         lines = re.sub(regexp, replace, lines)

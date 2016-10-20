@@ -178,7 +178,7 @@ class HadoopDiscover(object):
 class UserInput:
     def __init__(self, options):
         self.in_data = ParseJson(USER_PROMPT_FILE).load()
-        self.enable_pwd = True if hasattr(options, 'pwd') else False
+        self.enable_pwd = True if hasattr(options, 'pwd') and options.pwd else False
 
     def _basic_check(self, name, answer):
         isYN = self.in_data[name].has_key('isYN')
@@ -207,7 +207,7 @@ class UserInput:
                 # Check if install on localhost
                 islocal = lambda h, lh: True if len(h) == 1 and (h[0] == 'localhost' or h[0] == lh) else False
                 if self.enable_pwd and not islocal(hosts, local_host):
-                    pwd = getpass.getpass('Input remote host SSH Password: ')
+                    pwd = getpass.getpass('Input remote host SSH Password for checking: ')
                 else:
                     pwd = ''
                 remotes = [Remote(host, pwd=pwd) for host in hosts]
@@ -439,10 +439,10 @@ def user_input(options, prompt_mode=True):
         cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
         cfgs['repo_port'] = '9900'
 
-    pkg_list = ['trafodion', 'esgynDB']
+    pkg_list = ['apache-trafodion', 'esgynDB']
     # find tar in installer folder, if more than one found, use the first one
     for pkg in pkg_list:
-        tar_loc = glob('%s/%s*.tar.gz' % (INSTALLER_LOC, pkg))
+        tar_loc = glob('%s/*%s*.tar.gz' % (INSTALLER_LOC, pkg))
         if tar_loc:
             cfgs['traf_package'] = tar_loc[0]
             break
@@ -452,7 +452,7 @@ def user_input(options, prompt_mode=True):
     # get basename and version from tar filename
     try:
         pattern = '|'.join(pkg_list)
-        cfgs['traf_basename'], cfgs['traf_version'] = re.search(r'(.*%s.*)-(\d\.\d\.\d).*' % pattern, cfgs['traf_package']).groups()
+        cfgs['traf_basename'], cfgs['traf_version'] = re.search(r'.*(%s).*-(\d\.\d\.\d).*' % pattern, cfgs['traf_package']).groups()
     except:
         log_err('Invalid package tar file')
 
