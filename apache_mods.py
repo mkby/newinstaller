@@ -25,7 +25,7 @@
 
 import sys
 import json
-from common import ParseJson, ParseXML, err
+from common import MODCFG_FILE, ParseJson, ParseXML, err
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
