@@ -61,7 +61,7 @@ class RemoteRun(Remote):
 
         if run_user:
             # format string in order to run with 'sudo su $user -c $cmd'
-            json_string = json_string.replace('"','\\\\\\"').replace(' ','').replace('{','\\{')
+            json_string = json_string.replace('"','\\\\\\"').replace(' ','').replace('{','\\{').replace('$','\\\\\\$')
             # this command only works with shell=True
             script_cmd = '"sudo su - %s -c \'%s/%s %s\'"' % (run_user, TMP_DIR, script, json_string)
             self.__run_ssh(script_cmd, verbose=verbose, shell=True)

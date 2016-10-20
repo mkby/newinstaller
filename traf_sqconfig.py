@@ -55,7 +55,7 @@ def run():
         line = 'hdd %s\n' % scratch_loc
         lines.append(line)
 
-    lines.append('begin overflow\n')
+    lines.append('end overflow\n')
 
     with open(sqconfig_file, 'w') as f:
         f.writelines(lines)

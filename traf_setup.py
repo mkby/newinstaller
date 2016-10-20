@@ -50,15 +50,17 @@ def run():
     run_cmd('sysctl -w kernel.pid_max=65535 2>&1 > /dev/null')
     run_cmd('echo "kernel.pid_max=65535" >> /etc/sysctl.conf')
 
-    ### set permission for scratch file dir ###
+    ### create and set permission for scratch file dir ###
     for loc in SCRATCH_LOCS:
         # don't set permission for HOME folder
+        if not os.path.exists(loc):
+            run_cmd('mkdir -p %s' % loc)
         if TRAF_HOME not in loc:
             run_cmd('chmod 777 %s' % loc)
 
     ### copy jar files ###
     hbase_lib_path = '/usr/lib/hbase/lib'
-    if 'CDH' in DISTRO: 
+    if 'CDH' in DISTRO:
         parcel_lib = '/opt/cloudera/parcels/CDH/lib/hbase/lib'
         if os.path.exists(parcel_lib): hbase_lib_path =  parcel_lib
     elif 'HDP' in DISTRO:

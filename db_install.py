@@ -598,6 +598,9 @@ def main():
             log_err('To enable offline mode, must set "offline_mode = Y" in config file')
         user_input(options, prompt_mode=False)
 
+    if options.upgrade:
+        cfgs['upgrade'] = 'Y'
+
     if options.offline:
         http_start(cfgs['local_repo_dir'], cfgs['repo_port'])
     else:

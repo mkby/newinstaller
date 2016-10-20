@@ -65,13 +65,12 @@ class Check(object):
         if jdk_ver not in support_java:
             err('Unsupported JDK version %s, supported version: %s' % (jdk_ver, support_java))
 
-
-    def check_scratch_loc(self):
-        """ check if scratch file folder exists """
-        scratch_locs = self.dbcfgs['scratch_locs'].split(',')
-        for loc in scratch_locs:
-            if not os.path.exists(loc):
-                err('Scratch file location \'%s\' doesn\'t exist' % loc)
+    #def check_scratch_loc(self):
+    #    """ check if scratch file folder exists """
+    #    scratch_locs = self.dbcfgs['scratch_locs'].split(',')
+    #    for loc in scratch_locs:
+    #        if not os.path.exists(loc):
+    #            err('Scratch file location \'%s\' doesn\'t exist' % loc)
 
 
 def run():
