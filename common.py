@@ -126,13 +126,24 @@ def mod_file(template_file, change_items):
     with open(template_file, 'w') as f:
         f.write(lines)
 
-def append_file(template_file, string):
+def append_file(template_file, string, position=''):
     try:
-        with open(template_file, 'a+') as f:
-            lines = f.read()
-            if not string in lines: f.write(string + '\n')
+        with open(template_file, 'r') as f:
+            lines = f.readlines()
+        pos = 0
+        if position:
+            for index, line in enumerate(lines):
+                if position in line:
+                    pos = index + 1
+
+        if pos == 0: pos = len(lines)
+        newlines = lines[:pos] + [string + '\n'] + lines[pos:]
+        if not string in lines:
+            with open(template_file, 'w') as f:
+                f.writelines(newlines)
     except IOError:
         err('Failed to open file %s to append' % template_file)
+
 
 def write_file(template_file, string):
     try:

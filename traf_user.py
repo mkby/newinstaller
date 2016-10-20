@@ -92,6 +92,14 @@ def run():
 
     mod_file(BASHRC_TEMPLATE, change_items)
 
+    if 'APACHE' in DISTRO:
+        bashrc_content = """
+export HADOOP_PREFIX=%s
+export HBASE_HOME=%s
+export PATH=$PATH:$HADOOP_PREFIX/bin:$HADOOP_PREFIX/sbin:$HBASE_HOME/bin
+        """ % (dbcfgs['hadoop_home'], dbcfgs['hbase_home'])
+        append_file(BASHRC_TEMPLATE, bashrc_content, position='HADOOP_TYPE')
+
     # backup bashrc if exsits
     if os.path.exists(BASHRC_FILE):
         run_cmd('cp %s %s.bak' % ((BASHRC_FILE,) *2))

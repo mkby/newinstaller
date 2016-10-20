@@ -26,18 +26,18 @@
 import json
 from common import run_cmd, err
 
-dbcfgs = json.loads(dbcfgs_json)
 
 def run():
+    dbcfgs = json.loads(dbcfgs_json)
     if 'APACHE' in dbcfgs['distro']:
         hadoop_home = dbcfgs['hadoop_home']
         hbase_home = dbcfgs['hbase_home']
         # stop
-        run_cmd(hbase_home + '/bin/stop_hbase.sh')
-        run_cmd(hadoop_home + '/sbin/stop_dfs.sh')
+        run_cmd(hbase_home + '/bin/stop-hbase.sh')
+        run_cmd(hadoop_home + '/sbin/stop-dfs.sh')
         # start
-        run_cmd(hadoop_home + '/sbin/start_dfs.sh')
-        run_cmd(hbase_home + '/bin/start_hbase.sh')
+        run_cmd(hadoop_home + '/sbin/start-dfs.sh')
+        run_cmd(hbase_home + '/bin/start-hbase.sh')
     else:
         print 'no apache distribution found, skipping'
 

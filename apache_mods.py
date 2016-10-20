@@ -37,12 +37,12 @@ def run():
         hbase_xml_file = dbcfgs['hbase_xml_file']
 
         hbasexml = ParseXML(hbase_xml_file)
-        for n,v in MOD_CFGS['hbase'].items():
+        for n,v in MOD_CFGS['hbase-site'].items():
             hbasexml.add_property(n, v)
         hbasexml.write_xml()
 
         hdfsxml = ParseXML(hdfs_xml_file)
-        for n,v in MOD_CFGS['hdfs'].items():
+        for n,v in MOD_CFGS['hdfs-site'].items():
             hdfsxml.add_property(n, v)
         hdfsxml.write_xml()
 
