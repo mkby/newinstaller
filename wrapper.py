@@ -196,7 +196,7 @@ def run(dbcfgs, options, mode='install'):
         f.write(ssh_cfg)
     run_cmd('chmod 600 %s' % SSH_CFG_FILE)
 
-    def run_local_script(script, json_string, req_pwd):
+    def run_local_script(script, json_string, req_pwd, quiet=False):
         cmd = '%s/%s \'%s\'' % (INSTALLER_LOC, script, json_string)
 
         # pass the ssh password to sub scripts which need SSH password
@@ -205,7 +205,10 @@ def run(dbcfgs, options, mode='install'):
         if verbose: print cmd
 
         # stdout on screen
-        p = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
+        if quiet:
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        else:
+            p = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
         stdout, stderr = p.communicate()
 
         rc = p.returncode
@@ -218,7 +221,7 @@ def run(dbcfgs, options, mode='install'):
             state_fail('localhost: Script [%s]' % script)
             exit(rc)
         else:
-            state_ok('Script [%s]' % script)
+            if not quiet: state_ok('Script [%s]' % script)
             logger.info('Script [%s] ran successfully!' % script)
 
         return stdout
@@ -272,7 +275,11 @@ def run(dbcfgs, options, mode='install'):
             #TODO: timeout exit
             # if install on localhost only
             if not remote_instances:
-                run_local_script(script, dbcfgs_json, req_pwd)
+                if mode == 'discover':
+                    output = run_local_script(script, dbcfgs_json, req_pwd, quiet=True)
+                    script_output = [{local_host:output}]
+                else:
+                    run_local_script(script, dbcfgs_json, req_pwd)
             else:
                 if node == 'local':
                     run_local_script(script, dbcfgs_json, req_pwd)
