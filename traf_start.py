@@ -45,7 +45,9 @@ def run():
         print 'Initialize trafodion'
         run_cmd('echo "initialize trafodion;" | sqlci > %s' % tmp_file)
         init_output = cmd_output('cat %s' % tmp_file)
-        if 'ERROR' in init_output:
+        # skip error 1392
+        # ERROR[1392] Trafodion is already initialized on this system. No action is needed.
+        if 'ERROR' in init_output and not '1392' in init_output:
             err('Failed to initialize trafodion:\n %s' % init_output)
 
     if dbcfgs['ldap_security'] == 'Y':
