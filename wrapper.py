@@ -196,7 +196,7 @@ def run(dbcfgs, options, mode='install'):
         f.write(ssh_cfg)
     run_cmd('chmod 600 %s' % SSH_CFG_FILE)
 
-    def run_local_script(script, json_string, req_pwd, quiet=False):
+    def run_local_script(script, json_string, req_pwd):
         cmd = '%s/%s \'%s\'' % (INSTALLER_LOC, script, json_string)
 
         # pass the ssh password to sub scripts which need SSH password
@@ -205,10 +205,7 @@ def run(dbcfgs, options, mode='install'):
         if verbose: print cmd
 
         # stdout on screen
-        if quiet:
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        else:
-            p = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
+        p = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=True)
         stdout, stderr = p.communicate()
 
         rc = p.returncode
@@ -228,22 +225,21 @@ def run(dbcfgs, options, mode='install'):
 
     # run sub scripts
     try:
-        if enable_pwd and not islocal(hosts, local_host):
+        if enable_pwd:
             pwd = getpass.getpass('Input remote host SSH Password: ')
         else:
             pwd = ''
 
         remote_instances = []
-        if not islocal(hosts, local_host):
-            if mode == 'discover':
-                remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd, quiet=True) for host in hosts]
-            else:
-                remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd) for host in hosts]
-            first_instance = remote_instances[0]
-            for instance in remote_instances:
-                if instance.host == dbcfgs['first_rsnode']:
-                    first_rs_instance = instance
-                    break
+        if mode == 'discover':
+            remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd, quiet=True) for host in hosts]
+        else:
+            remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd) for host in hosts]
+        first_instance = remote_instances[0]
+        for instance in remote_instances:
+            if instance.host == dbcfgs['first_rsnode']:
+                first_rs_instance = instance
+                break
 
         logger.info(' ***** %s Start *****' % mode)
         for cfg in script_cfgs:
@@ -273,42 +269,34 @@ def run(dbcfgs, options, mode='install'):
                 print '\n*** Start running script [%s]:' % script
 
             #TODO: timeout exit
-            # if install on localhost only
-            if not remote_instances:
-                if mode == 'discover':
-                    output = run_local_script(script, dbcfgs_json, req_pwd, quiet=True)
-                    script_output = [{local_host:output}]
+            if node == 'local':
+                run_local_script(script, dbcfgs_json, req_pwd)
+            elif node == 'first':
+                first_instance.run_script(script, run_user, dbcfgs_json, verbose=verbose)
+            elif node == 'first_rs':
+                first_rs_instance.run_script(script, run_user, dbcfgs_json, verbose=verbose)
+            elif node == 'all':
+                l = len(remote_instances)
+                if l > threshold:
+                    piece = (l - (l % threshold)) / threshold
+                    parted_remote_instances = [remote_instances[threshold*i:threshold*(i+1)] for i in range(piece)]
+                    parted_remote_instances.append(remote_instances[threshold*piece:])
                 else:
-                    run_local_script(script, dbcfgs_json, req_pwd)
+                    parted_remote_instances = [remote_instances]
+
+                for parted_remote_inst in parted_remote_instances:
+                    threads = [Thread(target=r.run_script, args=(script, run_user, dbcfgs_json, verbose)) for r in parted_remote_inst]
+                    for t in threads: t.start()
+                    for t in threads: t.join()
+
+                    if sum([r.rc for r in parted_remote_inst]) != 0:
+                        err_m('Script failed to run on one or more nodes, exiting ...\nCheck log file %s for details.' % LOG_FILE)
+
+                    script_output += [{r.host:r.stdout.strip()} for r in parted_remote_inst]
+
             else:
-                if node == 'local':
-                    run_local_script(script, dbcfgs_json, req_pwd)
-                elif node == 'first':
-                    first_instance.run_script(script, run_user, dbcfgs_json, verbose=verbose)
-                elif node == 'first_rs':
-                    first_rs_instance.run_script(script, run_user, dbcfgs_json, verbose=verbose)
-                elif node == 'all':
-                    l = len(remote_instances)
-                    if l > threshold:
-                        piece = (l - (l % threshold)) / threshold
-                        parted_remote_instances = [remote_instances[threshold*i:threshold*(i+1)] for i in range(piece)]
-                        parted_remote_instances.append(remote_instances[threshold*piece:])
-                    else:
-                        parted_remote_instances = [remote_instances]
-
-                    for parted_remote_inst in parted_remote_instances:
-                        threads = [Thread(target=r.run_script, args=(script, run_user, dbcfgs_json, verbose)) for r in parted_remote_inst]
-                        for t in threads: t.start()
-                        for t in threads: t.join()
-
-                        if sum([r.rc for r in parted_remote_inst]) != 0:
-                            err_m('Script failed to run on one or more nodes, exiting ...\nCheck log file %s for details.' % LOG_FILE)
-
-                        script_output += [{r.host:r.stdout.strip()} for r in parted_remote_inst]
-
-                else:
-                    # should not go to here
-                    err_m('Invalid configuration for %s' % SCRCFG_FILE)
+                # should not go to here
+                err_m('Invalid configuration for %s' % SCRCFG_FILE)
 
             status.set_status()
     except KeyboardInterrupt:

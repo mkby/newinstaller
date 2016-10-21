@@ -77,6 +77,8 @@ def run():
     if distro == 'CDH':
         if v2 == '6': v2 = '5'
         if v2 == '8': v2 = '7'
+    elif distro == 'HDP':
+        if v2 == '4': v2 = '3'
     hbase_trx_jar = '%s/hbase-trx-%s%s_%s-%s.jar' % (TRAF_LIB_PATH, distro.lower(), v1, v2, TRAF_VER)
     if not os.path.exists(hbase_trx_jar):
         err('Cannot find hbase trx jar file \'%s\'' % hbase_trx_jar)
