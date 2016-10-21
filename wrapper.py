@@ -218,7 +218,7 @@ def run(dbcfgs, options, mode='install'):
             state_fail('localhost: Script [%s]' % script)
             exit(rc)
         else:
-            if not quiet: state_ok('Script [%s]' % script)
+            state_ok('Script [%s]' % script)
             logger.info('Script [%s] ran successfully!' % script)
 
         return stdout

@@ -36,6 +36,7 @@ cd $HOME
 #-------------------------------------------
 # full path of your Trafodion installation
 #-------------------------------------------
+export JAVA_HOME="{{ java_home }}"
 export SQ_HOME="{{ sq_home }}"
 export MY_SQROOT=$SQ_HOME
 

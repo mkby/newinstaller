@@ -83,6 +83,7 @@ def run():
     # set bashrc
     nodes = dbcfgs['node_list'].split(',')
     change_items = {
+    '{{ java_home }}': dbcfgs['java_home'],
     '{{ sq_home }}': SQ_ROOT,
     '{{ hadoop_type }}': hadoop_type,
     '{{ node_list }}': ' '.join(nodes),
