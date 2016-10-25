@@ -168,7 +168,7 @@ class HDPMod:
             else:
                 print 'HDP service %s had already been stopped' % srv
 
-        time.sleep(3)
+        time.sleep(5)
         # Start
         config = {'RequestInfo': {'context' :'Start All services'}, 'ServiceInfo': { 'state' : 'STARTED' }}
         rc = self.p.put(srv_baseurl, config)
