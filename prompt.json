@@ -193,7 +193,7 @@
   },
   "db_root_user":
   {
-      "prompt":"Enter LDAP name to be assigned DB root privileges (DB__ROOT)",
+      "prompt":"Enter LDAP user name to be assigned DB root privileges (DB__ROOT)",
       "default":"trafodion",
       "isuser":true
   },

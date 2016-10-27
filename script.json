@@ -54,10 +54,6 @@
         "node": "all"
     },
     {
-        "script": "apache_restart.py",
-        "node": "first"
-    },
-    {
         "script": "hdfs_cmds.py",
         "node": "first_rs"
     },

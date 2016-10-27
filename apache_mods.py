@@ -25,6 +25,7 @@
 
 import sys
 import json
+import socket
 from common import MODCFG_FILE, ParseJson, ParseXML, err
 
 def run():
@@ -47,8 +48,22 @@ def run():
         hdfsxml.write_xml()
 
         print 'Apache Hadoop modification completed'
+        first_node = dbcfgs['first_rsnode']
+        local_host = socket.gethostname()
+        if first_node in local_host:
+            hadoop_home = dbcfgs['hadoop_home']
+            hbase_home = dbcfgs['hbase_home']
+            # stop
+            run_cmd(hbase_home + '/bin/stop-hbase.sh')
+            run_cmd(hadoop_home + '/sbin/stop-dfs.sh')
+            # start
+            run_cmd(hadoop_home + '/sbin/start-dfs.sh')
+            run_cmd(hbase_home + '/bin/start-hbase.sh')
+
+            print 'Apache Hadoop restart completed'
     else:
         print 'no apache distribution found, skipping'
+
 
 # main
 try:
