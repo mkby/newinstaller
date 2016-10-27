@@ -245,6 +245,7 @@ def run(dbcfgs, options, mode='install'):
         for cfg in script_cfgs:
             script = cfg['script']
             node = cfg['node']
+            desc = cfg['desc']
             run_user = ''
             if not 'run_as_traf' in cfg.keys():
                 pass
@@ -266,7 +267,8 @@ def run(dbcfgs, options, mode='install'):
             if script.split('.')[0] in skipped_scripts:
                 continue
             else:
-                print '\n*** Start running script [%s]:' % script
+                #print '\n*** Start running script [%s]:' % script
+                print '\n*** %s:' % desc
 
             #TODO: timeout exit
             if node == 'local':
