@@ -86,7 +86,7 @@
 "discover": [
     {
         "script": "traf_discover.py",
-        "desc": "Envrironment Discover",
+        "desc": "Environment Discover",
         "node": "all"
     }
 ]

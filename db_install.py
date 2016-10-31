@@ -324,7 +324,7 @@ def user_input(options, prompt_mode=True):
 
     apache = True if hasattr(options, 'apache') and options.apache else False
     offline = True if hasattr(options, 'offline') and options.offline else False
-    noconfirm = True if hasattr(options, 'noconfirm') and options.noconfirm else False
+    silent = True if hasattr(options, 'silent') and options.silent else False
 
     # load from temp config file if in prompt mode
     if os.path.exists(DBCFG_TMP_FILE) and prompt_mode == True:
@@ -467,8 +467,7 @@ def user_input(options, prompt_mode=True):
     g('scratch_locs')
     g('traf_start')
 
-    # TODO add kerberos
-    if cfgs['secure_hadoop'] == 'Y':
+    if cfgs['secure_hadoop'].upper() == 'Y':
         g('kdc_server')
         g('admin_principal')
         g('kdcadmin_pwd')
@@ -525,7 +524,7 @@ def user_input(options, prompt_mode=True):
     cfgs['traf_user'] = 'trafodion'
     cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
 
-    if not noconfirm:
+    if not silent:
         u.notify_user()
 
 
@@ -541,7 +540,7 @@ def get_options():
                       if not provided, use current login user as default.")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                 help="Verbose mode, will print commands.")
-    parser.add_option("--no-confirm", action="store_true", dest="noconfirm", default=False,
+    parser.add_option("--silent", action="store_true", dest="silent", default=False,
                 help="Do not ask user to confirm configuration result")
     parser.add_option("--passwd", action="store_true", dest="pwd", default=False,
                 help="Prompt SSH login password for remote hosts. \
