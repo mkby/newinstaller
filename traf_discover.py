@@ -110,7 +110,7 @@ class Discover(object):
     @deco
     def get_default_java(self):
         """ get default java version """
-        jdk_path = glob('usr/java/*') + \
+        jdk_path = glob('/usr/java/*') + \
                    glob('/usr/jdk64/*') + \
                    glob('/usr/lib/jvm/java-*-openjdk.x86_64')
 
