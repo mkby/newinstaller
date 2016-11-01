@@ -24,8 +24,9 @@
 ### this script should be run on all nodes with trafodion user ###
 
 import os
+import sys
 import json
-from common import *
+from common import ParseXML, append_file, write_file, mod_file, cmd_output, run_cmd, err
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -44,7 +45,7 @@ def run():
     DCS_ENV_FILE = DCS_CONF_DIR + '/dcs-env.sh'
     DCS_SITE_FILE = DCS_CONF_DIR + '/dcs-site.xml'
     REST_SITE_FILE = '%s/rest-%s/conf/rest-site.xml' % (SQ_ROOT, TRAF_VER)
-    TRAFCI_FILE = SQ_ROOT + '/trafci/bin/trafci' 
+    TRAFCI_FILE = SQ_ROOT + '/trafci/bin/trafci'
     SQENV_FILE = SQ_ROOT + '/sqenvcom.sh'
 
     ### dcs setting ###

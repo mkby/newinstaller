@@ -22,20 +22,19 @@
 #
 # @@@ END COPYRIGHT @@@
 
-import sys
-reload(sys)
-sys.setdefaultencoding("utf-8")
 import os
 import re
 import socket
 import json
-import base64
 import getpass
 import time
-import wrapper
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
 from optparse import OptionParser
 from glob import glob
 from collections import defaultdict
+import wrapper
 try:
     from prettytable import PrettyTable
 except ImportError:
@@ -121,10 +120,10 @@ class HadoopDiscover(object):
     def _get_hdp_users(self):
         desired_cfg = self.hg.get('%s/?fields=Clusters/desired_configs' % (self.cluster_url))
         config_type = {'hbase-env':'hbase_user', 'hadoop-env':'hdfs_user'}
-        for k,v in config_type.items():
-            desired_tag = desired_cfg['Clusters']['desired_configs'][k]['tag']
-            current_cfg = self.hg.get('%s/configurations?type=%s&tag=%s' % (self.cluster_url, k, desired_tag))
-            self.users[v] = current_cfg['items'][0]['properties'][v]
+        for key, value in config_type.items():
+            desired_tag = desired_cfg['Clusters']['desired_configs'][key]['tag']
+            current_cfg = self.hg.get('%s/configurations?type=%s&tag=%s' % (self.cluster_url, key, desired_tag))
+            self.users[value] = current_cfg['items'][0]['properties'][value]
 
     def _get_cdh_users(self):
         def _get_username(service_name, hadoop_type):
@@ -149,7 +148,8 @@ class HadoopDiscover(object):
         self.rsnodes.sort()
         # use short hostname
         try:
-            self.rsnodes = [re.match(r'([\w\-]+).*',n).group(1) for n in self.rsnodes]
+            self.rsnodes = [re.match(r'([\w\-]+).*', node).group(1) for node in self.rsnodes]
+
         except AttributeError:
             pass
         return self.rsnodes
@@ -171,11 +171,11 @@ class HadoopDiscover(object):
 
     def _get_rsnodes_hdp(self):
         """ get list of HBase RegionServer nodes in HDP """
-        hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url )
-        self.rsnodes = [ c['HostRoles']['host_name'] for c in hdp['host_components'] ]
+        hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url)
+        self.rsnodes = [c['HostRoles']['host_name'] for c in hdp['host_components']]
 
 
-class UserInput:
+class UserInput(object):
     def __init__(self, options, pwd):
         self.in_data = ParseJson(USER_PROMPT_FILE).load()
         self.pwd = pwd
@@ -293,7 +293,7 @@ class UserInput:
         for item in title:
             pt.align[item] = 'l'
 
-        for key,value in sorted(cfgs.items()):
+        for key, value in sorted(cfgs.items()):
             if self.in_data.has_key(key) and value:
                 if self.in_data[key].has_key('ispasswd'): continue
                 pt.add_row([key, value])
@@ -349,7 +349,7 @@ def user_input(options, prompt_mode=True, pwd=''):
             cfgs['mgr_url'] = 'http://' + cfgs['mgr_url']
 
         # set cloudera default port 7180 if not provided by user
-        if not re.search(':\d+', cfgs['mgr_url']):
+        if not re.search(r':\d+', cfgs['mgr_url']):
             cfgs['mgr_url'] += ':7180'
 
         g('mgr_user')
@@ -452,7 +452,7 @@ def user_input(options, prompt_mode=True, pwd=''):
     except:
         log_err('Invalid package tar file')
 
-    if float(cfgs['traf_version'][:3]) >= 2.2:
+    if cfgs['traf_basename'] == 'esgynDB' and float(cfgs['traf_version'][:3]) >= 2.2:
         cfgs['req_java8'] = 'Y'
     else:
         cfgs['req_java8'] = 'N'
@@ -462,6 +462,7 @@ def user_input(options, prompt_mode=True, pwd=''):
     g('scratch_locs')
     g('traf_start')
 
+    # kerberos
     if cfgs['secure_hadoop'].upper() == 'Y':
         g('kdc_server')
         g('admin_principal')
@@ -522,34 +523,33 @@ def user_input(options, prompt_mode=True, pwd=''):
     if not silent:
         u.notify_user()
 
-
 def get_options():
     usage = 'usage: %prog [options]\n'
     usage += '  Trafodion install main script.'
     parser = OptionParser(usage=usage)
     parser.add_option("-c", "--config-file", dest="cfgfile", metavar="FILE",
-                help="Json format file. If provided, all install prompts \
-                      will be taken from this file and not prompted for.")
+                      help="Json format file. If provided, all install prompts \
+                            will be taken from this file and not prompted for.")
     parser.add_option("-u", "--remote-user", dest="user", metavar="USER",
-                help="Specify ssh login user for remote server, \
-                      if not provided, use current login user as default.")
+                      help="Specify ssh login user for remote server, \
+                            if not provided, use current login user as default.")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
-                help="Verbose mode, will print commands.")
+                      help="Verbose mode, will print commands.")
     parser.add_option("--silent", action="store_true", dest="silent", default=False,
-                help="Do not ask user to confirm configuration result")
+                      help="Do not ask user to confirm configuration result")
     parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
-                help="Prompt SSH login password for remote hosts. \
-                      If set, \'sshpass\' tool is required.")
+                      help="Prompt SSH login password for remote hosts. \
+                            If set, \'sshpass\' tool is required.")
     parser.add_option("--build", action="store_true", dest="build", default=False,
-                help="Build the config file in guided mode only.")
+                      help="Build the config file in guided mode only.")
     parser.add_option("--upgrade", action="store_true", dest="upgrade", default=False,
-                help="Upgrade install, it is useful when reinstalling Trafodion.")
+                      help="Upgrade install, it is useful when reinstalling Trafodion.")
     parser.add_option("--apache-hadoop", action="store_true", dest="apache", default=False,
-                help="Install Trafodion on top of Apache Hadoop.")
+                      help="Install Trafodion on top of Apache Hadoop.")
     parser.add_option("--offline", action="store_true", dest="offline", default=False,
-                help="Enable local repository for offline installing Trafodion.")
+                      help="Enable local repository for offline installing Trafodion.")
     parser.add_option("--version", action="store_true", dest="version", default=False,
-                help="Show the installer version.")
+                      help="Show the installer version.")
 
     (options, args) = parser.parse_args()
     return options
@@ -636,7 +636,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (KeyboardInterrupt,EOFError):
+    except (KeyboardInterrupt, EOFError):
         tp = ParseInI(DBCFG_TMP_FILE)
         tp.save(cfgs)
         http_stop()

@@ -23,17 +23,14 @@
 
 ### this script should be run on local node ###
 
-import os
 import sys
-import socket
-import subprocess
 import json
 from threading import Thread
 from common import Remote, run_cmd, err
 
 def run(pwd):
-    """ gen ssh key on local and copy to all nodes 
-        copy traf package file from local to all nodes 
+    """ gen ssh key on local and copy to all nodes
+        copy traf package file from local to all nodes
     """
     dbcfgs = json.loads(dbcfgs_json)
     hosts = dbcfgs['node_list'].split(',')
@@ -45,10 +42,10 @@ def run(pwd):
 
     files = [key_file, key_file+'.pub', traf_package]
 
-    remote_insts = [ Remote(h, pwd=pwd) for h in hosts ]
-    threads = [Thread(target=r.copy, args=(files, '/tmp' )) for r in remote_insts]
-    for t in threads: t.start()
-    for t in threads: t.join()
+    remote_insts = [Remote(h, pwd=pwd) for h in hosts]
+    threads = [Thread(target=r.copy, args=(files, '/tmp')) for r in remote_insts]
+    for thread in threads: thread.start()
+    for thread in threads: thread.join()
     for r in remote_insts:
         if r.rc != 0: err('Failed to copy files to %s' % r.host)
 

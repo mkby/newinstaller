@@ -33,9 +33,9 @@ import base64
 import subprocess
 import logging
 try:
-  import xml.etree.cElementTree as ET
+    import xml.etree.cElementTree as ET
 except ImportError:
-  import xml.etree.ElementTree as ET
+    import xml.etree.ElementTree as ET
 from ConfigParser import ConfigParser
 from collections import defaultdict
 
@@ -120,7 +120,7 @@ def mod_file(template_file, change_items):
     except IOError:
         err('Failed to open file %s to modify' % template_file)
 
-    for regexp,replace in change_items.iteritems():
+    for regexp, replace in change_items.iteritems():
         lines = re.sub(regexp, replace, lines)
 
     with open(template_file, 'w') as f:
@@ -189,7 +189,7 @@ class Remote(object):
 
     def _commands(self, method):
         cmd = []
-        if self.sshpass and self.pwd: cmd = ['sshpass','-p', self.pwd]
+        if self.sshpass and self.pwd: cmd = ['sshpass', '-p', self.pwd]
         cmd += [method]
         if not (self.sshpass and self.pwd): cmd += ['-oPasswordAuthentication=no']
         return cmd
@@ -256,7 +256,7 @@ class Remote(object):
         if self.rc != 0: err('Failed to fetch files from remote nodes')
 
 
-class ParseHttp:
+class ParseHttp(object):
     def __init__(self, user, passwd, json_type=True):
         # httplib2 is not installed by default
         try:
@@ -302,7 +302,7 @@ class ParseHttp:
             err_m('Failed to send command to URL')
 
 
-class ParseXML:
+class ParseXML(object):
     """ handle *-site.xml with format
         <property><name></name><value></value></proerty>
     """
@@ -331,7 +331,7 @@ class ParseXML:
 
     def get_property(self, name):
         try:
-            return [x[1] for x in self._nvlist if x[0]==name][0]
+            return [x[1] for x in self._nvlist if x[0] == name][0]
         except:
             return ''
 
@@ -361,10 +361,10 @@ class ParseXML:
         self._tree.write(self.__xml_file)
 
     def print_xml(self):
-        for n,v in self._nvlist:
-            print n,v
+        for name, value in self._nvlist:
+            print name, value
 
-class ParseJson:
+class ParseJson(object):
     def __init__(self, js_file):
         self.__js_file = js_file
 
@@ -389,7 +389,7 @@ class ParseJson:
         return 0
 
 
-class ParseInI:
+class ParseInI(object):
     def __init__(self, ini_file):
         self.__ini_file = ini_file
         self.section = 'def'
@@ -415,8 +415,8 @@ class ParseInI:
         """ save a dict as an ini file """
         cf = ConfigParser()
         cf.add_section(self.section)
-        for k,v in dic.iteritems():
-            cf.set(self.section, k, v)
+        for key, value in dic.iteritems():
+            cf.set(self.section, key, value)
 
         with open(self.__ini_file, 'w') as f:
             cf.write(f)
@@ -477,7 +477,7 @@ def expNumRe(text):
             t = r.group(4)
 
             convert = lambda d: str(('%0' + str(min(len(d1), len(d2))) + 'd') % d)
-            if d1 > d2: d1,d2 = d2,d1
+            if d1 > d2: d1, d2 = d2, d1
             explist.extend([h + convert(c) + t for c in range(int(d1), int(d2)+1)])
 
         else:

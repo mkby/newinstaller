@@ -27,7 +27,6 @@ import re
 import json
 import sys
 import os
-import platform
 from common import run_cmd, cmd_output, err, Version
 
 class Check(object):
@@ -47,13 +46,12 @@ class Check(object):
         if not os.path.exists(hbase_xml_file):
             err('HBase xml file is not found')
 
-    #TODO: check for sub release version
     def check_java(self):
         """ check JDK version """
         jdk_path = self.dbcfgs['java_home']
         jdk_ver = cmd_output('%s/bin/javac -version' % jdk_path)
         try:
-            jdk_ver = re.search('javac (\d\.\d)', jdk_ver).groups()[0]
+            jdk_ver, sub_ver = re.search(r'javac (\d\.\d).\d_(\d+)', jdk_ver).groups()
         except AttributeError:
             err('No JDK found')
 
@@ -62,6 +60,8 @@ class Check(object):
         else:
             support_java = self.version.get_version('java')
 
+        if jdk_ver == '1.7' and int(sub_ver) < 65:
+            err('Unsupported JDK1.7 version, sub version should be higher than 65')
         if jdk_ver not in support_java:
             err('Unsupported JDK version %s, supported version: %s' % (jdk_ver, support_java))
 
@@ -71,7 +71,6 @@ class Check(object):
     #    for loc in scratch_locs:
     #        if not os.path.exists(loc):
     #            err('Scratch file location \'%s\' doesn\'t exist' % loc)
-
 
 def run():
     PREFIX = 'check_'

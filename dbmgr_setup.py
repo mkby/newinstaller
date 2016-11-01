@@ -27,7 +27,7 @@ import os
 import sys
 import json
 import socket
-from common import run_cmd, cmd_output, append_file, mod_file, ParseXML
+from common import err, run_cmd, cmd_output, append_file, mod_file, ParseXML
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -72,7 +72,6 @@ def run():
     first_node = nodes[0]
     local_host = socket.gethostname()
 
-
     # edit bosun.conf
     mod_file(BOSUN_CONFIG, {'tsdbHost = .*':'tsdbHost = %s:%s' % (dcs_master_host, tsd_port)})
 
@@ -91,7 +90,7 @@ def run():
         hm_info_port = hb.get_property('hbase.master.info.port')
         rs_info_port = hb.get_property('hbase.regionserver.info.port')
         mod_file(OPENTSDB_CONFIG,
-                {'tsd.storage.hbase.zk_basedir = .*':'tsd.storage.hbase.zk_basedir = /hbase-unsecure'})
+                 {'tsd.storage.hbase.zk_basedir = .*':'tsd.storage.hbase.zk_basedir = /hbase-unsecure'})
         # edit hbase master collector
         mod_file(HBASE_COLLECTOR, {'60010':hm_info_port})
         # edit hbase regionserver collector
@@ -125,22 +124,22 @@ def run():
     run_cmd('%s/bin/configure.py --httpport %s --httpsport %s --dcshost %s --dcsport %s \
     --password dbmgr23400 --dcsinfoport %s --resthost %s --restport %s --tsdhost %s --tsdport %s \
     --bosunhost %s --bosunport %s --timezone %s --adminuser %s --adminpassword %s' %
-    (DBMGR_INSTALL_DIR,
-    dm_http_port,
-    dm_https_port,
-    dcs_master_host,
-    dcs_port,
-    dcs_info_port,
-    local_host,
-    rest_port,
-    dcs_master_host,
-    tsd_port,
-    dcs_master_host,
-    http_port,
-    timezone,
-    db_admin_user,
-    db_admin_pwd)
-    )
+            (DBMGR_INSTALL_DIR,
+             dm_http_port,
+             dm_https_port,
+             dcs_master_host,
+             dcs_port,
+             dcs_info_port,
+             local_host,
+             rest_port,
+             dcs_master_host,
+             tsd_port,
+             dcs_master_host,
+             http_port,
+             timezone,
+             db_admin_user,
+             db_admin_pwd)
+           )
 
 # main
 try:

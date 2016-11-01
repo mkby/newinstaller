@@ -26,7 +26,7 @@
 import os
 import sys
 import json
-from common import run_cmd, cmd_output, run_cmd_as_user
+from common import err, run_cmd, cmd_output, run_cmd_as_user
 
 def run():
     hdfs_bin = '/usr/bin/hdfs'

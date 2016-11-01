@@ -26,7 +26,6 @@
 import re
 import json
 import sys
-import os
 import platform
 from glob import glob
 from common import cmd_output, err, Version, ParseXML
@@ -119,7 +118,7 @@ class Discover(object):
             jdk_ver = cmd_output('%s/bin/javac -version' % path)
 
             try:
-                main_ver, sub_ver = re.search('(\d\.\d\.\d)_(\d+)', jdk_ver).groups()
+                main_ver, sub_ver = re.search(r'(\d\.\d\.\d)_(\d+)', jdk_ver).groups()
                 # don't support JDK version less than 1.7.0_65
                 if main_ver == '1.7.0' and int(sub_ver) < 65:
                     continue
@@ -165,7 +164,7 @@ class Discover(object):
 
         support_hbase_ver = self.version.get_version('hbase')
         try:
-            hbase_ver = re.search('HBase (\d\.\d)', hbase_ver).groups()[0]
+            hbase_ver = re.search(r'HBase (\d\.\d)', hbase_ver).groups()[0]
         except AttributeError:
             return NA
         if hbase_ver not in support_hbase_ver:

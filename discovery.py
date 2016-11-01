@@ -23,11 +23,16 @@
 
 import os
 import time
+import json
 import getpass
-from prettytable import PrettyTable
 from optparse import OptionParser
 from collections import defaultdict
-from common import *
+try:
+    from prettytable import PrettyTable
+except ImportError:
+    print 'Python module prettytable is not found. Install python-prettytable first.'
+    exit(1)
+from common import err_m, err, ParseInI, expNumRe, format_output, DBCFG_FILE
 import wrapper
 
 
@@ -36,13 +41,13 @@ def get_options():
     usage += '  Trafodion install main script.'
     parser = OptionParser(usage=usage)
     parser.add_option("-c", "--config-file", dest="cfgfile", metavar="FILE",
-                help="Json format file. If provided, all install prompts \
-                      will be taken from this file and not prompted for.")
+                      help="Json format file. If provided, all install prompts \
+                            will be taken from this file and not prompted for.")
     parser.add_option("-u", "--remote-user", dest="user", metavar="USER",
-                help="Specify ssh login user for remote server, \
-                      if not provided, use current login user as default.")
+                      help="Specify ssh login user for remote server, \
+                            if not provided, use current login user as default.")
     parser.add_option("--enable-pass", action="store_true", dest="pwd", default=True,
-                help="Not Prompt SSH login password for remote hosts.")
+                      help="Not Prompt SSH login password for remote hosts.")
 
     (options, args) = parser.parse_args()
     return options
@@ -96,7 +101,7 @@ def main():
 
     if options.cfgfile:
         if not os.path.exists(options.cfgfile):
-            log_err('Cannot find config file \'%s\'' % options.cfgfile)
+            err_m('Cannot find config file \'%s\'' % options.cfgfile)
         config_file = options.cfgfile
     else:
         config_file = DBCFG_FILE
@@ -135,5 +140,5 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (KeyboardInterrupt,EOFError):
+    except (KeyboardInterrupt, EOFError):
         print '\nAborted...'

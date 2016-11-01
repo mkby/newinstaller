@@ -23,12 +23,11 @@
 
 import os
 import time
+import json
 import subprocess
-import getpass
-import socket
 from glob import glob
 from threading import Thread
-from common import *
+from common import err_m, run_cmd, time_elapse, get_logger, ParseJson, Remote, INSTALLER_LOC, TMP_DIR, SCRCFG_FILE
 
 
 class RemoteRun(Remote):
@@ -61,7 +60,7 @@ class RemoteRun(Remote):
 
         if run_user:
             # format string in order to run with 'sudo su $user -c $cmd'
-            json_string = json_string.replace('"','\\\\\\"').replace(' ','').replace('{','\\{').replace('$','\\\\\\$')
+            json_string = json_string.replace('"', '\\\\\\"').replace(' ', '').replace('{', '\\{').replace('$', '\\\\\\$')
             # this command only works with shell=True
             script_cmd = '"sudo su - %s -c \'%s/%s %s\'"' % (run_user, TMP_DIR, script, json_string)
             self.__run_ssh(script_cmd, verbose=verbose, shell=True)
@@ -126,7 +125,7 @@ def state(color, result, msg):
     WIDTH = 80
     print '\n\33[%dm%s %s [ %s ]\33[0m\n' % (color, msg, (WIDTH - len(msg))*'.', result)
 
-class Status:
+class Status(object):
     def __init__(self, stat_file, name):
         self.stat_file = stat_file
         self.name = name
@@ -163,10 +162,6 @@ def run(dbcfgs, options, mode='install', pwd=''):
 
     dbcfgs_json = json.dumps(dbcfgs)
     hosts = dbcfgs['node_list'].split(',')
-    local_host = socket.gethostname().split('.')[0]
-
-    # Check if install on localhost
-    islocal = lambda h, lh: True if len(h) == 1 and (h[0] == 'localhost' or h[0] == lh) else False
 
     # handle skipped scripts, skip them if no need to run
     skipped_scripts = []

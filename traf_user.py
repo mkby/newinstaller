@@ -23,9 +23,10 @@
 
 ### this script should be run on all nodes with sudo user ###
 
-import base64
+import os
+import sys
 import json
-from common import *
+from common import run_cmd, append_file, mod_file, cmd_output, run_cmd_as_user, err, TMP_DIR
 
 def run():
     """ create trafodion user, bashrc, setup passwordless SSH """
@@ -83,12 +84,12 @@ def run():
     # set bashrc
     nodes = dbcfgs['node_list'].split(',')
     change_items = {
-    '{{ java_home }}': dbcfgs['java_home'],
-    '{{ sq_home }}': SQ_ROOT,
-    '{{ hadoop_type }}': hadoop_type,
-    '{{ node_list }}': ' '.join(nodes),
-    '{{ node_count }}':str(len(nodes)),
-    '{{ my_nodes }}': ' -w ' + ' -w '.join(nodes)
+        '{{ java_home }}': dbcfgs['java_home'],
+        '{{ sq_home }}': SQ_ROOT,
+        '{{ hadoop_type }}': hadoop_type,
+        '{{ node_list }}': ' '.join(nodes),
+        '{{ node_count }}':str(len(nodes)),
+        '{{ my_nodes }}': ' -w ' + ' -w '.join(nodes)
     }
 
     mod_file(BASHRC_TEMPLATE, change_items)

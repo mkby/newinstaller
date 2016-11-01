@@ -24,8 +24,10 @@
 ### this script should be run on all nodes with sudo user ###
 
 import os
+import sys
+import re
 import json
-from common import *
+from common import err, cmd_output, run_cmd
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -36,7 +38,6 @@ def run():
 
     TRAF_VER = dbcfgs['traf_version']
     DISTRO = dbcfgs['distro']
-    HBASE_XML_FILE = dbcfgs['hbase_xml_file']
     TRAF_LIB_PATH = SQ_ROOT + '/export/lib'
     SCRATCH_LOCS = dbcfgs['scratch_locs'].split(',')
 
@@ -62,7 +63,7 @@ def run():
     hbase_lib_path = '/usr/lib/hbase/lib'
     if 'CDH' in DISTRO:
         parcel_lib = '/opt/cloudera/parcels/CDH/lib/hbase/lib'
-        if os.path.exists(parcel_lib): hbase_lib_path =  parcel_lib
+        if os.path.exists(parcel_lib): hbase_lib_path = parcel_lib
     elif 'HDP' in DISTRO:
         hbase_lib_path = '/usr/hdp/current/hbase-regionserver/lib'
     elif 'APACHE' in DISTRO:
@@ -70,10 +71,10 @@ def run():
         hbase_lib_path = hbase_home + '/lib'
         # for apache distro, get hbase version from cmdline
         hbase_ver = cmd_output('%s/bin/hbase version | head -n1' % hbase_home)
-        hbase_ver = re.search('HBase (\d\.\d)', hbase_ver).groups()[0]
+        hbase_ver = re.search(r'HBase (\d\.\d)', hbase_ver).groups()[0]
         DISTRO += hbase_ver
 
-    distro, v1, v2 = re.search('(\w+)-*(\d)\.(\d)', DISTRO).groups()
+    distro, v1, v2 = re.search(r'(\w+)-*(\d)\.(\d)', DISTRO).groups()
     if distro == 'CDH':
         if v2 == '6': v2 = '5'
         if v2 == '8': v2 = '7'

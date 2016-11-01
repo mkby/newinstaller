@@ -26,7 +26,7 @@
 import os
 import sys
 import json
-from common import run_cmd, cmd_output, mod_file, err, TMP_DIR
+from common import run_cmd, mod_file, err, TMP_DIR
 
 def run():
     """ setup LDAP security """
@@ -40,13 +40,13 @@ def run():
 
     # set traf_authentication_config file
     change_items = {
-    '{{ ldap_hosts }}': dbcfgs['ldap_hosts'],
-    '{{ ldap_port }}': dbcfgs['ldap_port'],
-    '{{ ldap_identifiers }}': dbcfgs['ldap_identifiers'],
-    '{{ ldap_encrypt }}': dbcfgs['ldap_encrypt'],
-    '{{ ldap_certpath }}': dbcfgs['ldap_certpath'],
-    '{{ ldap_user }}': dbcfgs['ldap_user'],
-    '{{ ldap_pwd }}': dbcfgs['ldap_pwd']
+        '{{ ldap_hosts }}': dbcfgs['ldap_hosts'],
+        '{{ ldap_port }}': dbcfgs['ldap_port'],
+        '{{ ldap_identifiers }}': dbcfgs['ldap_identifiers'],
+        '{{ ldap_encrypt }}': dbcfgs['ldap_encrypt'],
+        '{{ ldap_certpath }}': dbcfgs['ldap_certpath'],
+        '{{ ldap_user }}': dbcfgs['ldap_user'],
+        '{{ ldap_pwd }}': dbcfgs['ldap_pwd']
     }
 
     print 'Modify authentication config file'

@@ -26,7 +26,7 @@
 import sys
 import json
 import socket
-from common import MODCFG_FILE, ParseJson, ParseXML, err
+from common import MODCFG_FILE, ParseJson, ParseXML, err, run_cmd
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -38,13 +38,13 @@ def run():
         hbase_xml_file = dbcfgs['hbase_xml_file']
 
         hbasexml = ParseXML(hbase_xml_file)
-        for n,v in MOD_CFGS['hbase-site'].items():
-            hbasexml.add_property(n, v)
+        for key, value in MOD_CFGS['hbase-site'].items():
+            hbasexml.add_property(key, value)
         hbasexml.write_xml()
 
         hdfsxml = ParseXML(hdfs_xml_file)
-        for n,v in MOD_CFGS['hdfs-site'].items():
-            hdfsxml.add_property(n, v)
+        for key, value in MOD_CFGS['hdfs-site'].items():
+            hdfsxml.add_property(key, value)
         hdfsxml.write_xml()
 
         print 'Apache Hadoop modification completed'
@@ -63,7 +63,6 @@ def run():
             print 'Apache Hadoop restart completed'
     else:
         print 'no apache distribution found, skipping'
-
 
 # main
 try:
