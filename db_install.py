@@ -176,9 +176,9 @@ class HadoopDiscover(object):
 
 
 class UserInput:
-    def __init__(self, options):
+    def __init__(self, options, pwd):
         self.in_data = ParseJson(USER_PROMPT_FILE).load()
-        self.enable_pwd = True if hasattr(options, 'pwd') and options.pwd else False
+        self.pwd = pwd
 
     def _basic_check(self, name, answer):
         isYN = self.in_data[name].has_key('isYN')
@@ -203,14 +203,7 @@ class UserInput:
                     log_err('%s path \'%s\' doesn\'t exist' % (name, answer))
             elif isremote_exist:
                 hosts = cfgs['node_list'].split(',')
-                local_host = socket.gethostname().split('.')[0]
-                # Check if install on localhost
-                islocal = lambda h, lh: True if len(h) == 1 and (h[0] == 'localhost' or h[0] == lh) else False
-                if self.enable_pwd and not islocal(hosts, local_host):
-                    pwd = getpass.getpass('Input remote host SSH Password for checking: ')
-                else:
-                    pwd = ''
-                remotes = [Remote(host, pwd=pwd) for host in hosts]
+                remotes = [Remote(host, pwd=self.pwd) for host in hosts]
 
                 nodes = ''
                 for remote in remotes:
@@ -318,7 +311,7 @@ def log_err(errtext):
     err_m(errtext)
 
 
-def user_input(options, prompt_mode=True):
+def user_input(options, prompt_mode=True, pwd=''):
     """ get user's input and check input value """
     global cfgs
 
@@ -331,7 +324,7 @@ def user_input(options, prompt_mode=True):
         tp = ParseInI(DBCFG_TMP_FILE)
         cfgs = tp.load()
 
-    u = UserInput(options)
+    u = UserInput(options, pwd)
     g = lambda n: u.get_input(n, cfgs[n], prompt_mode=prompt_mode)
 
     ### begin user input ###
@@ -407,7 +400,7 @@ def user_input(options, prompt_mode=True):
         if rc: log_err('Cannot ping %s, please check network connection and /etc/hosts' % node)
 
     ### discover system settings, return a dict
-    discover_results = wrapper.run(cfgs, options, mode='discover')
+    discover_results = wrapper.run(cfgs, options, mode='discover', pwd=pwd)
 
     # check discover results, return error if fails on any sinlge node
     need_java_home = 0
@@ -420,6 +413,8 @@ def user_input(options, prompt_mode=True):
             need_java_home += 1
         if content_dict['linux'] == 'N/A':
             log_err('Unsupported Linux version')
+        if content_dict['firewall_status'] == 'Running':
+            log_err('Firewall should be stopped')
         if content_dict['traf_status'] == 'Running':
             log_err('Trafodion process is found, please stop it first')
         if content_dict['hbase'] == 'N/A':
@@ -542,7 +537,7 @@ def get_options():
                 help="Verbose mode, will print commands.")
     parser.add_option("--silent", action="store_true", dest="silent", default=False,
                 help="Do not ask user to confirm configuration result")
-    parser.add_option("--passwd", action="store_true", dest="pwd", default=False,
+    parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
                 help="Prompt SSH login password for remote hosts. \
                       If set, \'sshpass\' tool is required.")
     parser.add_option("--build", action="store_true", dest="build", default=False,
@@ -582,11 +577,16 @@ def main():
     else:
         config_file = DBCFG_FILE
 
+    if options.pwd:
+        pwd = getpass.getpass('Input remote host SSH Password: ')
+    else:
+        pwd = ''
+
     # not specified config file and default config file doesn't exist either
     p = ParseInI(config_file)
     if options.build or (not os.path.exists(config_file)):
         if options.build: format_output('DryRun Start')
-        user_input(options, prompt_mode=True)
+        user_input(options, prompt_mode=True, pwd=pwd)
 
         # save config file as json format
         print '\n** Generating config file to save configs ... \n'
@@ -597,7 +597,7 @@ def main():
         cfgs = p.load()
         if options.offline and cfgs['offline_mode'] != 'Y':
             log_err('To enable offline mode, must set "offline_mode = Y" in config file')
-        user_input(options, prompt_mode=False)
+        user_input(options, prompt_mode=False, pwd=pwd)
 
     if options.upgrade:
         cfgs['upgrade'] = 'Y'
@@ -611,7 +611,7 @@ def main():
         format_output('Installation Start')
 
         ### perform actual installation ###
-        wrapper.run(cfgs, options)
+        wrapper.run(cfgs, options, pwd=pwd)
 
         format_output('Installation Complete')
 

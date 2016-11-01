@@ -18,12 +18,12 @@
     },
     {
         "script": "traf_dep.py",
-        "desc": "Install trafodion dependencies",
+        "desc": "Install Trafodion dependencies",
         "node": "all"
     },
     {
         "script": "traf_package.py",
-        "desc": "Install trafodion package",
+        "desc": "Install Trafodion package",
         "node": "all",
         "run_as_traf": "yes"
     },
@@ -40,12 +40,6 @@
     {
         "script": "dcs_setup.py",
         "desc": "DCS/REST Setup",
-        "node": "all",
-        "run_as_traf": "yes"
-    },
-    {
-        "script": "dbmgr_setup.py",
-        "desc": "DB manager Setup",
         "node": "all",
         "run_as_traf": "yes"
     },

@@ -23,11 +23,13 @@
 
 import os
 import time
+import getpass
 from prettytable import PrettyTable
 from optparse import OptionParser
 from collections import defaultdict
 from common import *
 import wrapper
+
 
 def get_options():
     usage = 'usage: %prog [options]\n'
@@ -39,7 +41,7 @@ def get_options():
     parser.add_option("-u", "--remote-user", dest="user", metavar="USER",
                 help="Specify ssh login user for remote server, \
                       if not provided, use current login user as default.")
-    parser.add_option("--no-passwd", action="store_true", dest="pwd", default=True,
+    parser.add_option("--enable-pass", action="store_true", dest="pwd", default=True,
                 help="Not Prompt SSH login password for remote hosts.")
 
     (options, args) = parser.parse_args()
@@ -99,6 +101,11 @@ def main():
     else:
         config_file = DBCFG_FILE
 
+    if options.pwd:
+        pwd = getpass.getpass('Input remote host SSH Password: ')
+    else:
+        pwd = ''
+
     if os.path.exists(config_file):
         cfgs = ParseInI(config_file).load()
     else:
@@ -111,7 +118,7 @@ def main():
         cfgs['node_list'] = ','.join(node_lists)
 
 
-    results = wrapper.run(cfgs, options, mode='discover')
+    results = wrapper.run(cfgs, options, mode='discover', pwd=pwd)
 
     format_output('Discover results')
 

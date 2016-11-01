@@ -94,7 +94,7 @@ class Discover(object):
         return '%s-%s' % (os_dist, os_ver)
 
     @deco
-    def get_firewall_stat(self):
+    def get_firewall_status(self):
         """ get firewall running status """
         iptables_stat = cmd_output('iptables -nL|grep -vE "(Chain|target)"').strip()
         if iptables_stat:

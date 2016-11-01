@@ -144,7 +144,7 @@ class Status:
             f.write('%s OK\n' % self.name)
 
 @time_elapse
-def run(dbcfgs, options, mode='install'):
+def run(dbcfgs, options, mode='install', pwd=''):
     """ main entry
         mode: install/discover
     """
@@ -153,7 +153,6 @@ def run(dbcfgs, options, mode='install'):
     logger = get_logger(LOG_FILE)
 
     verbose = True if hasattr(options, 'verbose') and options.verbose else False
-    enable_pwd = True if hasattr(options, 'pwd') and options.pwd else False
     upgrade = True if hasattr(options, 'upgrade') and options.upgrade else False
     user = options.user if hasattr(options, 'user') and options.user else ''
     threshold = options.fork if hasattr(options, 'fork') and options.fork else 10
@@ -225,11 +224,6 @@ def run(dbcfgs, options, mode='install'):
 
     # run sub scripts
     try:
-        if enable_pwd:
-            pwd = getpass.getpass('Input remote host SSH Password: ')
-        else:
-            pwd = ''
-
         remote_instances = []
         if mode == 'discover':
             remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd, quiet=True) for host in hosts]
@@ -267,8 +261,7 @@ def run(dbcfgs, options, mode='install'):
             if script.split('.')[0] in skipped_scripts:
                 continue
             else:
-                #print '\n*** Start running script [%s]:' % script
-                print '\n*** %s:' % desc
+                print '\nTASK: %s %s' % (desc, (83 - len(desc))*'*')
 
             #TODO: timeout exit
             if node == 'local':

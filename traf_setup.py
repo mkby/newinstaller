@@ -79,16 +79,24 @@ def run():
         if v2 == '8': v2 = '7'
     elif distro == 'HDP':
         if v2 == '4': v2 = '3'
-    hbase_trx_jar = '%s/hbase-trx-%s%s_%s-%s.jar' % (TRAF_LIB_PATH, distro.lower(), v1, v2, TRAF_VER)
-    if not os.path.exists(hbase_trx_jar):
-        err('Cannot find hbase trx jar file \'%s\'' % hbase_trx_jar)
 
-    # remove old trx and trafodion-utility jar files
-    run_cmd('rm -rf %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)
+    hbase_trx_jar = 'hbase-trx-%s%s_%s-%s.jar' % (distro.lower(), v1, v2, TRAF_VER)
+    traf_hbase_trx_path = '%s/%s' % (TRAF_LIB_PATH, hbase_trx_jar)
+    hbase_trx_path = '%s/%s' % (hbase_lib_path, hbase_trx_jar)
+    if not os.path.exists(traf_hbase_trx_path):
+        err('Cannot find HBase trx jar \'%s\' for your Hadoop distribution' % hbase_trx_jar)
 
-    # copy new ones
-    run_cmd('cp %s %s' % (hbase_trx_jar, hbase_lib_path))
-    run_cmd('cp %s/trafodion-utility-* %s' % (TRAF_LIB_PATH, hbase_lib_path))
+    # upgrade mode, check if existing trx jar doesn't match the new trx jar file
+    if dbcfgs.has_key('upgrade') and dbcfgs['upgrade'].upper() == 'Y':
+        if not os.path.exists(hbase_trx_path):
+            err('The trx jar \'%s\' doesn\'t exist in hbase lib path, cannot do upgrade, please do regular install' % hbase_trx_jar)
+    else:
+        # remove old trx and trafodion-utility jar files
+        run_cmd('rm -rf %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)
+
+        # copy new ones
+        run_cmd('cp %s %s' % (traf_hbase_trx_path, hbase_lib_path))
+        run_cmd('cp %s/trafodion-utility-* %s' % (TRAF_LIB_PATH, hbase_lib_path))
 
     # set permission
     run_cmd('chmod +r %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)
