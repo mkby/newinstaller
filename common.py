@@ -39,10 +39,8 @@ except ImportError:
 from ConfigParser import ConfigParser
 from collections import defaultdict
 
-__VERSION__ = 'v1.0.0'
 INSTALLER_LOC = sys.path[0]
 
-#CFG_LOC = INSTALLER_LOC + '/configs'
 USER_PROMPT_FILE = INSTALLER_LOC + '/prompt.json'
 SCRCFG_FILE = INSTALLER_LOC + '/script.json'
 VERSION_FILE = INSTALLER_LOC + '/version.json'
@@ -51,7 +49,7 @@ MODCFG_FILE = INSTALLER_LOC + '/mod_cfgs.json'
 DBCFG_FILE = INSTALLER_LOC + '/db_config'
 DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
 
-TMP_DIR = '/tmp/.install'
+TMP_DIR = '/tmp/.trafodion_install_temp'
 MARK = '[ERR]'
 
 def version():
@@ -100,7 +98,7 @@ def run_cmd(cmd):
     return stdout.strip()
 
 def run_cmd_as_user(user, cmd):
-    return run_cmd('sudo su - %s -c \'%s\'' % (user, cmd))
+    return run_cmd('sudo -n su - %s -c \'%s\'' % (user, cmd))
 
 def cmd_output(cmd):
     """ return command output but not check return value """
@@ -428,31 +426,6 @@ def http_start(repo_dir, repo_port):
 def http_stop():
     #info('Stopping temporary python http server')
     os.system("ps -ef|grep SimpleHTTPServer |grep -v grep | awk '{print $2}' |xargs kill -9 >/dev/null 2>&1")
-
-
-def set_ansible_cfgs(host_content):
-    ts = time.strftime('%y%m%d_%H%M')
-    logs_dir = INSTALLER_LOC + '/logs'
-    hosts_file = INSTALLER_LOC + '/hosts'
-    if not os.path.exists(logs_dir): os.mkdir(logs_dir)
-    log_path = '%s/%s_%s.log' %(LOGS_DIR, sys.argv[0].split('/')[-1].split('.')[0], ts)
-
-    ansible_cfg = os.getenv('HOME') + '/.ansible.cfg'
-    content = '[defaults]\n'
-    content += 'log_path = %s\n' % log_path
-    content += 'inventory =' + hosts_file + '\n'
-    content += 'host_key_checking = False\n'
-#    content += 'display_skipped_hosts = False\n'
-    def write_file(filename, content):
-        try:
-            with open(filename, 'w') as f:
-                f.write(content)
-        except IOError:
-            err_m('Failed to open %s file' % filename)
-    write_file(ansible_cfg, content)
-    write_file(hosts_file, host_content)
-
-    return log_path
 
 def format_output(text):
     num = len(text) + 4

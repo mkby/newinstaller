@@ -191,12 +191,10 @@ class HDPMod(object):
 
 def run():
     if 'CDH' in dbcfgs['distro']:
-        #cdh = CDHMod(dbcfgs['mgr_user'], base64.b64decode(dbcfgs['mgr_pwd']), dbcfgs['mgr_url'], dbcfgs['cluster_name'])
         cdh = CDHMod(dbcfgs['mgr_user'], dbcfgs['mgr_pwd'], dbcfgs['mgr_url'], dbcfgs['cluster_name'])
         cdh.mod()
         cdh.restart()
     elif 'HDP' in dbcfgs['distro']:
-        #hdp = HDPMod(dbcfgs['mgr_user'], base64.b64decode(dbcfgs['mgr_pwd']), dbcfgs['mgr_url'], dbcfgs['cluster_name'])
         hdp = HDPMod(dbcfgs['mgr_user'], dbcfgs['mgr_pwd'], dbcfgs['mgr_url'], dbcfgs['cluster_name'])
         hdp.mod()
         hdp.restart()

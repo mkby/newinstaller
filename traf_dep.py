@@ -30,15 +30,6 @@ import json
 import platform
 from common import run_cmd, cmd_output, err
 
-# not used
-EPEL_REPO = """
-[epel]
-name=Extra Packages for Enterprise Linux $releasever - $basearch
-mirrorlist=https://mirrors.fedoraproject.org/metalink?repo=epel-$releasever&arch=$basearch
-enabled=1
-gpgcheck=0
-"""
-
 LOCAL_REPO_PTR = """
 [traflocal]
 baseurl=http://%s:%s/
@@ -70,10 +61,8 @@ def run():
 
             if releasever == '7':
                 pdsh_pkg = 'http://mirrors.neusoft.edu.cn/epel/7/%s/p/pdsh-2.31-1.el7.%s.rpm' % (arch, arch)
-                #pdsh_ssh_pkg = 'http://mirrors.neusoft.edu.cn/epel/7/%s/p/pdsh-rcmd-ssh-2.31-1.el7.%s.rpm' % (arch, arch)
             elif releasever == '6':
                 pdsh_pkg = 'http://mirrors.neusoft.edu.cn/epel/6/%s/pdsh-2.26-4.el6.%s.rpm' % (arch, arch)
-                #pdsh_ssh_pkg = 'http://mirrors.neusoft.edu.cn/epel/6/%s/pdsh-rcmd-ssh-2.26-4.el6.%s.rpm' % (arch, arch)
             else:
                 err('Unsupported Linux version')
 
@@ -85,7 +74,6 @@ def run():
         'apr-util',
         'expect',
         'gzip',
-        'gnuplot',
         'libiodbc-devel',
         'lzo',
         'lzop',
