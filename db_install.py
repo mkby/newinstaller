@@ -495,6 +495,7 @@ def user_input(options, prompt_mode=True, pwd=''):
 
     # DCS HA
     g('dcs_ha')
+    cfgs['enable_ha'] = 'false'
     if cfgs['dcs_ha'].upper() == 'Y':
         g('dcs_floating_ip')
         g('dcs_interface')
@@ -502,6 +503,7 @@ def user_input(options, prompt_mode=True, pwd=''):
         # check dcs backup nodes should exist in node list
         if sorted(list(set((cfgs['dcs_backup_nodes'] + ',' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
             log_err('Invalid DCS backup nodes, please pick up from node list')
+        cfgs['enable_ha'] = 'true'
 
     if need_java_home:
         g('java_home')
