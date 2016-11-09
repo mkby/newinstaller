@@ -108,7 +108,11 @@ class RemoteRun(Remote):
 
         self.__run_ssh(int_cmd)
         if self.rc != 0:
-            msg = 'Host [%s]: Failed to run ssh commands, check SSH password or connectivity' % self.host
+            msg = 'Host [%s]: Failed to connect using ssh. Be sure:\n' % self.host
+            msg += '1. Remote host\'s name and IP is configured correctly in /etc/hosts.\n'
+            msg += '2. Remote host\'s sshd service is running.\n'
+            msg += '3. Passwordless SSH is set if not using \'enable-pwd\' option.\n'
+            msg += '4. \'sshpass\' tool is installed and ssh password is correct if using \'enable-pwd\' option.\n'
             self.logger.error(msg)
             err_m(msg)
 
