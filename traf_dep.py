@@ -87,6 +87,9 @@ def run():
         'unzip'
     ]
 
+    if dbcfgs['ldap_security'].upper() == 'Y':
+        package_list += ['openldap-clients']
+
     all_pkg_list = run_cmd('rpm -qa')
     for pkg in package_list:
         if pkg in all_pkg_list:
