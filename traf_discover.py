@@ -144,14 +144,23 @@ class Discover(object):
         else:
             return OK
 
-    @deco
-    def get_secure_hadoop(self):
+    def _get_core_site_xml(self):
         if self.dbcfgs.has_key('hadoop_home'): # apache distro
             CORE_SITE_XML = '%s/etc/hadoop/core-site.xml' % self.dbcfgs['hadoop_home']
         else:
             CORE_SITE_XML = '/etc/hadoop/conf/core-site.xml'
         p = ParseXML(CORE_SITE_XML)
+        return p
+
+    @deco
+    def get_hadoop_authentication(self):
+        p = self._get_core_site_xml()
         return p.get_property('hadoop.security.authentication')
+
+    @deco
+    def get_hadoop_authorization(self):
+        p = self._get_core_site_xml()
+        return p.get_property('hadoop.security.authorization')
 
     @deco
     def get_hbase(self):
