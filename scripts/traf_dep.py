@@ -48,7 +48,7 @@ def run():
         print 'Installing pdsh in offline mode ...'
 
         # setup temp local repo
-        repo_content = LOCAL_REPO_PTR % (dbcfgs['repo_ip'], dbcfgs['repo_port'])
+        repo_content = LOCAL_REPO_PTR % (dbcfgs['repo_ip'], dbcfgs['repo_http_port'])
         with open(REPO_FILE, 'w') as f:
             f.write(repo_content)
 

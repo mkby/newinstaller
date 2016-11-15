@@ -39,6 +39,13 @@ def run(pwd):
     # save db configs to a tmp file and copy to all trafodion nodes
     dbcfgs_file = '/tmp/dbcfgs'
     p = ParseJson(dbcfgs_file)
+    # remove password from config file
+    try:
+        dbcfgs.pop('mgr_pwd')
+        dbcfgs.pop('traf_pwd')
+        dbcfgs.pop('kdcadmin_pwd')
+    except KeyError:
+        pass
     p.save(dbcfgs)
 
     key_file = '/tmp/id_rsa'

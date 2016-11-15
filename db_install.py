@@ -435,7 +435,8 @@ def user_input(options, prompt_mode=True, pwd=''):
             log_err('repodata directory not found, this is not a valid repository directory')
         cfgs['offline_mode'] = 'Y'
         cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
-        cfgs['repo_port'] = '9900'
+        ports = ParseInI(DEF_PORT_FILE).load()
+        cfgs['repo_http_port'] = ports['repo_http_port']
 
     pkg_list = ['apache-trafodion', 'esgynDB']
     # find tar in installer folder, if more than one found, use the first one
@@ -607,7 +608,7 @@ def main():
         cfgs['upgrade'] = 'Y'
 
     if options.offline:
-        http_start(cfgs['local_repo_dir'], cfgs['repo_port'])
+        http_start(cfgs['local_repo_dir'], cfgs['repo_http_port'])
     else:
         cfgs['offline_mode'] = 'N'
 
