@@ -27,8 +27,9 @@ import json
 import subprocess
 from glob import glob
 from threading import Thread
-from common import err_m, run_cmd, time_elapse, get_logger, ParseJson, Remote, INSTALLER_LOC, TMP_DIR, SCRCFG_FILE
-
+from common import err_m, run_cmd, time_elapse, get_logger, Remote, \
+                   ParseJson, INSTALLER_LOC, TMP_DIR, SCRCFG_FILE, \
+                   CONFIG_DIR, SCRIPTS_DIR, TEMPLATES_DIR
 
 class RemoteRun(Remote):
     """ run commands or scripts remotely using ssh """
@@ -42,14 +43,12 @@ class RemoteRun(Remote):
         self.__run_sshcmd('mkdir -p %s' % TMP_DIR)
 
         # copy all needed files to remote host
-        all_files = glob(INSTALLER_LOC + '/*.py') + \
-                    glob(INSTALLER_LOC + '/*.json') + \
-                    glob(INSTALLER_LOC + '/*.template')
+        all_files = [CONFIG_DIR, SCRIPTS_DIR, TEMPLATES_DIR]
 
         self.copy(all_files, remote_folder=TMP_DIR)
 
         # set permission
-        self.__run_sshcmd('chmod a+rx %s/*.py' % TMP_DIR)
+        self.__run_sshcmd('chmod a+rx %s/scripts/*.py' % TMP_DIR)
 
     def __del__(self):
         # clean up
@@ -62,10 +61,10 @@ class RemoteRun(Remote):
             # format string in order to run with 'sudo -n su $user -c $cmd'
             json_string = json_string.replace('"', '\\\\\\"').replace(' ', '').replace('{', '\\{').replace('$', '\\\\\\$')
             # this command only works with shell=True
-            script_cmd = '"sudo -n su - %s -c \'%s/%s %s\'"' % (run_user, TMP_DIR, script, json_string)
+            script_cmd = '"sudo -n su - %s -c \'%s/scripts/%s %s\'"' % (run_user, TMP_DIR, script, json_string)
             self.__run_ssh(script_cmd, verbose=verbose, shell=True)
         else:
-            script_cmd = 'sudo -n %s/%s \'%s\'' % (TMP_DIR, script, json_string)
+            script_cmd = 'sudo -n %s/scripts/%s \'%s\'' % (TMP_DIR, script, json_string)
             self.__run_ssh(script_cmd, verbose=verbose)
 
         format1 = 'Host [%s]: Script [%s]: %s' % (self.host, script, self.stdout)
@@ -105,7 +104,6 @@ class RemoteRun(Remote):
 
     def __run_sshcmd(self, int_cmd):
         """ run internal used ssh command """
-
         self.__run_ssh(int_cmd)
         if self.rc != 0:
             msg = 'Host [%s]: Failed to connect using ssh. Be sure:\n' % self.host
@@ -195,7 +193,7 @@ def run(dbcfgs, options, mode='install', pwd=''):
     run_cmd('chmod 600 %s' % SSH_CFG_FILE)
 
     def run_local_script(script, json_string, req_pwd):
-        cmd = '%s/%s \'%s\'' % (INSTALLER_LOC, script, json_string)
+        cmd = '%s/%s \'%s\'' % (SCRIPTS_DIR, script, json_string)
 
         # pass the ssh password to sub scripts which need SSH password
         if req_pwd: cmd += ' ' + pwd

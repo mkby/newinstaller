@@ -34,13 +34,13 @@ sys.setdefaultencoding("utf-8")
 from optparse import OptionParser
 from glob import glob
 from collections import defaultdict
-import wrapper
 try:
     from prettytable import PrettyTable
 except ImportError:
     print 'Python module prettytable is not found. Install python-prettytable first.'
     exit(1)
-from common import *
+from scripts import wrapper
+from scripts.common import *
 
 # init global cfgs for user input
 cfgs = defaultdict(str)
@@ -306,7 +306,7 @@ class UserInput(object):
 
 def log_err(errtext):
     # save tmp config files
-    tp = ParseInI(DBCFG_TMP_FILE)
+    tp = ParseInI(DBCFG_TMP_FILE, 'dbconfigs')
     tp.save(cfgs)
     err_m(errtext)
 
@@ -321,7 +321,7 @@ def user_input(options, prompt_mode=True, pwd=''):
 
     # load from temp config file if in prompt mode
     if os.path.exists(DBCFG_TMP_FILE) and prompt_mode == True:
-        tp = ParseInI(DBCFG_TMP_FILE)
+        tp = ParseInI(DBCFG_TMP_FILE, 'dbconfigs')
         cfgs = tp.load()
 
     u = UserInput(options, pwd)
@@ -587,7 +587,7 @@ def main():
         pwd = ''
 
     # not specified config file and default config file doesn't exist either
-    p = ParseInI(config_file)
+    p = ParseInI(config_file, 'dbconfigs')
     if options.build or (not os.path.exists(config_file)):
         if options.build: format_output('DryRun Start')
         user_input(options, prompt_mode=True, pwd=pwd)
@@ -641,7 +641,7 @@ if __name__ == "__main__":
     try:
         main()
     except (KeyboardInterrupt, EOFError):
-        tp = ParseInI(DBCFG_TMP_FILE)
+        tp = ParseInI(DBCFG_TMP_FILE, 'dbconfigs')
         tp.save(cfgs)
         http_stop()
         print '\nAborted...'

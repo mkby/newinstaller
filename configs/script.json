@@ -44,6 +44,12 @@
         "run_as_traf": "yes"
     },
     {
+        "script": "dbmgr_setup.py",
+        "desc": "DB Manager Setup",
+        "node": "all",
+        "run_as_traf": "yes"
+    },
+    {
         "script": "traf_ldap.py",
         "desc": "LDAP Security Setup",
         "node": "all",

@@ -39,12 +39,17 @@ except ImportError:
 from ConfigParser import ConfigParser
 from collections import defaultdict
 
-INSTALLER_LOC = sys.path[0]
+INSTALLER_LOC = os.path.dirname(os.path.abspath(__file__)) + '/..'
 
-USER_PROMPT_FILE = INSTALLER_LOC + '/prompt.json'
-SCRCFG_FILE = INSTALLER_LOC + '/script.json'
-VERSION_FILE = INSTALLER_LOC + '/version.json'
-MODCFG_FILE = INSTALLER_LOC + '/mod_cfgs.json'
+CONFIG_DIR = INSTALLER_LOC + '/configs'
+SCRIPTS_DIR = INSTALLER_LOC + '/scripts'
+TEMPLATES_DIR = INSTALLER_LOC + '/templates'
+
+USER_PROMPT_FILE = CONFIG_DIR + '/prompt.json'
+SCRCFG_FILE = CONFIG_DIR + '/script.json'
+VERSION_FILE = CONFIG_DIR + '/version.json'
+MODCFG_FILE = CONFIG_DIR + '/mod_cfgs.json'
+DEF_PORT_FILE = CONFIG_DIR + '/default_ports.ini'
 
 DBCFG_FILE = INSTALLER_LOC + '/db_config'
 DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
@@ -238,7 +243,7 @@ class Remote(object):
             cmd += ['%s:%s/' % (self.host, remote_folder)]
 
         self._execute(cmd)
-        if self.rc != 0: err('Failed to copy files to remote nodes')
+        if self.rc != 0: err_m('Failed to copy files to remote nodes')
 
     def fetch(self, files, local_folder='.'):
         """ fetch file from user's home folder """
@@ -388,9 +393,9 @@ class ParseJson(object):
 
 
 class ParseInI(object):
-    def __init__(self, ini_file):
+    def __init__(self, ini_file, section):
         self.__ini_file = ini_file
-        self.section = 'def'
+        self.section = section
 
     def load(self):
         """ load content from ini file and return a dict """
@@ -402,7 +407,7 @@ class ParseInI(object):
         cf.read(self.__ini_file)
 
         if not cf.has_section(self.section):
-            err_m('Cannot find the default section [%s]' % self.section)
+            err_m('Cannot find section [%s]' % self.section)
 
         for cfg in cf.items(self.section):
             cfgs[cfg[0]] = cfg[1]

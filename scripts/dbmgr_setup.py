@@ -27,7 +27,8 @@ import os
 import sys
 import json
 import socket
-from common import err, run_cmd, cmd_output, append_file, mod_file, ParseXML
+from common import err, run_cmd, cmd_output, append_file, mod_file, \
+                   ParseXML, ParseInI, DEF_PORT_FILE
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -42,7 +43,6 @@ def run():
     DBMGR_INSTALL_DIR = '%s/dbmgr-%s' % (SQ_ROOT, TRAF_VER)
 
     MGBLTY_TOOLS_DIR = '%s/opentsdb/tools' % MGBLTY_INSTALL_DIR
-    #LOGBACK_XML = '%s/opentsdb/etc/opentsdb/logback.xml' % MGBLTY_INSTALL_DIR
     BOSUN_CONFIG = '%s/bosun/conf/bosun.conf' % MGBLTY_INSTALL_DIR
     OPENTSDB_CONFIG = '%s/opentsdb/etc/opentsdb/opentsdb.conf' % MGBLTY_INSTALL_DIR
     HBASE_COLLECTOR = '%s/tcollector/collectors/0/hbase_master.py' % MGBLTY_INSTALL_DIR
@@ -56,13 +56,14 @@ def run():
         db_admin_user = 'admin'
         db_admin_pwd = 'admin'
 
-    rest_port = '4200'
-    dm_http_port = '4205'
-    dm_https_port = '4206'
-    tsd_port = '5242'
-    http_port = '8070'
-    dcs_port = '23400'
-    dcs_info_port = '24400'
+    ports = ParseInI(DEF_PORT_FILE, 'ports').load()
+    rest_port = ports['rest_port']
+    dm_http_port = ports['dm_http_port']
+    dm_https_port = ports['dm_https_port']
+    tsd_port = ports['tsd_port']
+    http_port = ports['http_port']
+    dcs_master_port = ports['dcs_master_port']
+    dcs_info_port = ports['dcs_info_port']
 
     nodes = dbcfgs['node_list'].split(',')
     dcs_master_host = nodes[0]
@@ -128,7 +129,7 @@ def run():
              dm_http_port,
              dm_https_port,
              dcs_master_host,
-             dcs_port,
+             dcs_master_port,
              dcs_info_port,
              local_host,
              rest_port,
