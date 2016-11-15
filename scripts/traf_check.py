@@ -27,7 +27,6 @@ import re
 import json
 import sys
 import os
-import platform
 from common import run_cmd, cmd_output, err, Version
 
 class Check(object):
@@ -36,16 +35,6 @@ class Check(object):
     def __init__(self, dbcfgs_json):
         self.dbcfgs = json.loads(dbcfgs_json)
         self.version = Version()
-
-    def check_linux(self):
-        """ check Linux version """
-        os_dist, os_ver = platform.dist()[:2]
-
-        if os_dist not in self.version.get_version('linux'):
-            err('Linux distribution %s doesn\'t support' % os_dist)
-        else:
-            if not os_ver.split('.')[0] in self.version.get_version(os_dist):
-                err('%s version %s doesn\'t support' % (os_dist, os_ver))
 
     def check_sudo(self):
         """ check sudo access """
@@ -57,50 +46,31 @@ class Check(object):
         if not os.path.exists(hbase_xml_file):
             err('HBase xml file is not found')
 
-    #TODO: check for sub release version
     def check_java(self):
         """ check JDK version """
         jdk_path = self.dbcfgs['java_home']
         jdk_ver = cmd_output('%s/bin/javac -version' % jdk_path)
         try:
-            jdk_ver = re.search('javac (\d\.\d)', jdk_ver).groups()[0]
+            jdk_ver, sub_ver = re.search(r'javac (\d\.\d).\d_(\d+)', jdk_ver).groups()
         except AttributeError:
             err('No JDK found')
 
         if self.dbcfgs['req_java8'] == 'Y': # only allow JDK1.8
-            support_java = ['1.8']
+            support_java = '1.8'
         else:
             support_java = self.version.get_version('java')
 
+        if jdk_ver == '1.7' and int(sub_ver) < 65:
+            err('Unsupported JDK1.7 version, sub version should be higher than 65')
         if jdk_ver not in support_java:
-            err('Unsupported JDK version %s' % jdk_ver)
+            err('Unsupported JDK version %s, supported version: %s' % (jdk_ver, support_java))
 
-
-    def check_scratch_loc(self):
-        """ check if scratch file folder exists """
-        scratch_locs = self.dbcfgs['scratch_locs'].split(',')
-        for loc in scratch_locs:
-            if not os.path.exists(loc):
-                err('Scratch file location \'%s\' doesn\'t exist' % loc)
-
-    #def check_traf_proc(self):
-    #    """ check if previous installed trafodion processes exist """
-    #    mon_process = cmd_output('ps -ef|grep -v grep|grep -c "monitor COLD"')
-    #    if int(mon_process) > 0:
-    #        err('Trafodion process is found, please stop it first')
-
-    def check_hbase_ver(self):
-        """ check Apache HBase version if Apache Hadoop """
-        if self.dbcfgs.has_key('hbase_home'): # apache distro
-            hbase_home = self.dbcfgs['hbase_home']
-            support_hbase_ver = self.version.get_version('hbase')
-            hbase_ver = cmd_output('%s/bin/hbase version | head -n1' % hbase_home)
-            hbase_ver = re.search('HBase (\d\.\d)', hbase_ver).groups()[0]
-            if hbase_ver not in support_hbase_ver:
-                err('Unsupported HBase version %s' % hbase_ver)
-        else:
-            pass
-
+    #def check_scratch_loc(self):
+    #    """ check if scratch file folder exists """
+    #    scratch_locs = self.dbcfgs['scratch_locs'].split(',')
+    #    for loc in scratch_locs:
+    #        if not os.path.exists(loc):
+    #            err('Scratch file location \'%s\' doesn\'t exist' % loc)
 
 def run():
     PREFIX = 'check_'

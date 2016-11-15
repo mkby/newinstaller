@@ -26,7 +26,7 @@
 import os
 import sys
 import json
-from common import run_cmd, cmd_output, mod_file, err, TMP_DIR
+from common import run_cmd, mod_file, err, TMP_DIR
 
 def run():
     """ setup LDAP security """
@@ -36,17 +36,17 @@ def run():
     SQ_ROOT = os.environ['MY_SQROOT']
     SQENV_FILE = SQ_ROOT + '/sqenvcom.sh'
     TRAF_AUTH_CONFIG = '%s/sql/scripts/.traf_authentication_config' % SQ_ROOT
-    TRAF_AUTH_TEMPLATE = '%s/traf_authentication_conf.template' % TMP_DIR
+    TRAF_AUTH_TEMPLATE = '%s/templates/traf_authentication_conf.template' % TMP_DIR
 
     # set traf_authentication_config file
     change_items = {
-    '{{ ldap_hosts }}': dbcfgs['ldap_hosts'],
-    '{{ ldap_port }}': dbcfgs['ldap_port'],
-    '{{ ldap_identifiers }}': dbcfgs['ldap_identifiers'],
-    '{{ ldap_encrypt }}': dbcfgs['ldap_encrypt'],
-    '{{ ldap_certpath }}': dbcfgs['ldap_certpath'],
-    '{{ ldap_user }}': dbcfgs['ldap_user'],
-    '{{ ldap_pwd }}': dbcfgs['ldap_pwd']
+        '{{ ldap_hosts }}': dbcfgs['ldap_hosts'],
+        '{{ ldap_port }}': dbcfgs['ldap_port'],
+        '{{ ldap_identifiers }}': dbcfgs['ldap_identifiers'],
+        '{{ ldap_encrypt }}': dbcfgs['ldap_encrypt'],
+        '{{ ldap_certpath }}': dbcfgs['ldap_certpath'],
+        '{{ ldap_user }}': dbcfgs['ldap_user'],
+        '{{ ldap_pwd }}': dbcfgs['ldap_pwd']
     }
 
     print 'Modify authentication config file'

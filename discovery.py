@@ -23,24 +23,32 @@
 
 import os
 import time
-from prettytable import PrettyTable
+import json
+import getpass
 from optparse import OptionParser
 from collections import defaultdict
-from common import *
-from py_wrapper import run
+try:
+    from prettytable import PrettyTable
+except ImportError:
+    print 'Python module prettytable is not found. Install python-prettytable first.'
+    exit(1)
+from scripts.common import err_m, err, ParseInI, expNumRe, format_output, DBCFG_FILE
+import scripts.wrapper as wrapper
+
 
 def get_options():
     usage = 'usage: %prog [options]\n'
     usage += '  Trafodion install main script.'
     parser = OptionParser(usage=usage)
     parser.add_option("-c", "--config-file", dest="cfgfile", metavar="FILE",
-                help="Json format file. If provided, all install prompts \
-                      will be taken from this file and not prompted for.")
+                      help="Json format file. If provided, all install prompts \
+                            will be taken from this file and not prompted for.")
     parser.add_option("-u", "--remote-user", dest="user", metavar="USER",
-                help="Specify ssh login user for remote server, \
-                      if not provided, use current login user as default.")
-    parser.add_option("--no-passwd", action="store_true", dest="pwd", default=True,
-                help="Not Prompt SSH login password for remote hosts.")
+                      help="Specify ssh login user for remote server, \
+                            if not provided, use current login user as default.")
+    parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
+                      help="Prompt SSH login password for remote hosts. \
+                            If set, \'sshpass\' tool is required.")
 
     (options, args) = parser.parse_args()
     return options
@@ -94,10 +102,15 @@ def main():
 
     if options.cfgfile:
         if not os.path.exists(options.cfgfile):
-            log_err('Cannot find config file \'%s\'' % options.cfgfile)
+            err_m('Cannot find config file \'%s\'' % options.cfgfile)
         config_file = options.cfgfile
     else:
         config_file = DBCFG_FILE
+
+    if options.pwd:
+        pwd = getpass.getpass('Input remote host SSH Password: ')
+    else:
+        pwd = ''
 
     if os.path.exists(config_file):
         cfgs = ParseInI(config_file).load()
@@ -111,8 +124,7 @@ def main():
         cfgs['node_list'] = ','.join(node_lists)
 
 
-    results = run(cfgs, options, mode='discover')
-
+    results = wrapper.run(cfgs, options, mode='discover', pwd=pwd)
 
     format_output('Discover results')
 
@@ -129,5 +141,5 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (KeyboardInterrupt,EOFError):
+    except (KeyboardInterrupt, EOFError):
         print '\nAborted...'

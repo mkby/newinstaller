@@ -24,8 +24,10 @@
 ### this script should be run on all nodes with sudo user ###
 
 import os
+import sys
+import re
 import json
-from common import *
+from common import err, cmd_output, run_cmd
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -36,7 +38,6 @@ def run():
 
     TRAF_VER = dbcfgs['traf_version']
     DISTRO = dbcfgs['distro']
-    HBASE_XML_FILE = dbcfgs['hbase_xml_file']
     TRAF_LIB_PATH = SQ_ROOT + '/export/lib'
     SCRATCH_LOCS = dbcfgs['scratch_locs'].split(',')
 
@@ -50,17 +51,19 @@ def run():
     run_cmd('sysctl -w kernel.pid_max=65535 2>&1 > /dev/null')
     run_cmd('echo "kernel.pid_max=65535" >> /etc/sysctl.conf')
 
-    ### set permission for scratch file dir ###
+    ### create and set permission for scratch file dir ###
     for loc in SCRATCH_LOCS:
         # don't set permission for HOME folder
+        if not os.path.exists(loc):
+            run_cmd('mkdir -p %s' % loc)
         if TRAF_HOME not in loc:
             run_cmd('chmod 777 %s' % loc)
 
     ### copy jar files ###
     hbase_lib_path = '/usr/lib/hbase/lib'
-    if 'CDH' in DISTRO: 
+    if 'CDH' in DISTRO:
         parcel_lib = '/opt/cloudera/parcels/CDH/lib/hbase/lib'
-        if os.path.exists(parcel_lib): hbase_lib_path =  parcel_lib
+        if os.path.exists(parcel_lib): hbase_lib_path = parcel_lib
     elif 'HDP' in DISTRO:
         hbase_lib_path = '/usr/hdp/current/hbase-regionserver/lib'
     elif 'APACHE' in DISTRO:
@@ -68,23 +71,33 @@ def run():
         hbase_lib_path = hbase_home + '/lib'
         # for apache distro, get hbase version from cmdline
         hbase_ver = cmd_output('%s/bin/hbase version | head -n1' % hbase_home)
-        hbase_ver = re.search('HBase (\d\.\d)', hbase_ver).groups()[0]
+        hbase_ver = re.search(r'HBase (\d\.\d)', hbase_ver).groups()[0]
         DISTRO += hbase_ver
 
-    distro, v1, v2 = re.search('(\w+)-*(\d)\.(\d)', DISTRO).groups()
+    distro, v1, v2 = re.search(r'(\w+)-*(\d)\.(\d)', DISTRO).groups()
     if distro == 'CDH':
         if v2 == '6': v2 = '5'
         if v2 == '8': v2 = '7'
-    hbase_trx_jar = '%s/hbase-trx-%s%s_%s-%s.jar' % (TRAF_LIB_PATH, distro.lower(), v1, v2, TRAF_VER)
-    if not os.path.exists(hbase_trx_jar):
-        err('Cannot find hbase trx jar file \'%s\'' % hbase_trx_jar)
+    elif distro == 'HDP':
+        if v2 == '4': v2 = '3'
 
-    # remove old trx and trafodion-utility jar files
-    run_cmd('rm -rf %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)
+    hbase_trx_jar = 'hbase-trx-%s%s_%s-%s.jar' % (distro.lower(), v1, v2, TRAF_VER)
+    traf_hbase_trx_path = '%s/%s' % (TRAF_LIB_PATH, hbase_trx_jar)
+    hbase_trx_path = '%s/%s' % (hbase_lib_path, hbase_trx_jar)
+    if not os.path.exists(traf_hbase_trx_path):
+        err('Cannot find HBase trx jar \'%s\' for your Hadoop distribution' % hbase_trx_jar)
 
-    # copy new ones
-    run_cmd('cp %s %s' % (hbase_trx_jar, hbase_lib_path))
-    run_cmd('cp %s/trafodion-utility-* %s' % (TRAF_LIB_PATH, hbase_lib_path))
+    # upgrade mode, check if existing trx jar doesn't match the new trx jar file
+    if dbcfgs.has_key('upgrade') and dbcfgs['upgrade'].upper() == 'Y':
+        if not os.path.exists(hbase_trx_path):
+            err('The trx jar \'%s\' doesn\'t exist in hbase lib path, cannot do upgrade, please do regular install' % hbase_trx_jar)
+    else:
+        # remove old trx and trafodion-utility jar files
+        run_cmd('rm -rf %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)
+
+        # copy new ones
+        run_cmd('cp %s %s' % (traf_hbase_trx_path, hbase_lib_path))
+        run_cmd('cp %s/trafodion-utility-* %s' % (TRAF_LIB_PATH, hbase_lib_path))
 
     # set permission
     run_cmd('chmod +r %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)

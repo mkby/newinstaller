@@ -27,7 +27,8 @@ import os
 import sys
 import json
 import socket
-from common import run_cmd, cmd_output, append_file, mod_file, ParseXML
+from common import err, run_cmd, cmd_output, append_file, mod_file, \
+                   ParseXML, ParseInI, DEF_PORT_FILE
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -42,7 +43,6 @@ def run():
     DBMGR_INSTALL_DIR = '%s/dbmgr-%s' % (SQ_ROOT, TRAF_VER)
 
     MGBLTY_TOOLS_DIR = '%s/opentsdb/tools' % MGBLTY_INSTALL_DIR
-    #LOGBACK_XML = '%s/opentsdb/etc/opentsdb/logback.xml' % MGBLTY_INSTALL_DIR
     BOSUN_CONFIG = '%s/bosun/conf/bosun.conf' % MGBLTY_INSTALL_DIR
     OPENTSDB_CONFIG = '%s/opentsdb/etc/opentsdb/opentsdb.conf' % MGBLTY_INSTALL_DIR
     HBASE_COLLECTOR = '%s/tcollector/collectors/0/hbase_master.py' % MGBLTY_INSTALL_DIR
@@ -56,13 +56,14 @@ def run():
         db_admin_user = 'admin'
         db_admin_pwd = 'admin'
 
-    rest_port = '4200'
-    dm_http_port = '4205'
-    dm_https_port = '4206'
-    tsd_port = '5242'
-    http_port = '8070'
-    dcs_port = '23400'
-    dcs_info_port = '24400'
+    ports = ParseInI(DEF_PORT_FILE, 'ports').load()
+    rest_port = ports['rest_port']
+    dm_http_port = ports['dm_http_port']
+    dm_https_port = ports['dm_https_port']
+    tsd_port = ports['tsd_port']
+    http_port = ports['http_port']
+    dcs_master_port = ports['dcs_master_port']
+    dcs_info_port = ports['dcs_info_port']
 
     nodes = dbcfgs['node_list'].split(',')
     dcs_master_host = nodes[0]
@@ -72,7 +73,6 @@ def run():
     first_node = nodes[0]
     local_host = socket.gethostname()
 
-
     # edit bosun.conf
     mod_file(BOSUN_CONFIG, {'tsdbHost = .*':'tsdbHost = %s:%s' % (dcs_master_host, tsd_port)})
 
@@ -81,7 +81,7 @@ def run():
     zk_hosts = hb.get_property('hbase.zookeeper.quorum')
     timezone = cmd_output('%s/tools/gettimezone.sh' % SQ_ROOT).split('\n')[0]
 
-    mod_file(OPENTSDB_CONFIG, 
+    mod_file(OPENTSDB_CONFIG,
              {'tsd.network.port = .*':'tsd.network.port = %s' % tsd_port,
               'tsd.core.timezone = .*':'tsd.core.timezone = %s' % timezone,
               'tsd.storage.hbase.zk_quorum = .*':'tsd.storage.hbase.zk_quorum = %s' % zk_hosts})
@@ -90,8 +90,8 @@ def run():
     if 'HDP' in DISTRO:
         hm_info_port = hb.get_property('hbase.master.info.port')
         rs_info_port = hb.get_property('hbase.regionserver.info.port')
-        mod_file(OPENTSDB_CONFIG, 
-                {'tsd.storage.hbase.zk_basedir = .*':'tsd.storage.hbase.zk_basedir = /hbase-unsecure'})
+        mod_file(OPENTSDB_CONFIG,
+                 {'tsd.storage.hbase.zk_basedir = .*':'tsd.storage.hbase.zk_basedir = /hbase-unsecure'})
         # edit hbase master collector
         mod_file(HBASE_COLLECTOR, {'60010':hm_info_port})
         # edit hbase regionserver collector
@@ -103,7 +103,7 @@ def run():
     # edit logback xml
     #mod_file(LOGBACK_XML, {'/var/log/opentsdb':'../../log'})
 
-    # set 755 for bosun bin 
+    # set 755 for bosun bin
     run_cmd('chmod 755 %s/bosun/bin/bosun-linux-amd64' % MGBLTY_INSTALL_DIR)
 
     # edit bashrc
@@ -114,7 +114,10 @@ def run():
     # run below commands on first node only
     if first_node in local_host:
         # create opentsdb table in hbase
-        run_cmd('export HBASE_HOME=/usr; export COMPRESSION=GZ; %s/create_table.sh' % MGBLTY_TOOLS_DIR)
+        if dbcfgs.has_key('hbase_home'):
+            run_cmd('export HBASE_HOME=%s; export COMPRESSION=GZ; %s/create_table.sh' % (dbcfgs['hbase_home'], MGBLTY_TOOLS_DIR))
+        else:
+            run_cmd('export HBASE_HOME=/usr; export COMPRESSION=GZ; %s/create_table.sh' % MGBLTY_TOOLS_DIR)
         # register metrics
         run_cmd('export MGBLTY_INSTALL_DIR=%s; %s/register_metrics.sh' % (MGBLTY_INSTALL_DIR, MGBLTY_TOOLS_DIR))
 
@@ -122,22 +125,22 @@ def run():
     run_cmd('%s/bin/configure.py --httpport %s --httpsport %s --dcshost %s --dcsport %s \
     --password dbmgr23400 --dcsinfoport %s --resthost %s --restport %s --tsdhost %s --tsdport %s \
     --bosunhost %s --bosunport %s --timezone %s --adminuser %s --adminpassword %s' %
-    (DBMGR_INSTALL_DIR,
-    dm_http_port,
-    dm_https_port,
-    dcs_master_host,
-    dcs_port,
-    dcs_info_port,
-    local_host,
-    rest_port,
-    dcs_master_host,
-    tsd_port,
-    dcs_master_host,
-    http_port,
-    timezone,
-    db_admin_user,
-    db_admin_pwd)
-    )
+            (DBMGR_INSTALL_DIR,
+             dm_http_port,
+             dm_https_port,
+             dcs_master_host,
+             dcs_master_port,
+             dcs_info_port,
+             local_host,
+             rest_port,
+             dcs_master_host,
+             tsd_port,
+             dcs_master_host,
+             http_port,
+             timezone,
+             db_admin_user,
+             db_admin_pwd)
+           )
 
 # main
 try:

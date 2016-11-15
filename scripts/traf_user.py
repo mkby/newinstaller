@@ -23,16 +23,24 @@
 
 ### this script should be run on all nodes with sudo user ###
 
-import base64
+import os
+import sys
 import json
-from common import *
+from common import run_cmd, append_file, mod_file, cmd_output, run_cmd_as_user, err, TMP_DIR
 
 def run():
     """ create trafodion user, bashrc, setup passwordless SSH """
     dbcfgs = json.loads(dbcfgs_json)
 
+    DISTRO = dbcfgs['distro']
+    if 'CDH' in DISTRO:
+        hadoop_type = 'cloudera'
+    elif 'HDP' in DISTRO:
+        hadoop_type = 'hortonworks'
+    elif 'APACHE' in DISTRO:
+        hadoop_type = 'apache'
+
     TRAF_USER = dbcfgs['traf_user']
-    #TRAF_PWD = base64.b64decode(dbcfgs['traf_pwd'])
     TRAF_PWD = dbcfgs['traf_pwd']
     TRAF_GROUP = TRAF_USER
     TRAF_HOME = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
@@ -42,7 +50,7 @@ def run():
     KEY_FILE = '/tmp/id_rsa'
     AUTH_KEY_FILE = '%s/.ssh/authorized_keys' % TRAF_USER_DIR
     SSH_CFG_FILE = '%s/.ssh/config' % TRAF_USER_DIR
-    BASHRC_TEMPLATE = '%s/bashrc.template' % TMP_DIR
+    BASHRC_TEMPLATE = '%s/templates/bashrc.template' % TMP_DIR
     BASHRC_FILE = '%s/.bashrc' % TRAF_USER_DIR
     ULIMITS_FILE = '/etc/security/limits.d/%s.conf' % TRAF_USER
     HSPERFDATA_FILE = '/tmp/hsperfdata_trafodion'
@@ -75,14 +83,25 @@ def run():
     # set bashrc
     nodes = dbcfgs['node_list'].split(',')
     change_items = {
-    '{{ sq_home }}': SQ_ROOT,
-    '{{ node_list }}': ' '.join(nodes),
-    '{{ node_count }}':str(len(nodes)),
-    '{{ my_nodes }}': ' -w ' + ' -w '.join(nodes)
+        '{{ java_home }}': dbcfgs['java_home'],
+        '{{ sq_home }}': SQ_ROOT,
+        '{{ hadoop_type }}': hadoop_type,
+        '{{ node_list }}': ' '.join(nodes),
+        '{{ node_count }}': str(len(nodes)),
+        '{{ enable_ha }}': dbcfgs['enable_ha'],
+        '{{ my_nodes }}': ' -w ' + ' -w '.join(nodes)
     }
 
     mod_file(BASHRC_TEMPLATE, change_items)
-        
+
+    if 'APACHE' in DISTRO:
+        bashrc_content = """
+export HADOOP_PREFIX=%s
+export HBASE_HOME=%s
+export PATH=$PATH:$HADOOP_PREFIX/bin:$HADOOP_PREFIX/sbin:$HBASE_HOME/bin
+        """ % (dbcfgs['hadoop_home'], dbcfgs['hbase_home'])
+        append_file(BASHRC_TEMPLATE, bashrc_content, position='HADOOP_TYPE')
+
     # backup bashrc if exsits
     if os.path.exists(BASHRC_FILE):
         run_cmd('cp %s %s.bak' % ((BASHRC_FILE,) *2))

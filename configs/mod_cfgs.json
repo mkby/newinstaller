@@ -40,19 +40,6 @@
 },
 
 "HDFS_CONFIG": {
-"roleTypeConfigs" :  [ {
-        "roleType" : "NAMENODE",
-        "items": [ {
-                "name" : "namenode_java_heapsize",
-        "value" : "1073741824"
-                } ]
-   }, {
-        "roleType" : "SECONDARYNAMENODE",
-        "items":[ {
-                "name" : "secondary_namenode_java_heapsize",
-        "value" : "1073741824"
-                } ]
-     } ],
     "items": [ {
              "name":"dfs_namenode_acls_enabled",
              "value":"true"

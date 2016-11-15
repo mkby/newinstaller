@@ -22,16 +22,15 @@
 #
 # @@@ END COPYRIGHT @@@
 
-import sys
-reload(sys)
-sys.setdefaultencoding("utf-8")
 import os
 import re
 import socket
 import json
-import base64
 import getpass
 import time
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
 from optparse import OptionParser
 from glob import glob
 from collections import defaultdict
@@ -40,24 +39,64 @@ try:
 except ImportError:
     print 'Python module prettytable is not found. Install python-prettytable first.'
     exit(1)
-from common import *
+from scripts import wrapper
+from scripts.common import *
 
 # init global cfgs for user input
 cfgs = defaultdict(str)
 
-class HadoopDiscover:
-    ''' discover for hadoop related info '''
-    def __init__(self, distro, cluster_name, hdfs_srv_name, hbase_srv_name):
+class HadoopDiscover(object):
+    """ discover for hadoop related info """
+    def __init__(self, user, pwd, url, cluster_name):
         self.rsnodes = []
         self.users = {}
-        self.distro = distro
-        self.hdfs_srv_name = hdfs_srv_name
-        self.hbase_srv_name = hbase_srv_name
-        #self.hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
-        self.hg = ParseHttp(cfgs['mgr_user'], cfgs['mgr_pwd'])
         self.cluster_name = cluster_name
-        self.cluster_url = '%s/api/v1/clusters/%s' % (cfgs['mgr_url'], cluster_name.replace(' ', '%20'))
+        self.hg = ParseHttp(user, pwd)
+        self.v1_url = '%s/api/v1/clusters' % url
+        self.v6_url = '%s/api/v6/clusters' % url
+        self.cluster_url = '%s/%s' % (self.v1_url, cluster_name.replace(' ', '%20'))
+        self._get_distro()
         self._check_version()
+
+    def _get_distro(self):
+        content = self.hg.get(self.v1_url)
+
+        if content['items'][0].has_key('name'):
+            # use v6 rest api for CDH to get fullversion
+            content = self.hg.get(self.v6_url)
+
+        # loop all managed clusters
+        for cluster in content['items']:
+            try:
+                # HDP
+                self.distro = cluster['Clusters']['version']
+            except KeyError:
+                # CDH
+                try:
+                    if self.cluster_name == cluster['displayName']:
+                        self.distro = 'CDH' + cluster['fullVersion']
+                        break
+                except KeyError:
+                    log_err('Failed to get hadoop distribution info from management url')
+
+    def get_hdfs_srvname(self):
+        return self._get_service_name('HDFS')
+
+    def get_hbase_srvname(self):
+        return self._get_service_name('HBASE')
+
+    def get_zookeeper_srvname(self):
+        return self._get_service_name('ZOOKEEPER')
+
+    def _get_service_name(self, service):
+        # CDH uses different service names in multiple clusters
+        if 'CDH' in self.distro:
+            services_cfgs = self.hg.get(self.cluster_url +'/services')
+            for item in services_cfgs['items']:
+                if item['type'] == service:
+                    return item['name']
+        else:
+            return service.lower()
 
     def _check_version(self):
         version = Version()
@@ -81,10 +120,10 @@ class HadoopDiscover:
     def _get_hdp_users(self):
         desired_cfg = self.hg.get('%s/?fields=Clusters/desired_configs' % (self.cluster_url))
         config_type = {'hbase-env':'hbase_user', 'hadoop-env':'hdfs_user'}
-        for k,v in config_type.items():
-            desired_tag = desired_cfg['Clusters']['desired_configs'][k]['tag']
-            current_cfg = self.hg.get('%s/configurations?type=%s&tag=%s' % (self.cluster_url, k, desired_tag))
-            self.users[v] = current_cfg['items'][0]['properties'][v]
+        for key, value in config_type.items():
+            desired_tag = desired_cfg['Clusters']['desired_configs'][key]['tag']
+            current_cfg = self.hg.get('%s/configurations?type=%s&tag=%s' % (self.cluster_url, key, desired_tag))
+            self.users[value] = current_cfg['items'][0]['properties'][value]
 
     def _get_cdh_users(self):
         def _get_username(service_name, hadoop_type):
@@ -95,8 +134,8 @@ class HadoopDiscover:
                         return item['value']
             return hadoop_type
 
-        hdfs_user = _get_username(self.hdfs_srv_name, 'hdfs')
-        hbase_user = _get_username(self.hbase_srv_name, 'hbase')
+        hdfs_user = _get_username(self.get_hdfs_srvname(), 'hdfs')
+        hbase_user = _get_username(self.get_hbase_srvname(), 'hbase')
 
         self.users = {'hbase_user':hbase_user, 'hdfs_user':hdfs_user}
 
@@ -109,7 +148,8 @@ class HadoopDiscover:
         self.rsnodes.sort()
         # use short hostname
         try:
-            self.rsnodes = [re.match(r'([\w\-]+).*',n).group(1) for n in self.rsnodes]
+            self.rsnodes = [re.match(r'([\w\-]+).*', node).group(1) for node in self.rsnodes]
+
         except AttributeError:
             pass
         return self.rsnodes
@@ -131,18 +171,20 @@ class HadoopDiscover:
 
     def _get_rsnodes_hdp(self):
         """ get list of HBase RegionServer nodes in HDP """
-        hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url )
-        self.rsnodes = [ c['HostRoles']['host_name'] for c in hdp['host_components'] ]
+        hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url)
+        self.rsnodes = [c['HostRoles']['host_name'] for c in hdp['host_components']]
 
 
-class UserInput:
-    def __init__(self):
+class UserInput(object):
+    def __init__(self, options, pwd):
         self.in_data = ParseJson(USER_PROMPT_FILE).load()
+        self.pwd = pwd
 
     def _basic_check(self, name, answer):
         isYN = self.in_data[name].has_key('isYN')
         isdigit = self.in_data[name].has_key('isdigit')
         isexist = self.in_data[name].has_key('isexist')
+        isremote_exist = self.in_data[name].has_key('isremote_exist')
         isIP = self.in_data[name].has_key('isIP')
         isuser = self.in_data[name].has_key('isuser')
 
@@ -159,6 +201,18 @@ class UserInput:
             elif isexist:
                 if not os.path.exists(answer):
                     log_err('%s path \'%s\' doesn\'t exist' % (name, answer))
+            elif isremote_exist:
+                hosts = cfgs['node_list'].split(',')
+                remotes = [Remote(host, pwd=self.pwd) for host in hosts]
+
+                nodes = ''
+                for remote in remotes:
+                    # check if directory exists on remote host
+                    remote.execute('ls %s 2>&1 >/dev/null' % answer)
+                    if remote.rc != 0:
+                        nodes += ' ' + remote.host
+                if nodes:
+                    log_err('%s path \'%s\' doesn\'t exist on node(s) \'%s\'' % (name, answer, nodes))
             elif isIP:
                 try:
                     socket.inet_pton(socket.AF_INET, answer)
@@ -239,9 +293,9 @@ class UserInput:
         for item in title:
             pt.align[item] = 'l'
 
-        for key,value in sorted(cfgs.items()):
+        for key, value in sorted(cfgs.items()):
             if self.in_data.has_key(key) and value:
-        #        if self.in_data[k].has_key('ispasswd'): continue
+                if self.in_data[key].has_key('ispasswd'): continue
                 pt.add_row([key, value])
         print pt
         confirm = self.get_confirm()
@@ -252,89 +306,36 @@ class UserInput:
 
 def log_err(errtext):
     # save tmp config files
-    tp = ParseInI(DBCFG_TMP_FILE)
+    tp = ParseInI(DBCFG_TMP_FILE, 'dbconfigs')
     tp.save(cfgs)
-
     err_m(errtext)
 
 
-def get_cluster_cfgs(cfgs):
-    if cfgs['distro'] == 'APACHE': return
-    #hg = ParseHttp(cfgs['mgr_user'], base64.b64decode(cfgs['mgr_pwd']))
-    hg = ParseHttp(cfgs['mgr_user'], cfgs['mgr_pwd'])
-    validate_url_v1 = '%s/api/v1/clusters' % cfgs['mgr_url']
-    validate_url_v6 = '%s/api/v6/clusters' % cfgs['mgr_url']
-    content = hg.get(validate_url_v1)
-
-    if content['items'][0].has_key('name'):
-        # use v6 rest api for CDH to get fullversion
-        content = hg.get(validate_url_v6)
-
-    cluster_cfgs = []
-    # loop all managed clusters
-    for clusters in content['items']:
-        try:
-            # HDP
-            distro = clusters['Clusters']['version']
-            cluster_name = clusters['Clusters']['cluster_name']
-        except KeyError:
-            # CDH
-            try:
-                distro = 'CDH' + clusters['fullVersion']
-                cluster_name = clusters['displayName']
-            except KeyError:
-                distro = cluster_name = ''
-
-        cluster_cfgs.append([distro, cluster_name])
-
-    return cluster_cfgs
-
-
-def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
+def user_input(options, prompt_mode=True, pwd=''):
     """ get user's input and check input value """
     global cfgs
+
+    apache = True if hasattr(options, 'apache') and options.apache else False
+    offline = True if hasattr(options, 'offline') and options.offline else False
+    silent = True if hasattr(options, 'silent') and options.silent else False
+
     # load from temp config file if in prompt mode
     if os.path.exists(DBCFG_TMP_FILE) and prompt_mode == True:
-        tp = ParseInI(DBCFG_TMP_FILE)
+        tp = ParseInI(DBCFG_TMP_FILE, 'dbconfigs')
         cfgs = tp.load()
 
-    u = UserInput()
+    u = UserInput(options, pwd)
     g = lambda n: u.get_input(n, cfgs[n], prompt_mode=prompt_mode)
 
-    g('java_home')
+    ### begin user input ###
+    if apache:
+        g('node_list')
+        node_lists = expNumRe(cfgs['node_list'])
 
-    if offline:
-        g('local_repo_dir')
-        if not glob('%s/repodata' % cfgs['local_repo_dir']):
-            log_err('repodata directory not found, this is not a valid repository directory')
-        cfgs['offline_mode'] = 'Y'
-        cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
-        cfgs['repo_port'] = '9900'
-
-    pkg_list = ['trafodion', 'esgynDB']
-    # find tar in installer folder, if more than one found, use the first one
-    for pkg in pkg_list:
-        tar_loc = glob('%s/%s*.tar.gz' % (INSTALLER_LOC, pkg))
-        if tar_loc:
-            cfgs['traf_package'] = tar_loc[0]
-            break
-
-    g('traf_package')
-
-    # get basename and version from tar filename
-    try:
-        pattern = '|'.join(pkg_list)
-        cfgs['traf_basename'], cfgs['traf_version'] = re.search(r'(.*%s.*)-(\d\.\d\.\d).*' % pattern, cfgs['traf_package']).groups()
-    except:
-        log_err('Invalid package tar file')
-
-    if float(cfgs['traf_version'][:3]) >= 2.2:
-        cfgs['req_java8'] = 'Y'
-    else:
-        cfgs['req_java8'] = 'N'
-
-
-    if apache_hadoop:
+        # check if node list is expanded successfully
+        if len([1 for node in node_lists if '[' in node]):
+            log_err('Failed to expand node list, please check your input.')
+        cfgs['node_list'] = ','.join(node_lists)
         g('hadoop_home')
         g('hbase_home')
         g('hive_home')
@@ -347,74 +348,127 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
         if not ('http:' in cfgs['mgr_url'] or 'https:' in cfgs['mgr_url']):
             cfgs['mgr_url'] = 'http://' + cfgs['mgr_url']
 
+        # set cloudera default port 7180 if not provided by user
+        if not re.search(r':\d+', cfgs['mgr_url']):
+            cfgs['mgr_url'] += ':7180'
+
         g('mgr_user')
         g('mgr_pwd')
 
-        cluster_cfgs = get_cluster_cfgs(cfgs)
-        c_index = 0
-        # support multiple clusters, test on CDH only
-        if len(cluster_cfgs) > 1:
-            for index, config in enumerate(cluster_cfgs):
-                print str(index + 1) + '. ' + config[1]
+        validate_url_v1 = '%s/api/v1/clusters' % cfgs['mgr_url']
+        content = ParseHttp(cfgs['mgr_user'], cfgs['mgr_pwd']).get(validate_url_v1)
+
+        # currently only CDH support multiple clusters
+        # so if condition is true, it must be CDH cluster
+        if len(content['items']) > 1:
+            cluster_names = []
+            # loop all managed clusters
+            for cluster in content['items']:
+                cluster_names.append(cluster['name'])
+
+            for index, name in enumerate(cluster_names):
+                print str(index + 1) + '. ' + name
             g('cluster_no')
             c_index = int(cfgs['cluster_no']) - 1
-            if c_index < 0 or c_index >= len(cluster_cfgs):
+            if c_index < 0 or c_index >= len(cluster_names):
                 log_err('Incorrect number')
-
-        # cdh uses different service names in multiple clusters
-        if c_index == 0:
-            cfgs['hbase_service_name'] = 'hbase'
-            cfgs['hdfs_service_name'] = 'hdfs'
-            cfgs['zookeeper_service_name'] = 'zookeeper'
+            cluster_name = cluster_names[int(c_index)]
         else:
-            cfgs['hbase_service_name'] = 'hbase' + str(c_index+1)
-            cfgs['hdfs_service_name'] = 'hdfs' + str(c_index+1)
-            cfgs['zookeeper_service_name'] = 'zookeeper' + str(c_index+1)
+            try:
+                cluster_name = content['items'][0]['name']
+            except (IndexError, KeyError):
+                cluster_name = content['items'][0]['Clusters']['cluster_name']
 
-        distro, cluster_name = cluster_cfgs[c_index]
-        discover = HadoopDiscover(distro, cluster_name, cfgs['hdfs_service_name'], cfgs['hbase_service_name'])
+        discover = HadoopDiscover(cfgs['mgr_user'], cfgs['mgr_pwd'], cfgs['mgr_url'], cluster_name)
         rsnodes = discover.get_rsnodes()
         hadoop_users = discover.get_hadoop_users()
 
-        cfgs['distro'] = distro
+        cfgs['distro'] = discover.distro
+        cfgs['hbase_service_name'] = discover.get_hbase_srvname()
+        cfgs['hdfs_service_name'] = discover.get_hdfs_srvname()
+        cfgs['zookeeper_service_name'] = discover.get_zookeeper_srvname()
+
         cfgs['cluster_name'] = cluster_name.replace(' ', '%20')
         cfgs['hdfs_user'] = hadoop_users['hdfs_user']
         cfgs['hbase_user'] = hadoop_users['hbase_user']
-        cfgs['first_rsnode'] = rsnodes[0] # first regionserver node
-
-    # manually set node list in apache hadoop
-    if apache_hadoop:
-        cfgs['use_data_node'] = 'N'
-    else:
-        g('use_data_node')
-
-    if cfgs['use_data_node'].upper() == 'N':
-        g('node_list')
-        node_lists = expNumRe(cfgs['node_list'])
-
-        # check if node list is expanded successfully
-        if len([1 for node in node_lists if '[' in node]):
-            log_err('Failed to expand node list, please check your input.')
-
-        # check node list should be part of HBase RS nodes, no check for apache hadoop
-        if not apache_hadoop and set(node_lists).difference(set(rsnodes)):
-            log_err('Incorrect node list, should be part of RegionServer nodes')
-
-        cfgs['node_list'] =  ','.join(node_lists)
-    else:
         cfgs['node_list'] = ','.join(rsnodes)
+        cfgs['first_rsnode'] = rsnodes[0] # first regionserver node
 
     # check node connection
     for node in cfgs['node_list'].split(','):
         rc = os.system('ping -c 1 %s >/dev/null 2>&1' % node)
         if rc: log_err('Cannot ping %s, please check network connection and /etc/hosts' % node)
 
+    ### discover system settings, return a dict
+    discover_results = wrapper.run(cfgs, options, mode='discover', pwd=pwd)
+
+    # check discover results, return error if fails on any sinlge node
+    need_java_home = 0
+    for result in discover_results:
+        host, content = result.items()[0]
+        content_dict = json.loads(content)
+
+        java_home = content_dict['default_java']
+        if java_home == 'N/A':
+            need_java_home += 1
+        if content_dict['linux'] == 'N/A':
+            log_err('Unsupported Linux version')
+        if content_dict['firewall_status'] == 'Running':
+            log_err('Firewall should be stopped')
+        if content_dict['traf_status'] == 'Running':
+            log_err('Trafodion process is found, please stop it first')
+        if content_dict['hbase'] == 'N/A':
+            log_err('HBase is not found')
+        if content_dict['hbase'] == 'N/S':
+            log_err('HBase version is not supported')
+        if content_dict['hadoop_authorization'] == 'true':
+            log_err('HBase authorization is enabled, please disable it before installing trafodion')
+
+        if content_dict['hadoop_authentication'] == 'kerberos':
+            cfgs['secure_hadoop'] = 'Y'
+        else:
+            cfgs['secure_hadoop'] = 'N'
+
+    if offline:
+        g('local_repo_dir')
+        if not glob('%s/repodata' % cfgs['local_repo_dir']):
+            log_err('repodata directory not found, this is not a valid repository directory')
+        cfgs['offline_mode'] = 'Y'
+        cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
+        cfgs['repo_port'] = '9900'
+
+    pkg_list = ['apache-trafodion', 'esgynDB']
+    # find tar in installer folder, if more than one found, use the first one
+    for pkg in pkg_list:
+        tar_loc = glob('%s/*%s*.tar.gz' % (INSTALLER_LOC, pkg))
+        if tar_loc:
+            cfgs['traf_package'] = tar_loc[0]
+            break
+
+    g('traf_package')
+
+    # get basename and version from tar filename
+    try:
+        pattern = '|'.join(pkg_list)
+        cfgs['traf_basename'], cfgs['traf_version'] = re.search(r'.*(%s).*-(\d\.\d\.\d).*' % pattern, cfgs['traf_package']).groups()
+    except:
+        log_err('Invalid package tar file')
+
+    if cfgs['traf_basename'] == 'esgynDB' and float(cfgs['traf_version'][:3]) >= 2.2:
+        cfgs['req_java8'] = 'Y'
+    else:
+        cfgs['req_java8'] = 'N'
+
     g('traf_pwd')
     g('dcs_cnt_per_node')
     g('scratch_locs')
     g('traf_start')
 
-    # TODO add kerberos
+    # kerberos
+    if cfgs['secure_hadoop'].upper() == 'Y':
+        g('kdc_server')
+        g('admin_principal')
+        g('kdcadmin_pwd')
 
     # ldap security
     g('ldap_security')
@@ -443,6 +497,7 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
 
     # DCS HA
     g('dcs_ha')
+    cfgs['enable_ha'] = 'false'
     if cfgs['dcs_ha'].upper() == 'Y':
         g('dcs_floating_ip')
         g('dcs_interface')
@@ -450,9 +505,17 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
         # check dcs backup nodes should exist in node list
         if sorted(list(set((cfgs['dcs_backup_nodes'] + ',' + cfgs['node_list']).split(',')))) != sorted(cfgs['node_list'].split(',')):
             log_err('Invalid DCS backup nodes, please pick up from node list')
+        cfgs['enable_ha'] = 'true'
+
+    if need_java_home:
+        g('java_home')
+    else:
+        # don't overwrite user input java home
+        if not cfgs['java_home']:
+            cfgs['java_home'] = java_home
 
     # set other config to cfgs
-    if apache_hadoop:
+    if apache:
         cfgs['hbase_xml_file'] = cfgs['hbase_home'] + '/conf/hbase-site.xml'
         cfgs['hdfs_xml_file'] = cfgs['hadoop_home'] + '/etc/hadoop/hdfs-site.xml'
     else:
@@ -461,40 +524,36 @@ def user_input(apache_hadoop=False, offline=False, prompt_mode=True):
     cfgs['traf_user'] = 'trafodion'
     cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
 
-    u.notify_user()
-
+    if not silent:
+        u.notify_user()
 
 def get_options():
     usage = 'usage: %prog [options]\n'
     usage += '  Trafodion install main script.'
     parser = OptionParser(usage=usage)
     parser.add_option("-c", "--config-file", dest="cfgfile", metavar="FILE",
-                help="Json format file. If provided, all install prompts \
-                      will be taken from this file and not prompted for.")
+                      help="Json format file. If provided, all install prompts \
+                            will be taken from this file and not prompted for.")
     parser.add_option("-u", "--remote-user", dest="user", metavar="USER",
-                help="Specify ssh login user for remote server, \
-                      if not provided, use current login user as default.")
-    parser.add_option("--ansible", action="store_true", dest="ansible", default=False,
-                help="Call ansible to install.")
-    parser.add_option("-b", "--become-method", dest="method", metavar="METHOD",
-                help="Specify become root method for ansible [ sudo | su | pbrun | pfexec | runas | doas ].")
-    parser.add_option("-f", "--fork", dest="fork", metavar="FORK",
-                help="Specify number of parallel processes to run sub scripts (default=10)" )
-    parser.add_option("--no-passwd", action="store_true", dest="pwd", default=True,
-                help="Not Prompt SSH login password for remote hosts. \
-                      If set, passwordless ssh is required.")
+                      help="Specify ssh login user for remote server, \
+                            if not provided, use current login user as default.")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
-                help="Verbose mode, will print commands.")
+                      help="Verbose mode, will print commands.")
+    parser.add_option("--silent", action="store_true", dest="silent", default=False,
+                      help="Do not ask user to confirm configuration result")
+    parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
+                      help="Prompt SSH login password for remote hosts. \
+                            If set, \'sshpass\' tool is required.")
     parser.add_option("--build", action="store_true", dest="build", default=False,
-                help="Build the config file in guided mode only.")
+                      help="Build the config file in guided mode only.")
     parser.add_option("--upgrade", action="store_true", dest="upgrade", default=False,
-                help="Upgrade install, it is useful when reinstalling Trafodion.")
+                      help="Upgrade install, it is useful when reinstalling Trafodion.")
     parser.add_option("--apache-hadoop", action="store_true", dest="apache", default=False,
-                help="Install Trafodion on top of Apache Hadoop.")
+                      help="Install Trafodion on top of Apache Hadoop.")
     parser.add_option("--offline", action="store_true", dest="offline", default=False,
-                help="Enable local repository for offline installing Trafodion.")
+                      help="Enable local repository for offline installing Trafodion.")
     parser.add_option("--version", action="store_true", dest="version", default=False,
-                help="Show the installer version.")
+                      help="Show the installer version.")
 
     (options, args) = parser.parse_args()
     return options
@@ -502,30 +561,18 @@ def get_options():
 def main():
     """ db_installer main loop """
     global cfgs
-
     format_output('Trafodion Installation ToolKit')
 
     # handle parser option
     options = get_options()
-    if options.ansible:
-        from ans_wrapper import run
-    else:
-        from py_wrapper import run
-
-    if not options.ansible:
-        if options.method: log_err('Wrong parameter, cannot specify ansible option without ansible enabled')
 
     if options.version: version()
+
     if options.build and options.cfgfile:
         log_err('Wrong parameter, cannot specify both --build and --config-file')
 
     if options.build and options.offline:
         log_err('Wrong parameter, cannot specify both --build and --offline')
-
-
-    if options.method:
-        if options.method not in ['sudo','su','pbrun','pfexec','runas','doas']:
-            log_err('Wrong method, valid methods: [ sudo | su | pbrun | pfexec | runas | doas ].')
 
     if options.cfgfile:
         if not os.path.exists(options.cfgfile):
@@ -534,36 +581,41 @@ def main():
     else:
         config_file = DBCFG_FILE
 
+    if options.pwd:
+        pwd = getpass.getpass('Input remote host SSH Password: ')
+    else:
+        pwd = ''
 
     # not specified config file and default config file doesn't exist either
-    p = ParseInI(config_file)
+    p = ParseInI(config_file, 'dbconfigs')
     if options.build or (not os.path.exists(config_file)):
         if options.build: format_output('DryRun Start')
-        user_input(options.apache, options.offline, prompt_mode=True)
+        user_input(options, prompt_mode=True, pwd=pwd)
 
         # save config file as json format
         print '\n** Generating config file to save configs ... \n'
         p.save(cfgs)
-
     # config file exists
     else:
         print '\n** Loading configs from config file ... \n'
         cfgs = p.load()
         if options.offline and cfgs['offline_mode'] != 'Y':
             log_err('To enable offline mode, must set "offline_mode = Y" in config file')
-        user_input(options.apache, options.offline, prompt_mode=False)
+        user_input(options, prompt_mode=False, pwd=pwd)
+
+    if options.upgrade:
+        cfgs['upgrade'] = 'Y'
 
     if options.offline:
         http_start(cfgs['local_repo_dir'], cfgs['repo_port'])
     else:
         cfgs['offline_mode'] = 'N'
 
-
     if not options.build:
         format_output('Installation Start')
 
         ### perform actual installation ###
-        run(cfgs, options)
+        wrapper.run(cfgs, options, pwd=pwd)
 
         format_output('Installation Complete')
 
@@ -588,8 +640,8 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (KeyboardInterrupt,EOFError):
-        tp = ParseInI(DBCFG_TMP_FILE)
+    except (KeyboardInterrupt, EOFError):
+        tp = ParseInI(DBCFG_TMP_FILE, 'dbconfigs')
         tp.save(cfgs)
         http_stop()
         print '\nAborted...'

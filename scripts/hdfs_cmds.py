@@ -26,7 +26,7 @@
 import os
 import sys
 import json
-from common import run_cmd_as_user
+from common import err, run_cmd, cmd_output, run_cmd_as_user
 
 def run():
     hdfs_bin = '/usr/bin/hdfs'
@@ -38,7 +38,7 @@ def run():
         parcel_lib = '/opt/cloudera/parcels/CDH/lib/hbase/lib'
         if os.path.exists(parcel_lib): hdfs_bin = '/opt/cloudera/parcels/CDH/bin/hdfs'
     elif 'APACHE' in DISTRO:
-        hdfs_bin = dbcfgs['hdfs_home'] + '/bin/hdfs'
+        hdfs_bin = dbcfgs['hadoop_home'] + '/bin/hdfs'
 
     traf_loc = '/user/trafodion'
     traf_user = dbcfgs['traf_user']
@@ -53,6 +53,13 @@ def run():
     run_cmd_as_user(hdfs_user, '%s dfs -setfacl -R -m default:user:%s:rwx /hbase/archive' % (hdfs_bin, traf_user))
     run_cmd_as_user(hdfs_user, '%s dfs -setfacl -R -m mask::rwx /hbase/archive' % hdfs_bin)
 
+    # Grant all privileges to the Trafodion principal in HBase
+    if dbcfgs['secure_hadoop'] == 'Y':
+        run_cmd('grant "%s", "RWXC" | sudo -u %s hbase shell > /tmp/hbase_shell.out' % (traf_user, hbase_user))
+        has_err = cmd_output('grep -c ERROR /tmp/hbase_shell.out')
+        if int(has_err):
+            err('Failed to grant HBase privileges to %s' % traf_user)
+        run_cmd('rm /tmp/hbase_shell.out')
 # main
 try:
     dbcfgs_json = sys.argv[1]

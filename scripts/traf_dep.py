@@ -24,26 +24,18 @@
 ### this script should be run on all nodes with sudo user ###
 
 import re
+import os
 import sys
 import json
 import platform
 from common import run_cmd, cmd_output, err
 
-# not used
-EPEL_REPO='''
-[epel]
-name=Extra Packages for Enterprise Linux $releasever - $basearch
-mirrorlist=https://mirrors.fedoraproject.org/metalink?repo=epel-$releasever&arch=$basearch
-enabled=1
-gpgcheck=0
-'''
-
-LOCAL_REPO_PTR = '''
+LOCAL_REPO_PTR = """
 [traflocal]
 baseurl=http://%s:%s/
 enabled=1
 gpgcheck=0
-'''
+"""
 
 REPO_FILE = '/etc/yum.repos.d/traflocal.repo'
 
@@ -65,26 +57,23 @@ def run():
         pdsh_installed = cmd_output('rpm -qa|grep -c pdsh')
         if pdsh_installed == '0':
             release = platform.release()
-            releasever, arch = re.search('el(\d).(\w+)',release).groups()
+            releasever, arch = re.search(r'el(\d).(\w+)', release).groups()
 
             if releasever == '7':
                 pdsh_pkg = 'http://mirrors.neusoft.edu.cn/epel/7/%s/p/pdsh-2.31-1.el7.%s.rpm' % (arch, arch)
-                #pdsh_ssh_pkg = 'http://mirrors.neusoft.edu.cn/epel/7/%s/p/pdsh-rcmd-ssh-2.31-1.el7.%s.rpm' % (arch, arch)
             elif releasever == '6':
                 pdsh_pkg = 'http://mirrors.neusoft.edu.cn/epel/6/%s/pdsh-2.26-4.el6.%s.rpm' % (arch, arch)
-                #pdsh_ssh_pkg = 'http://mirrors.neusoft.edu.cn/epel/6/%s/pdsh-rcmd-ssh-2.26-4.el6.%s.rpm' % (arch, arch)
             else:
                 err('Unsupported Linux version')
 
             print 'Installing pdsh ...'
             run_cmd('yum install -y %s' % pdsh_pkg)
 
-    package_list= [
+    package_list = [
         'apr',
         'apr-util',
         'expect',
         'gzip',
-        'gnuplot',
         'libiodbc-devel',
         'lzo',
         'lzop',
@@ -97,6 +86,9 @@ def run():
         'unixODBC-devel',
         'unzip'
     ]
+
+    if dbcfgs['ldap_security'].upper() == 'Y':
+        package_list += ['openldap-clients']
 
     all_pkg_list = run_cmd('rpm -qa')
     for pkg in package_list:

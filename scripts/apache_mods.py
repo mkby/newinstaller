@@ -23,11 +23,13 @@
 
 ### this script should be run on all nodes with sudo user ###
 
-from common import ParseJson, ParseXML, err
-
-dbcfgs = json.loads(dbcfgs_json)
+import sys
+import json
+import socket
+from common import MODCFG_FILE, ParseJson, ParseXML, err, run_cmd
 
 def run():
+    dbcfgs = json.loads(dbcfgs_json)
     if 'APACHE' in dbcfgs['distro']:
         modcfgs = ParseJson(MODCFG_FILE).load()
         MOD_CFGS = modcfgs['MOD_CFGS']
@@ -35,17 +37,30 @@ def run():
         hdfs_xml_file = dbcfgs['hdfs_xml_file']
         hbase_xml_file = dbcfgs['hbase_xml_file']
 
-        hbasexml = ParseXML(hbase_xml)
-        for n,v in MOD_CFGS['hbase'].items():
-            hbasexml.add_property(n, v)
+        hbasexml = ParseXML(hbase_xml_file)
+        for key, value in MOD_CFGS['hbase-site'].items():
+            hbasexml.add_property(key, value)
         hbasexml.write_xml()
 
-        hdfsxml = ParseXML(hdfs_xml)
-        for n,v in MOD_CFGS['hdfs'].items():
-            hdfsxml.add_property(n, v)
+        hdfsxml = ParseXML(hdfs_xml_file)
+        for key, value in MOD_CFGS['hdfs-site'].items():
+            hdfsxml.add_property(key, value)
         hdfsxml.write_xml()
 
         print 'Apache Hadoop modification completed'
+        first_node = dbcfgs['first_rsnode']
+        local_host = socket.gethostname()
+        if first_node in local_host:
+            hadoop_home = dbcfgs['hadoop_home']
+            hbase_home = dbcfgs['hbase_home']
+            # stop
+            run_cmd(hbase_home + '/bin/stop-hbase.sh')
+            run_cmd(hadoop_home + '/sbin/stop-dfs.sh')
+            # start
+            run_cmd(hadoop_home + '/sbin/start-dfs.sh')
+            run_cmd(hbase_home + '/bin/start-hbase.sh')
+
+            print 'Apache Hadoop restart completed'
     else:
         print 'no apache distribution found, skipping'
 

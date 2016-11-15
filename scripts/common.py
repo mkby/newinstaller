@@ -33,25 +33,28 @@ import base64
 import subprocess
 import logging
 try:
-  import xml.etree.cElementTree as ET
+    import xml.etree.cElementTree as ET
 except ImportError:
-  import xml.etree.ElementTree as ET
+    import xml.etree.ElementTree as ET
 from ConfigParser import ConfigParser
 from collections import defaultdict
 
-__VERSION__ = 'v1.0.0'
-INSTALLER_LOC = sys.path[0]
+INSTALLER_LOC = os.path.dirname(os.path.abspath(__file__)) + '/..'
 
-#CFG_LOC = INSTALLER_LOC + '/configs'
-USER_PROMPT_FILE = INSTALLER_LOC + '/prompt.json'
-SCRCFG_FILE = INSTALLER_LOC + '/script.json'
-VERSION_FILE = INSTALLER_LOC + '/version.json'
-MODCFG_FILE = INSTALLER_LOC + '/mod_cfgs.json'
+CONFIG_DIR = INSTALLER_LOC + '/configs'
+SCRIPTS_DIR = INSTALLER_LOC + '/scripts'
+TEMPLATES_DIR = INSTALLER_LOC + '/templates'
+
+USER_PROMPT_FILE = CONFIG_DIR + '/prompt.json'
+SCRCFG_FILE = CONFIG_DIR + '/script.json'
+VERSION_FILE = CONFIG_DIR + '/version.json'
+MODCFG_FILE = CONFIG_DIR + '/mod_cfgs.json'
+DEF_PORT_FILE = CONFIG_DIR + '/default_ports.ini'
 
 DBCFG_FILE = INSTALLER_LOC + '/db_config'
 DBCFG_TMP_FILE = INSTALLER_LOC + '/.db_config_temp'
 
-TMP_DIR = '/tmp/.install'
+TMP_DIR = '/tmp/.trafodion_install_temp'
 MARK = '[ERR]'
 
 def version():
@@ -97,16 +100,16 @@ def run_cmd(cmd):
     stdout, stderr = p.communicate()
     if p.returncode != 0:
         err('Failed to run command %s: %s' % (cmd, stderr))
-    return stdout
+    return stdout.strip()
 
 def run_cmd_as_user(user, cmd):
-    return run_cmd('sudo su - %s -c \'%s\'' % (user, cmd))
+    return run_cmd('sudo -n su - %s -c \'%s\'' % (user, cmd))
 
 def cmd_output(cmd):
     """ return command output but not check return value """
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = p.communicate()
-    
+
     return stdout.strip() if stdout else stderr
 
 def mod_file(template_file, change_items):
@@ -118,21 +121,32 @@ def mod_file(template_file, change_items):
         with open(template_file, 'r') as f:
             lines = f.read()
     except IOError:
-        err('Failed to open file %s to modify' % templat_file)
+        err('Failed to open file %s to modify' % template_file)
 
-    for regexp,replace in change_items.iteritems():
+    for regexp, replace in change_items.iteritems():
         lines = re.sub(regexp, replace, lines)
 
     with open(template_file, 'w') as f:
         f.write(lines)
 
-def append_file(template_file, string):
+def append_file(template_file, string, position=''):
     try:
-        with open(template_file, 'a+') as f:
-            lines = f.read()
-            if not string in lines: f.write(string + '\n')
+        with open(template_file, 'r') as f:
+            lines = f.readlines()
+        pos = 0
+        if position:
+            for index, line in enumerate(lines):
+                if position in line:
+                    pos = index + 1
+
+        if pos == 0: pos = len(lines)
+        newlines = lines[:pos] + [string + '\n'] + lines[pos:]
+        if not string in lines:
+            with open(template_file, 'w') as f:
+                f.writelines(newlines)
     except IOError:
         err('Failed to open file %s to append' % template_file)
+
 
 def write_file(template_file, string):
     try:
@@ -178,12 +192,12 @@ class Remote(object):
 
     def _commands(self, method):
         cmd = []
-        if self.sshpass and self.pwd: cmd = ['sshpass','-p', self.pwd]
+        if self.sshpass and self.pwd: cmd = ['sshpass', '-p', self.pwd]
         cmd += [method]
         if not (self.sshpass and self.pwd): cmd += ['-oPasswordAuthentication=no']
         return cmd
 
-    def execute(self, cmd, verbose=False, shell=False):
+    def _execute(self, cmd, verbose=False, shell=False):
         try:
             if verbose: print 'cmd:', cmd
 
@@ -204,6 +218,16 @@ class Remote(object):
         except Exception as e:
             err_m('Failed to run commands on remote host: %s' % e)
 
+    def execute(self, user_cmd):
+        cmd = self._commands('ssh')
+        if self.user:
+            cmd += ['%s@%s' % (self.user, self.host)]
+        else:
+            cmd += [self.host]
+
+        cmd += user_cmd.split()
+        self._execute(cmd)
+
     def copy(self, files, remote_folder='.'):
         """ copy file to user's home folder """
         for f in files:
@@ -218,8 +242,8 @@ class Remote(object):
         else:
             cmd += ['%s:%s/' % (self.host, remote_folder)]
 
-        self.execute(cmd)
-        if self.rc != 0: err('Failed to copy files to remote nodes')
+        self._execute(cmd)
+        if self.rc != 0: err_m('Failed to copy files to remote nodes')
 
     def fetch(self, files, local_folder='.'):
         """ fetch file from user's home folder """
@@ -231,11 +255,11 @@ class Remote(object):
             cmd += ['%s:~/{%s}' % (self.host, ','.join(files))]
         cmd += [local_folder]
 
-        self.execute(cmd)
+        self._execute(cmd)
         if self.rc != 0: err('Failed to fetch files from remote nodes')
 
 
-class ParseHttp:
+class ParseHttp(object):
     def __init__(self, user, passwd, json_type=True):
         # httplib2 is not installed by default
         try:
@@ -281,7 +305,7 @@ class ParseHttp:
             err_m('Failed to send command to URL')
 
 
-class ParseXML:
+class ParseXML(object):
     """ handle *-site.xml with format
         <property><name></name><value></value></proerty>
     """
@@ -310,7 +334,7 @@ class ParseXML:
 
     def get_property(self, name):
         try:
-            return [x[1] for x in self._nvlist if x[0]==name][0]
+            return [x[1] for x in self._nvlist if x[0] == name][0]
         except:
             return ''
 
@@ -340,10 +364,10 @@ class ParseXML:
         self._tree.write(self.__xml_file)
 
     def print_xml(self):
-        for n,v in self._nvlist:
-            print n,v
+        for name, value in self._nvlist:
+            print name, value
 
-class ParseJson:
+class ParseJson(object):
     def __init__(self, js_file):
         self.__js_file = js_file
 
@@ -368,10 +392,10 @@ class ParseJson:
         return 0
 
 
-class ParseInI:
-    def __init__(self, ini_file):
+class ParseInI(object):
+    def __init__(self, ini_file, section):
         self.__ini_file = ini_file
-        self.section = 'def'
+        self.section = section
 
     def load(self):
         """ load content from ini file and return a dict """
@@ -383,7 +407,7 @@ class ParseInI:
         cf.read(self.__ini_file)
 
         if not cf.has_section(self.section):
-            err_m('Cannot find the default section [%s]' % self.section)
+            err_m('Cannot find section [%s]' % self.section)
 
         for cfg in cf.items(self.section):
             cfgs[cfg[0]] = cfg[1]
@@ -394,8 +418,8 @@ class ParseInI:
         """ save a dict as an ini file """
         cf = ConfigParser()
         cf.add_section(self.section)
-        for k,v in dic.iteritems():
-            cf.set(self.section, k, v)
+        for key, value in dic.iteritems():
+            cf.set(self.section, key, value)
 
         with open(self.__ini_file, 'w') as f:
             cf.write(f)
@@ -407,31 +431,6 @@ def http_start(repo_dir, repo_port):
 def http_stop():
     #info('Stopping temporary python http server')
     os.system("ps -ef|grep SimpleHTTPServer |grep -v grep | awk '{print $2}' |xargs kill -9 >/dev/null 2>&1")
-
-
-def set_ansible_cfgs(host_content):
-    ts = time.strftime('%y%m%d_%H%M')
-    logs_dir = INSTALLER_LOC + '/logs'
-    hosts_file = INSTALLER_LOC + '/hosts'
-    if not os.path.exists(logs_dir): os.mkdir(logs_dir)
-    log_path = '%s/%s_%s.log' %(LOGS_DIR, sys.argv[0].split('/')[-1].split('.')[0], ts)
-
-    ansible_cfg = os.getenv('HOME') + '/.ansible.cfg'
-    content = '[defaults]\n'
-    content += 'log_path = %s\n' % log_path
-    content += 'inventory =' + hosts_file + '\n'
-    content += 'host_key_checking = False\n'
-#    content += 'display_skipped_hosts = False\n'
-    def write_file(filename, content):
-        try:
-            with open(filename, 'w') as f:
-                f.write(content)
-        except IOError:
-            err_m('Failed to open %s file' % filename)
-    write_file(ansible_cfg, content)
-    write_file(hosts_file, host_content)
-    
-    return log_path
 
 def format_output(text):
     num = len(text) + 4
@@ -456,7 +455,7 @@ def expNumRe(text):
             t = r.group(4)
 
             convert = lambda d: str(('%0' + str(min(len(d1), len(d2))) + 'd') % d)
-            if d1 > d2: d1,d2 = d2,d1
+            if d1 > d2: d1, d2 = d2, d1
             explist.extend([h + convert(c) + t for c in range(int(d1), int(d2)+1)])
 
         else:
