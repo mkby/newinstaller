@@ -265,7 +265,7 @@ class Remote(object):
             cmd += ['%s:%s/' % (self.host, remote_folder)]
 
         self._execute(cmd)
-        if self.rc != 0: err_m('Failed to copy files to remote nodes: %s' % self.stdout)
+        if self.rc != 0: err_m('Failed to copy files to remote nodes')
 
     def fetch(self, files, local_folder='.'):
         """ fetch file from user's home folder """
