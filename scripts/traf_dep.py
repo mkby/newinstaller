@@ -32,6 +32,7 @@ from common import run_cmd, cmd_output, err
 
 LOCAL_REPO_PTR = """
 [traflocal]
+name=trafodion local repo
 baseurl=http://%s:%s/
 enabled=1
 gpgcheck=0

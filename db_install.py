@@ -379,7 +379,11 @@ def user_input(options, prompt_mode=True, pwd=''):
             try:
                 cluster_name = content['items'][0]['name']
             except (IndexError, KeyError):
-                cluster_name = content['items'][0]['Clusters']['cluster_name']
+                try:
+                    cluster_name = content['items'][0]['Clusters']['cluster_name']
+                except (IndexError, KeyError):
+                    log_err('Failed to get cluster info from management url')
+
 
         discover = HadoopDiscover(cfgs['mgr_user'], cfgs['mgr_pwd'], cfgs['mgr_url'], cluster_name)
         rsnodes = discover.get_rsnodes()

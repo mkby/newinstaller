@@ -1,3 +1,5 @@
-common.pyc
-python_caller.pyc
+*.pyc
 logs/
+db_config.*
+.db_config_temp
+discover_result

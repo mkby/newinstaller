@@ -89,5 +89,12 @@
         "desc": "Environment Discover",
         "node": "all"
     }
+],
+"cloudera": [
+    {
+        "script": "deploy_cdh.py",
+        "desc": "Deploy Cloudera",
+        "node": "all"
+    }
 ]
 }

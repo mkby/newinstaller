@@ -178,6 +178,7 @@ class Remote(object):
         self.rc = 0
         self.pwd = pwd
         self.sshpass = self._sshpass_available()
+        self._connection_test()
 
     @staticmethod
     def _sshpass_available():
@@ -218,15 +219,36 @@ class Remote(object):
         except Exception as e:
             err_m('Failed to run commands on remote host: %s' % e)
 
-    def execute(self, user_cmd):
+    def _connection_test(self):
+        self.execute('echo -n', chkerr=False)
+        if self.rc != 0:
+            msg = 'Host [%s]: Failed to connect using ssh. Be sure:\n' % self.host
+            msg += '1. Remote host\'s name and IP is configured correctly in /etc/hosts.\n'
+            msg += '2. Remote host\'s sshd service is running.\n'
+            msg += '3. Passwordless SSH is set if not using \'enable-pwd\' option.\n'
+            msg += '4. \'sshpass\' tool is installed and ssh password is correct if using \'enable-pwd\' option.\n'
+            err_m(msg)
+
+    def execute(self, user_cmd, verbose=False, shell=False, chkerr=True):
+        """ @params: user_cmd should be a string """
         cmd = self._commands('ssh')
+        cmd += ['-tt'] # force tty allocation
         if self.user:
             cmd += ['%s@%s' % (self.user, self.host)]
         else:
             cmd += [self.host]
 
-        cmd += user_cmd.split()
-        self._execute(cmd)
+        # if shell=True, cmd should be a string not list
+        if shell:
+            cmd = ' '.join(cmd) + ' '
+            cmd += user_cmd
+        else:
+            cmd += user_cmd.split()
+
+        self._execute(cmd, verbose=verbose, shell=shell)
+
+        if chkerr and self.rc != 0:
+            err_m('Failed to execute command on remote host [%s]: "%s"' % (self.host, user_cmd))
 
     def copy(self, files, remote_folder='.'):
         """ copy file to user's home folder """
@@ -243,7 +265,7 @@ class Remote(object):
             cmd += ['%s:%s/' % (self.host, remote_folder)]
 
         self._execute(cmd)
-        if self.rc != 0: err_m('Failed to copy files to remote nodes')
+        if self.rc != 0: err_m('Failed to copy files to remote nodes: %s' % self.stdout)
 
     def fetch(self, files, local_folder='.'):
         """ fetch file from user's home folder """
@@ -407,7 +429,7 @@ class ParseInI(object):
         cf.read(self.__ini_file)
 
         if not cf.has_section(self.section):
-            err_m('Cannot find section [%s]' % self.section)
+            return {}
 
         for cfg in cf.items(self.section):
             cfgs[cfg[0]] = cfg[1]
