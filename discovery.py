@@ -33,7 +33,7 @@ except ImportError:
     print 'Python module prettytable is not found. Install python-prettytable first.'
     exit(1)
 from scripts.common import err_m, err, ParseInI, expNumRe, format_output, DBCFG_FILE
-import scripts.wrapper as wrapper
+from scripts import wrapper
 
 
 def get_options():

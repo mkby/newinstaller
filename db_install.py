@@ -40,7 +40,9 @@ except ImportError:
     print 'Python module prettytable is not found. Install python-prettytable first.'
     exit(1)
 from scripts import wrapper
-from scripts.common import *
+from scripts.common import DEF_PORT_FILE, DBCFG_FILE, USER_PROMPT_FILE, DBCFG_TMP_FILE, \
+                           INSTALLER_LOC, Remote, Version, ParseHttp, ParseInI, ParseJson, \
+                           http_start, http_stop, format_output, err_m, expNumRe
 
 # init global cfgs for user input
 cfgs = defaultdict(str)
@@ -435,7 +437,7 @@ def user_input(options, prompt_mode=True, pwd=''):
             log_err('repodata directory not found, this is not a valid repository directory')
         cfgs['offline_mode'] = 'Y'
         cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
-        ports = ParseInI(DEF_PORT_FILE).load()
+        ports = ParseInI(DEF_PORT_FILE, 'ports').load()
         cfgs['repo_http_port'] = ports['repo_http_port']
 
     pkg_list = ['apache-trafodion', 'esgynDB']
