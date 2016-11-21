@@ -387,7 +387,7 @@ def main():
         http_stop()
         ok('Cloudera RPMs installed successfully!')
 
-    #install_cdh()
+    install_cdh()
     ready = 0
     while not ready:
         try:
