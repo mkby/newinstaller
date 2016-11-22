@@ -40,7 +40,9 @@ except ImportError:
     print 'Python module prettytable is not found. Install python-prettytable first.'
     exit(1)
 from scripts import wrapper
-from scripts.common import *
+from scripts.common import DEF_PORT_FILE, DBCFG_FILE, USER_PROMPT_FILE, DBCFG_TMP_FILE, \
+                           INSTALLER_LOC, Remote, Version, ParseHttp, ParseInI, ParseJson, \
+                           http_start, http_stop, format_output, err_m, expNumRe
 
 # init global cfgs for user input
 cfgs = defaultdict(str)
@@ -377,7 +379,11 @@ def user_input(options, prompt_mode=True, pwd=''):
             try:
                 cluster_name = content['items'][0]['name']
             except (IndexError, KeyError):
-                cluster_name = content['items'][0]['Clusters']['cluster_name']
+                try:
+                    cluster_name = content['items'][0]['Clusters']['cluster_name']
+                except (IndexError, KeyError):
+                    log_err('Failed to get cluster info from management url')
+
 
         discover = HadoopDiscover(cfgs['mgr_user'], cfgs['mgr_pwd'], cfgs['mgr_url'], cluster_name)
         rsnodes = discover.get_rsnodes()
@@ -435,7 +441,8 @@ def user_input(options, prompt_mode=True, pwd=''):
             log_err('repodata directory not found, this is not a valid repository directory')
         cfgs['offline_mode'] = 'Y'
         cfgs['repo_ip'] = socket.gethostbyname(socket.gethostname())
-        cfgs['repo_port'] = '9900'
+        ports = ParseInI(DEF_PORT_FILE, 'ports').load()
+        cfgs['repo_http_port'] = ports['repo_http_port']
 
     pkg_list = ['apache-trafodion', 'esgynDB']
     # find tar in installer folder, if more than one found, use the first one
@@ -607,7 +614,7 @@ def main():
         cfgs['upgrade'] = 'Y'
 
     if options.offline:
-        http_start(cfgs['local_repo_dir'], cfgs['repo_port'])
+        http_start(cfgs['local_repo_dir'], cfgs['repo_http_port'])
     else:
         cfgs['offline_mode'] = 'N'
 

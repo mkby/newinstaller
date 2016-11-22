@@ -61,7 +61,7 @@ def run():
     dm_http_port = ports['dm_http_port']
     dm_https_port = ports['dm_https_port']
     tsd_port = ports['tsd_port']
-    http_port = ports['http_port']
+    bosun_http_port = ports['bosun_http_port']
     dcs_master_port = ports['dcs_master_port']
     dcs_info_port = ports['dcs_info_port']
 
@@ -136,7 +136,7 @@ def run():
              dcs_master_host,
              tsd_port,
              dcs_master_host,
-             http_port,
+             bosun_http_port,
              timezone,
              db_admin_user,
              db_admin_pwd)
