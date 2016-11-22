@@ -17,12 +17,15 @@ from cm_api.api_client import ApiResource, ApiException
 from cm_api.endpoints.services import ApiServiceSetupInfo
 from scripts import wrapper
 from scripts.common import err_m, info, ok, http_start, http_stop, Remote, \
-                           expNumRe, ParseInI, DEF_PORT_FILE, CONFIG_DIR
+                           retry, expNumRe, ParseInI, DEF_PORT_FILE, CONFIG_DIR
+
+CM_PORT = 7180
 
 class DeployCDH(object):
-    def __init__(self, cdh_hosts, roles, cm_port='7180', cm_user='admin', cm_passwd='admin', cluster_name='cluster1'):
+    def __init__(self, cdh_hosts, roles, cm_port, cm_user='admin', cm_passwd='admin', cluster_name='cluster1'):
 
         self.cluster_name = cluster_name
+        self.cm_port = cm_port
         self.cdh_version = "CDH5"
 
         self.cdh_hosts = cdh_hosts
@@ -31,7 +34,7 @@ class DeployCDH(object):
         self._get_host_allocate()
         self.cm_host = self.cdh_hosts[0]
 
-        self.api = ApiResource(self.cm_host, cm_port, cm_user, cm_passwd, version=7)
+        self.api = ApiResource(self.cm_host, self.cm_port, cm_user, cm_passwd, version=7)
         self.cm = self.api.get_cloudera_manager()
 
         try:
@@ -305,7 +308,7 @@ class DeployCDH(object):
 
 def deploy_cdh(cdh_hosts, roles):
     # config cdh
-    deploy = DeployCDH(cdh_hosts, roles)
+    deploy = DeployCDH(cdh_hosts, roles, CM_PORT)
     deploy.setup_cms()
     deploy.setup_parcel()
     deploy.start_cms()
@@ -387,15 +390,15 @@ def main():
         http_stop()
         ok('Cloudera RPMs installed successfully!')
 
-    install_cdh()
-    ready = 0
-    while not ready:
+    #install_cdh()
+
+    def telnet_stat():
         try:
-            telnetlib.Telnet(cdhmaster, '7180')
-            ready = 1
+            telnetlib.Telnet(cdhmaster, CM_PORT)
+            return True
         except:
-            ready = 0
-        sleep(3)
+            return False
+    retry(telnet_stat, 20, 5, 'cloudera manager')
 
     if not options.pkgonly: deploy_cdh(cdh_hosts, roles)
 

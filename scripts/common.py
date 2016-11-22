@@ -320,11 +320,19 @@ class ParseHttp(object):
         result = self._request(url, 'PUT', body=json.dumps(config))
         if result: return defaultdict(str, json.loads(result))
 
-    def post(self, url):
+    def post(self, url, config=None):
         try:
-            return defaultdict(str, json.loads(self._request(url, 'POST')))
-        except ValueError:
-            err_m('Failed to send command to URL')
+            if config:
+                if not isinstance(config, dict): err_m('Wrong HTTP POST parameter, should be a dict')
+                body = json.dumps(config)
+            else:
+                body = None
+
+            result = self._request(url, 'POST', body=body)
+            if result: return defaultdict(str, json.loads(result))
+
+        except ValueError as ve:
+            err_m('Failed to send command to URL: %s' % ve)
 
 
 class ParseXML(object):
@@ -500,6 +508,21 @@ def time_elapse(func):
         print '\nTime Cost: %d hour(s) %d minute(s) %d second(s)' % (hours, minutes, seconds)
         return output
     return wrapper
+
+def retry(func, maxcnt, interval, msg):
+    """ retry timeout function """
+    retry_cnt = 0
+    rc = False
+    while not rc:
+        retry_cnt += 1
+        rc = func()
+        flush_str = '.' * retry_cnt
+        print '\rCheck %s status (timeout: %d secs) %s' % (msg, maxcnt * interval, flush_str),
+        sys.stdout.flush()
+        time.sleep(interval)
+        if retry_cnt == maxcnt:
+            err_m('Timeout exit')
+    ok('%s successfully!' % msg)
 
 if __name__ == '__main__':
     exit(0)
