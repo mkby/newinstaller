@@ -369,7 +369,7 @@ def main():
     cfgs['repo_ip'] = repo_ip
     cfgs['repo_http_port'] = repo_http_port
 
-    def install_cdh():
+    def cdh_install():
         if options.pwd:
             pwd = getpass.getpass('Input remote host SSH Password: ')
         else:
@@ -390,7 +390,7 @@ def main():
         http_stop()
         ok('Cloudera RPMs installed successfully!')
 
-    #install_cdh()
+    cdh_install()
 
     def telnet_stat():
         try:
