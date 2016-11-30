@@ -140,8 +140,9 @@ def append_file(template_file, string, position=''):
                     pos = index + 1
 
         if pos == 0: pos = len(lines)
-        newlines = lines[:pos] + [string + '\n'] + lines[pos:]
-        if not string in lines:
+        string_lf = string + '\n'
+        newlines = lines[:pos] + [string_lf] + lines[pos:]
+        if not string_lf in lines:
             with open(template_file, 'w') as f:
                 f.writelines(newlines)
     except IOError:
@@ -302,9 +303,9 @@ class ParseHttp(object):
     def _request(self, url, method, body=None):
         try:
             resp, content = self.h.request(url, method, headers=self.headers, body=body)
-            # return code is not 2xx
-            if not 200 <= resp.status < 300:
-                err_m('Error return code {0} when {1}ting configs'.format(resp.status, method.lower()))
+            # return code is not 2xx and 409(for ambari blueprint)
+            if not (resp.status == 409 or 200 <= resp.status < 300):
+                err_m('Error return code {0} when {1}ting configs: {2}'.format(resp.status, method.lower(), content))
             return content
         except Exception as exc:
             err_m('Error with {0}ting configs using URL {1}. Reason: {2}'.format(method.lower(), url, exc))
@@ -513,15 +514,18 @@ def retry(func, maxcnt, interval, msg):
     """ retry timeout function """
     retry_cnt = 0
     rc = False
-    while not rc:
-        retry_cnt += 1
-        rc = func()
-        flush_str = '.' * retry_cnt
-        print '\rCheck %s status (timeout: %d secs) %s' % (msg, maxcnt * interval, flush_str),
-        sys.stdout.flush()
-        time.sleep(interval)
-        if retry_cnt == maxcnt:
-            err_m('Timeout exit')
+    try:
+        while not rc:
+            retry_cnt += 1
+            rc = func()
+            flush_str = '.' * retry_cnt
+            print '\rCheck %s status (timeout: %d secs) %s' % (msg, maxcnt * interval, flush_str),
+            sys.stdout.flush()
+            time.sleep(interval)
+            if retry_cnt == maxcnt:
+                err_m('Timeout exit')
+    except KeyboardInterrupt:
+        err_m('user quit')
     ok('%s successfully!' % msg)
 
 if __name__ == '__main__':
