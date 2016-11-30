@@ -39,36 +39,28 @@ gpgcheck=0
 """
 
 REPO_FILE = '/etc/yum.repos.d/traflocal.repo'
+EPEL_FILE = '/etc/yum.repos.d/epel.repo'
 
 def run():
     """ install Trafodion dependencies """
 
     dbcfgs = json.loads(dbcfgs_json)
 
-    if dbcfgs['offline_mode'] == 'Y':
-        print 'Installing pdsh in offline mode ...'
+    node_list = dbcfgs['node_list'].split(',')
 
-        # setup temp local repo
+    offline = True if dbcfgs['offline_mode'] == 'Y' else False
+
+    if offline:
         repo_content = LOCAL_REPO_PTR % (dbcfgs['repo_ip'], dbcfgs['repo_http_port'])
         with open(REPO_FILE, 'w') as f:
             f.write(repo_content)
 
-        run_cmd('yum install -y --disablerepo=\* --enablerepo=traflocal pdsh-rcmd-ssh pdsh')
-    else:
-        pdsh_installed = cmd_output('rpm -qa|grep -c pdsh')
-        if pdsh_installed == '0':
-            release = platform.release()
-            releasever, arch = re.search(r'el(\d).(\w+)', release).groups()
+    if not offline and not os.path.exists(EPEL_FILE):
+        run_cmd('yum install -y epel-release')
 
-            if releasever == '7':
-                pdsh_pkg = 'http://mirrors.neusoft.edu.cn/epel/7/%s/p/pdsh-2.31-1.el7.%s.rpm' % (arch, arch)
-            elif releasever == '6':
-                pdsh_pkg = 'http://mirrors.neusoft.edu.cn/epel/6/%s/pdsh-2.26-4.el6.%s.rpm' % (arch, arch)
-            else:
-                err('Unsupported Linux version')
-
-            print 'Installing pdsh ...'
-            run_cmd('yum install -y %s' % pdsh_pkg)
+    # pdsh should not exist on single node
+    if len(node_list) == 1:
+        cmd_output('yum remove -y pdsh')
 
     package_list = [
         'apr',
@@ -78,10 +70,11 @@ def run():
         'libiodbc-devel',
         'lzo',
         'lzop',
-        'openldap-clients',
+        'pdsh', # epel
         'perl-DBD-SQLite',
         'perl-Params-Validate',
         'perl-Time-HiRes',
+        'protobuf', # epel
         'sqlite',
         'snappy',
         'unixODBC-devel',
@@ -97,14 +90,13 @@ def run():
             print 'Package %s had already been installed' % pkg
         else:
             print 'Installing %s ...' % pkg
-            if dbcfgs['offline_mode'] == 'Y':
+            if offline:
                 run_cmd('yum install -y --disablerepo=\* --enablerepo=traflocal %s' % pkg)
             else:
                 run_cmd('yum install -y %s' % pkg)
 
     # remove temp repo file
-    if dbcfgs['offline_mode'] == 'Y':
-        os.remove(REPO_FILE)
+    if offline: os.remove(REPO_FILE)
 
 # main
 try:
