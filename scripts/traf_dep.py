@@ -58,10 +58,6 @@ def run():
     if not offline and not os.path.exists(EPEL_FILE):
         run_cmd('yum install -y epel-release')
 
-    # pdsh should not exist on single node
-    if len(node_list) == 1:
-        cmd_output('yum remove -y pdsh')
-
     package_list = [
         'apr',
         'apr-util',
@@ -94,6 +90,10 @@ def run():
                 run_cmd('yum install -y --disablerepo=\* --enablerepo=traflocal %s' % pkg)
             else:
                 run_cmd('yum install -y %s' % pkg)
+
+    # pdsh should not exist on single node
+    if len(node_list) == 1:
+        cmd_output('yum remove -y pdsh')
 
     # remove temp repo file
     if offline: os.remove(REPO_FILE)
