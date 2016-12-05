@@ -24,6 +24,7 @@
 ### this script should be run on first node with trafodion user ###
 
 import sys
+import os
 import json
 from common import cmd_output, run_cmd, err
 
@@ -32,7 +33,11 @@ def run():
     dbcfgs = json.loads(dbcfgs_json)
 
     print 'Starting trafodion'
-    run_cmd('sqstart')
+    SQ_ROOT = os.environ['MY_SQROOT']
+    if os.path.exists('%s/sql/scripts/trafstart' % SQ_ROOT):
+        run_cmd('trafstart')
+    else:
+        run_cmd('sqstart')
 
     tmp_file = '/tmp/initialize.out'
     if dbcfgs.has_key('upgrade') and dbcfgs['upgrade'].upper() == 'Y':
@@ -60,6 +65,9 @@ def run():
             err('Failed to setup security for trafodion:\n %s' % secure_output)
 
     run_cmd('rm %s' % tmp_file)
+    if os.path.exists('%s/sql/scripts/connstart' % SQ_ROOT):
+        run_cmd('connstart')
+
     print 'Start trafodion successfully.'
 
 # main

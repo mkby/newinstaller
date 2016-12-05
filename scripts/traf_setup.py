@@ -33,8 +33,12 @@ def run():
     dbcfgs = json.loads(dbcfgs_json)
 
     TRAF_HOME = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
+    if dbcfgs.has_key('traf_home'):
+        TRAF_HOME = dbcfgs['traf_home']
+
     TRAF_USER = dbcfgs['traf_user']
-    SQ_ROOT = '%s/%s/%s-%s' % (TRAF_HOME, TRAF_USER, dbcfgs['traf_basename'], dbcfgs['traf_version'])
+    TRAF_DIRNAME = dbcfgs['traf_dirname'] if dbcfgs['traf_dirname'] else dbcfgs['def_traf_dirname']
+    SQ_ROOT = '%s/%s/%s' % (TRAF_HOME, TRAF_USER, TRAF_DIRNAME)
 
     TRAF_VER = dbcfgs['traf_version']
     DISTRO = dbcfgs['distro']

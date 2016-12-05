@@ -1,4 +1,13 @@
 {
+  "traf_dirname":
+  {
+      "prompt":"Enter directory name to install trafodion to"
+  },
+  "traf_home":
+  {
+      "prompt":"Enter trafodion user's home directory",
+      "default":"/home"
+  },
   "traf_start":
   {
       "prompt":"Start instance after installation",
@@ -109,7 +118,7 @@
   },
   "scratch_locs":
   {
-      "prompt":"Enter trafodion scratch file folder location(should be a large disk), if more than one folder, use comma seperated",
+      "prompt":"Enter trafodion scratch file folder location(should be a large disk),\nif more than one folder, use comma seperated",
       "default":"$MY_SQROOT/tmp"
   },
   "local_repo_dir":

@@ -102,6 +102,7 @@ class HDPMod(object):
         hdp = self.p.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % cluster_url)
         rsnodes = [c['HostRoles']['host_name'] for c in hdp['host_components']]
 
+        hregion_property = 'hbase.hregion.impl'
         hbase_config_group = {
             "ConfigGroup": {
                 "cluster_name": self.cluster_name,
@@ -113,12 +114,13 @@ class HDPMod(object):
                     {
                         "type": "hbase-site",
                         "tag": "traf_cg",
-                        "properties": MOD_CFGS['hbase-site'].pop('hbase.hregion.impl')
+                        "properties": {hregion_property : MOD_CFGS['hbase-site'].pop(hregion_property)}
                     }
                 ]
             }
         }
-        self.p.post('%s/config_groups' % cluster_url, hbase_config_group)
+        print self.p.post('%s/config_groups' % cluster_url, hbase_config_group)
+        print MOD_CFGS['hbase-site']
 
         for config_type in MOD_CFGS.keys():
             desired_tag = desired_cfg['Clusters']['desired_configs'][config_type]['tag']
@@ -136,6 +138,7 @@ class HDPMod(object):
                 }
             }
             self.p.put(cluster_url, config)
+
 
     def restart(self):
         srv_baseurl = CLUSTER_URL_PTR % (self.url, self.cluster_name) + '/services/'
@@ -169,18 +172,8 @@ class HDPMod(object):
             info('HDP services had already been started')
 
 def run():
-    if 'CDH' in dbcfgs['distro']:
-        hadoop_mod = CDHMod(dbcfgs['mgr_user'], dbcfgs['mgr_pwd'], dbcfgs['mgr_url'], dbcfgs['cluster_name'])
-    elif 'HDP' in dbcfgs['distro']:
-        hadoop_mod = HDPMod(dbcfgs['mgr_user'], dbcfgs['mgr_pwd'], dbcfgs['mgr_url'], dbcfgs['cluster_name'])
-
+    hadoop_mod = HDPMod('admin','admin','http://192.168.0.31:8080','c1')
     hadoop_mod.mod()
-    hadoop_mod.restart()
 
 # main
-try:
-    dbcfgs_json = sys.argv[1]
-except IndexError:
-    err('No db config found')
-dbcfgs = json.loads(dbcfgs_json)
 run()

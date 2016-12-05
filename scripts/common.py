@@ -39,7 +39,7 @@ except ImportError:
 from ConfigParser import ConfigParser
 from collections import defaultdict
 
-INSTALLER_LOC = os.path.dirname(os.path.abspath(__file__)) + '/..'
+INSTALLER_LOC = re.search('(.*)/\w+',os.path.dirname(os.path.abspath(__file__))).groups()[0]
 
 CONFIG_DIR = INSTALLER_LOC + '/configs'
 SCRIPTS_DIR = INSTALLER_LOC + '/scripts'

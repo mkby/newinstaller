@@ -296,6 +296,7 @@ class UserInput(object):
             pt.align[item] = 'l'
 
         for key, value in sorted(cfgs.items()):
+            # only notify user input value
             if self.in_data.has_key(key) and value:
                 if self.in_data[key].has_key('ispasswd'): continue
                 pt.add_row([key, value])
@@ -385,14 +386,14 @@ def user_input(options, prompt_mode=True, pwd=''):
                     log_err('Failed to get cluster info from management url')
 
 
-        discover = HadoopDiscover(cfgs['mgr_user'], cfgs['mgr_pwd'], cfgs['mgr_url'], cluster_name)
-        rsnodes = discover.get_rsnodes()
-        hadoop_users = discover.get_hadoop_users()
+        hadoop_discover = HadoopDiscover(cfgs['mgr_user'], cfgs['mgr_pwd'], cfgs['mgr_url'], cluster_name)
+        rsnodes = hadoop_discover.get_rsnodes()
+        hadoop_users = hadoop_discover.get_hadoop_users()
 
-        cfgs['distro'] = discover.distro
-        cfgs['hbase_service_name'] = discover.get_hbase_srvname()
-        cfgs['hdfs_service_name'] = discover.get_hdfs_srvname()
-        cfgs['zookeeper_service_name'] = discover.get_zookeeper_srvname()
+        cfgs['distro'] = hadoop_discover.distro
+        cfgs['hbase_service_name'] = hadoop_discover.get_hbase_srvname()
+        cfgs['hdfs_service_name'] = hadoop_discover.get_hdfs_srvname()
+        cfgs['zookeeper_service_name'] = hadoop_discover.get_zookeeper_srvname()
 
         cfgs['cluster_name'] = cluster_name.replace(' ', '%20')
         cfgs['hdfs_user'] = hadoop_users['hdfs_user']
@@ -405,12 +406,21 @@ def user_input(options, prompt_mode=True, pwd=''):
         rc = os.system('ping -c 1 %s >/dev/null 2>&1' % node)
         if rc: log_err('Cannot ping %s, please check network connection and /etc/hosts' % node)
 
+    # set some system default configs
+    cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
+    cfgs['traf_user'] = 'trafodion'
+    if apache:
+        cfgs['hbase_xml_file'] = cfgs['hbase_home'] + '/conf/hbase-site.xml'
+        cfgs['hdfs_xml_file'] = cfgs['hadoop_home'] + '/etc/hadoop/hdfs-site.xml'
+    else:
+        cfgs['hbase_xml_file'] = '/etc/hbase/conf/hbase-site.xml'
+
     ### discover system settings, return a dict
-    discover_results = wrapper.run(cfgs, options, mode='discover', pwd=pwd)
+    system_discover = wrapper.run(cfgs, options, mode='discover', pwd=pwd)
 
     # check discover results, return error if fails on any sinlge node
     need_java_home = 0
-    for result in discover_results:
+    for result in system_discover:
         host, content = result.items()[0]
         content_dict = json.loads(content)
 
@@ -429,7 +439,8 @@ def user_input(options, prompt_mode=True, pwd=''):
             log_err('HBase version is not supported')
         if content_dict['hadoop_authorization'] == 'true':
             log_err('HBase authorization is enabled, please disable it before installing trafodion')
-
+        if content_dict['traf_home']: # trafodion user exists
+            cfgs['traf_home'] = content_dict['traf_home']
         if content_dict['hadoop_authentication'] == 'kerberos':
             cfgs['secure_hadoop'] = 'Y'
         else:
@@ -466,6 +477,9 @@ def user_input(options, prompt_mode=True, pwd=''):
     else:
         cfgs['req_java8'] = 'N'
 
+    if not cfgs['traf_dirname']:
+        cfgs['traf_dirname'] = '%s-%s' % (cfgs['traf_basename'], cfgs['traf_version'])
+    u.get_input('traf_dirname', cfgs['traf_dirname'], prompt_mode=prompt_mode)
     g('traf_pwd')
     g('dcs_cnt_per_node')
     g('scratch_locs')
@@ -521,15 +535,6 @@ def user_input(options, prompt_mode=True, pwd=''):
         if not cfgs['java_home']:
             cfgs['java_home'] = java_home
 
-    # set other config to cfgs
-    if apache:
-        cfgs['hbase_xml_file'] = cfgs['hbase_home'] + '/conf/hbase-site.xml'
-        cfgs['hdfs_xml_file'] = cfgs['hadoop_home'] + '/etc/hadoop/hdfs-site.xml'
-    else:
-        cfgs['hbase_xml_file'] = '/etc/hbase/conf/hbase-site.xml'
-
-    cfgs['traf_user'] = 'trafodion'
-    cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
 
     if not silent:
         u.notify_user()
