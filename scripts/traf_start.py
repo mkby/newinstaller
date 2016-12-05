@@ -24,6 +24,7 @@
 ### this script should be run on first node with trafodion user ###
 
 import sys
+import time
 import os
 import json
 from common import cmd_output, run_cmd, err
@@ -39,7 +40,8 @@ def run():
     else:
         run_cmd('sqstart')
 
-    tmp_file = '/tmp/initialize.out'
+    # set a uniq file name
+    tmp_file = '/tmp/initialize.out.' + str(int(time.time()))
     if dbcfgs.has_key('upgrade') and dbcfgs['upgrade'].upper() == 'Y':
         print 'Initialize trafodion upgrade'
         run_cmd('echo "initialize trafodion, upgrade;" | sqlci > %s' % tmp_file)
@@ -50,11 +52,12 @@ def run():
         print 'Initialize trafodion'
         run_cmd('echo "initialize trafodion;" | sqlci > %s' % tmp_file)
         init_output = cmd_output('cat %s' % tmp_file)
-        # skip error 1392
+        # skip error 1392, 1395
         # ERROR[1392] Trafodion is already initialized on this system. No action is needed.
-        if 'ERROR' in init_output and not '1392' in init_output:
+        if 'ERROR' in init_output and not '1392' in init_output and not '1395' in init_output:
             err('Failed to initialize trafodion:\n %s' % init_output)
 
+    run_cmd('rm %s' % tmp_file)
     if dbcfgs['ldap_security'] == 'Y':
         run_cmd('echo "initialize authorization; alter user DB__ROOT set external name \"%s\";" | sqlci > %s' % (dbcfgs['db_root_user'], tmp_file))
         if dbcfgs.has_key('db_admin_user'):

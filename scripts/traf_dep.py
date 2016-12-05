@@ -63,6 +63,7 @@ def run():
         'apr-util',
         'expect',
         'gzip',
+        'gnuplot', #dbmgr
         'libiodbc-devel',
         'lzo',
         'lzop',
