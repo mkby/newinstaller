@@ -479,7 +479,7 @@ def user_input(options, prompt_mode=True, pwd=''):
 
     if not cfgs['traf_dirname']:
         cfgs['traf_dirname'] = '%s-%s' % (cfgs['traf_basename'], cfgs['traf_version'])
-    u.get_input('traf_dirname', cfgs['traf_dirname'], prompt_mode=prompt_mode)
+    g('traf_dirname')
     g('traf_pwd')
     g('dcs_cnt_per_node')
     g('scratch_locs')
