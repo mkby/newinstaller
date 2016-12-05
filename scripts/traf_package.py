@@ -30,7 +30,7 @@ from common import run_cmd, err
 def run():
     dbcfgs = json.loads(dbcfgs_json)
 
-    TRAF_DIRNAME = dbcfgs['traf_dirname'] if dbcfgs['traf_dirname'] else dbcfgs['def_traf_dirname']
+    TRAF_DIRNAME = dbcfgs['traf_dirname']
 
     # untar traf package, package comes from copy_files.py
     TRAF_PACKAGE_FILE = '/tmp/' + dbcfgs['traf_package'].split('/')[-1]

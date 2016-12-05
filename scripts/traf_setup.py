@@ -37,7 +37,7 @@ def run():
         TRAF_HOME = dbcfgs['traf_home']
 
     TRAF_USER = dbcfgs['traf_user']
-    TRAF_DIRNAME = dbcfgs['traf_dirname'] if dbcfgs['traf_dirname'] else dbcfgs['def_traf_dirname']
+    TRAF_DIRNAME = dbcfgs['traf_dirname']
     SQ_ROOT = '%s/%s/%s' % (TRAF_HOME, TRAF_USER, TRAF_DIRNAME)
 
     TRAF_VER = dbcfgs['traf_version']

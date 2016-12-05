@@ -50,7 +50,7 @@ def run():
         TRAF_HOME = dbcfgs['traf_home']
 
     TRAF_USER_DIR = '%s/%s' % (TRAF_HOME, TRAF_USER)
-    TRAF_DIRNAME = dbcfgs['traf_dirname'] if dbcfgs['traf_dirname'] else dbcfgs['def_traf_dirname']
+    TRAF_DIRNAME = dbcfgs['traf_dirname']
     SQ_ROOT = '%s/%s' % (TRAF_USER_DIR, TRAF_DIRNAME)
 
     HBASE_XML_FILE = dbcfgs['hbase_xml_file']
