@@ -102,18 +102,19 @@ class HDPMod(object):
         hdp = self.p.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % cluster_url)
         rsnodes = [c['HostRoles']['host_name'] for c in hdp['host_components']]
 
+        hbase_hregion_property = 'hbase.hregion.impl'
         hbase_config_group = {
-            "ConfigGroup": {
-                "cluster_name": self.cluster_name,
-                "group_name": "hbase-regionserver",
-                "tag": "HBASE",
-                "description": "HBase Regionserver configs for Trafodion",
-                "hosts": [{'host_name': host} for host in rsnodes],
-                "desired_configs": [
+            'ConfigGroup': {
+                'cluster_name': self.cluster_name,
+                'group_name': 'hbase-regionserver',
+                'tag': 'HBASE',
+                'description': 'HBase Regionserver configs for Trafodion',
+                'hosts': [{'host_name': host} for host in rsnodes],
+                'desired_configs': [
                     {
-                        "type": "hbase-site",
-                        "tag": "traf_cg",
-                        "properties": MOD_CFGS['hbase-site'].pop('hbase.hregion.impl')
+                        'type': 'hbase-site',
+                        'tag': 'traf_cg',
+                        'properties': {hbase_hregion_property: MOD_CFGS['hbase-site'].pop(hbase_hregion_property)}
                     }
                 ]
             }
