@@ -30,12 +30,12 @@ from common import run_cmd, err
 def run():
     dbcfgs = json.loads(dbcfgs_json)
 
-    TRAF_DIR = '%s-%s' % (dbcfgs['traf_basename'], dbcfgs['traf_version'])
+    TRAF_DIRNAME = dbcfgs['traf_dirname']
 
     # untar traf package, package comes from copy_files.py
     TRAF_PACKAGE_FILE = '/tmp/' + dbcfgs['traf_package'].split('/')[-1]
-    run_cmd('mkdir -p %s' % TRAF_DIR)
-    run_cmd('tar xf %s -C %s' % (TRAF_PACKAGE_FILE, TRAF_DIR))
+    run_cmd('mkdir -p %s' % TRAF_DIRNAME)
+    run_cmd('tar xf %s -C %s' % (TRAF_PACKAGE_FILE, TRAF_DIRNAME))
 
     # copy dbcfgs file
     run_cmd('cp -rf /tmp/dbcfgs .dbcfgs')

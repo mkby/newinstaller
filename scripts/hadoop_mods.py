@@ -99,6 +99,28 @@ class HDPMod(object):
         cfg_url = cluster_url + '/configurations?type={0}&tag={1}'
         desired_cfg = self.p.get(desired_cfg_url)
 
+        hdp = self.p.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % cluster_url)
+        rsnodes = [c['HostRoles']['host_name'] for c in hdp['host_components']]
+
+        hbase_hregion_property = 'hbase.hregion.impl'
+        hbase_config_group = {
+            'ConfigGroup': {
+                'cluster_name': self.cluster_name,
+                'group_name': 'hbase-regionserver',
+                'tag': 'HBASE',
+                'description': 'HBase Regionserver configs for Trafodion',
+                'hosts': [{'host_name': host} for host in rsnodes],
+                'desired_configs': [
+                    {
+                        'type': 'hbase-site',
+                        'tag': 'traf_cg',
+                        'properties': {hbase_hregion_property: MOD_CFGS['hbase-site'].pop(hbase_hregion_property)}
+                    }
+                ]
+            }
+        }
+        self.p.post('%s/config_groups' % cluster_url, hbase_config_group)
+
         for config_type in MOD_CFGS.keys():
             desired_tag = desired_cfg['Clusters']['desired_configs'][config_type]['tag']
             current_cfg = self.p.get(cfg_url.format(config_type, desired_tag))

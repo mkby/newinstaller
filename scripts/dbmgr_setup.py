@@ -100,9 +100,6 @@ def run():
     # edit start stop
     mod_file(START_STOP, {'TSDPORT=.*':'TSDPORT=%s' % tsd_port})
 
-    # edit logback xml
-    #mod_file(LOGBACK_XML, {'/var/log/opentsdb':'../../log'})
-
     # set 755 for bosun bin
     run_cmd('chmod 755 %s/bosun/bin/bosun-linux-amd64' % MGBLTY_INSTALL_DIR)
 

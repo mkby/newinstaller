@@ -113,7 +113,7 @@ def main():
         pwd = ''
 
     if os.path.exists(config_file):
-        cfgs = ParseInI(config_file).load()
+        cfgs = ParseInI(config_file, 'dbconfigs').load()
     else:
         node_lists = expNumRe(raw_input('Enter list of Nodes separated by comma, support numeric RE, i.e. n[01-12]: '))
 
