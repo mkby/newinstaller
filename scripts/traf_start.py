@@ -53,7 +53,7 @@ def run():
             print 'Initialize trafodion, upgrade'
             run_cmd('echo "initialize trafodion, upgrade;" | sqlci > %s' % tmp_file)
     # other errors
-    if 'ERROR' in init_output and not '1392' in init_output and not '1395' in init_output:
+    elif 'ERROR' in init_output:
         err('Failed to initialize trafodion:\n %s' % init_output)
 
     run_cmd('rm -rf %s' % tmp_file)
