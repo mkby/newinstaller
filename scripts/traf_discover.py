@@ -233,7 +233,7 @@ class Discover(object):
         return platform.python_version()
 
     @deco
-    def get_traf_home(self):
+    def get_home_dir(self):
         traf_user = self.dbcfgs['traf_user']
         return cmd_output("getent passwd %s | awk -F: '{print $6}' | sed 's/\/%s//g'" % (traf_user, traf_user))
 

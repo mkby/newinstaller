@@ -3,7 +3,7 @@
   {
       "prompt":"Enter directory name to install trafodion to"
   },
-  "traf_home":
+  "home_dir":
   {
       "prompt":"Enter trafodion user's home directory",
       "default":"/home"

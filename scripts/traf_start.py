@@ -57,7 +57,7 @@ def run():
         if 'ERROR' in init_output and not '1392' in init_output and not '1395' in init_output:
             err('Failed to initialize trafodion:\n %s' % init_output)
 
-    run_cmd('rm %s' % tmp_file)
+    run_cmd('rm -rf %s' % tmp_file)
     if dbcfgs['ldap_security'] == 'Y':
         run_cmd('echo "initialize authorization; alter user DB__ROOT set external name \"%s\";" | sqlci > %s' % (dbcfgs['db_root_user'], tmp_file))
         if dbcfgs.has_key('db_admin_user'):
@@ -67,7 +67,7 @@ def run():
         if 'ERROR' in secure_output:
             err('Failed to setup security for trafodion:\n %s' % secure_output)
 
-    run_cmd('rm %s' % tmp_file)
+    run_cmd('rm -rf %s' % tmp_file)
     if os.path.exists('%s/sql/scripts/connstart' % SQ_ROOT):
         run_cmd('connstart')
 
