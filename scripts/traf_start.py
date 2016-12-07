@@ -42,20 +42,19 @@ def run():
 
     # set a uniq file name
     tmp_file = '/tmp/initialize.out.' + str(int(time.time()))
-    if dbcfgs.has_key('upgrade') and dbcfgs['upgrade'].upper() == 'Y':
-        print 'Initialize trafodion upgrade'
-        run_cmd('echo "initialize trafodion, upgrade;" | sqlci > %s' % tmp_file)
-        init_output = cmd_output('cat %s' % tmp_file)
-        if 'ERROR' in init_output:
-            err('Failed to upgrade initialize trafodion:\n %s' % init_output)
-    else:
-        print 'Initialize trafodion'
-        run_cmd('echo "initialize trafodion;" | sqlci > %s' % tmp_file)
-        init_output = cmd_output('cat %s' % tmp_file)
-        # skip error 1392, 1395
-        # ERROR[1392] Trafodion is already initialized on this system. No action is needed.
-        if 'ERROR' in init_output and not '1392' in init_output and not '1395' in init_output:
-            err('Failed to initialize trafodion:\n %s' % init_output)
+    print 'Initialize trafodion'
+    run_cmd('echo "initialize trafodion;" | sqlci > %s' % tmp_file)
+    init_output = cmd_output('cat %s' % tmp_file)
+    # error 1392, 1395
+    if '1392' in init_output or '1395' in init_output:
+        run_cmd('echo "get version of metadata;" | sqlci > %s' % tmp_file)
+        meta_current = cmd_output('grep \'Metadata is current\' %s | wc -l' % tmp_file)
+        if meta_current != "1":
+            print 'Initialize trafodion, upgrade'
+            run_cmd('echo "initialize trafodion, upgrade;" | sqlci > %s' % tmp_file)
+    # other errors
+    elif 'ERROR' in init_output:
+        err('Failed to initialize trafodion:\n %s' % init_output)
 
     run_cmd('rm -rf %s' % tmp_file)
     if dbcfgs['ldap_security'] == 'Y':
