@@ -155,6 +155,10 @@ def run(dbcfgs, options, mode='install', pwd=''):
         skipped_scripts += ['hadoop_mods']
     else:
         skipped_scripts += ['apache_mods', 'apache_restart']
+   
+    # if version less than 2.2, ignore license check 
+    if not dbcfgs['traf_basename'] == 'esgynDB' or not float(dbcfgs['traf_version'][:3]) >= 2.2:
+        skipped_scripts += ['license_check']
 
 
     # set ssh config file to avoid known hosts verify on current installer node
