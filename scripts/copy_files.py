@@ -54,7 +54,7 @@ def run(pwd):
 
     files = [key_file, key_file+'.pub', traf_package, dbcfgs_file]
     # if version >= 2.2, copy license file together
-    if float(dbcfgs['traf_version'][:3]) >= 2.2: 
+    if dbcfgs['traf_basename'] == 'esgynDB' and float(dbcfgs['traf_version'][:3]) >= 2.2: 
         license_file = dbcfgs['license_file']
         files.append(license_file)
 

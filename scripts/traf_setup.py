@@ -33,7 +33,7 @@ def run():
     dbcfgs = json.loads(dbcfgs_json)
 
     ### if version >= 2.2, copy license file to /etc/trafodion
-    if float(dbcfgs['traf_version'][:3]) >= 2.2:
+    if dbcfgs['traf_basename'] == 'esgynDB' and float(dbcfgs['traf_version'][:3]) >= 2.2:
         LICENSE_FILE = '/tmp/' + dbcfgs['license_file'].split('/')[-1]
         run_cmd('mkdir -p /etc/trafodion')
         run_cmd('cp -rf %s /etc/trafodion' % LICENSE_FILE)

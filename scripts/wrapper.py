@@ -157,7 +157,7 @@ def run(dbcfgs, options, mode='install', pwd=''):
         skipped_scripts += ['apache_mods', 'apache_restart']
    
     # if version less than 2.2, ignore license check 
-    if float(dbcfgs['traf_version'][:3]) < 2.2:
+    if not dbcfgs['traf_basename'] == 'esgynDB' or not float(dbcfgs['traf_version'][:3]) >= 2.2:
         skipped_scripts += ['license_check']
 
 
