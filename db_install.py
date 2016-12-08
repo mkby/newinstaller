@@ -42,7 +42,7 @@ except ImportError:
 from scripts import wrapper
 from scripts.common import DEF_PORT_FILE, DBCFG_FILE, USER_PROMPT_FILE, DBCFG_TMP_FILE, \
                            INSTALLER_LOC, Remote, Version, ParseHttp, ParseInI, ParseJson, \
-                           http_start, http_stop, format_output, err_m, expNumRe, cmd_output
+                           http_start, http_stop, format_output, err_m, expNumRe
 
 # init global cfgs for user input
 cfgs = defaultdict(str)
