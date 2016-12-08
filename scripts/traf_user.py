@@ -44,14 +44,14 @@ def run():
     TRAF_USER = dbcfgs['traf_user']
     TRAF_PWD = dbcfgs['traf_pwd']
     TRAF_GROUP = TRAF_USER
-    TRAF_HOME = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
+    HOME_DIR = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
     # customize trafodion home dir
-    if dbcfgs.has_key('traf_home') and dbcfgs['traf_home']:
-        TRAF_HOME = dbcfgs['traf_home']
+    if dbcfgs.has_key('home_dir') and dbcfgs['home_dir']:
+        HOME_DIR = dbcfgs['home_dir']
 
-    TRAF_USER_DIR = '%s/%s' % (TRAF_HOME, TRAF_USER)
+    TRAF_USER_DIR = '%s/%s' % (HOME_DIR, TRAF_USER)
     TRAF_DIRNAME = dbcfgs['traf_dirname']
-    SQ_ROOT = '%s/%s' % (TRAF_USER_DIR, TRAF_DIRNAME)
+    TRAF_HOME = '%s/%s' % (TRAF_USER_DIR, TRAF_DIRNAME)
 
     HBASE_XML_FILE = dbcfgs['hbase_xml_file']
     KEY_FILE = '/tmp/id_rsa'
@@ -94,7 +94,7 @@ def run():
     nodes = dbcfgs['node_list'].split(',')
     change_items = {
         '{{ java_home }}': dbcfgs['java_home'],
-        '{{ sq_home }}': SQ_ROOT,
+        '{{ sq_home }}': TRAF_HOME,
         '{{ hadoop_type }}': hadoop_type,
         '{{ node_list }}': ' '.join(nodes),
         '{{ node_count }}': str(len(nodes)),

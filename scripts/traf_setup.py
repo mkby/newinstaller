@@ -39,17 +39,17 @@ def run():
         run_cmd('cp -rf %s /etc/trafodion' % LICENSE_FILE)
         run_cmd('chmod +r /etc/trafodion -R')
 
-    TRAF_HOME = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
-    if dbcfgs.has_key('traf_home'):
-        TRAF_HOME = dbcfgs['traf_home']
+    HOME_DIR = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
+    if dbcfgs.has_key('home_dir'):
+        HOME_DIR = dbcfgs['home_dir']
 
     TRAF_USER = dbcfgs['traf_user']
     TRAF_DIRNAME = dbcfgs['traf_dirname']
-    SQ_ROOT = '%s/%s/%s' % (TRAF_HOME, TRAF_USER, TRAF_DIRNAME)
+    TRAF_HOME = '%s/%s/%s' % (HOME_DIR, TRAF_USER, TRAF_DIRNAME)
 
     TRAF_VER = dbcfgs['traf_version']
     DISTRO = dbcfgs['distro']
-    TRAF_LIB_PATH = SQ_ROOT + '/export/lib'
+    TRAF_LIB_PATH = TRAF_HOME + '/export/lib'
     SCRATCH_LOCS = dbcfgs['scratch_locs'].split(',')
 
     SUDOER_FILE = '/etc/sudoers.d/trafodion'
@@ -67,7 +67,7 @@ def run():
         # don't set permission for HOME folder
         if not os.path.exists(loc):
             run_cmd('mkdir -p %s' % loc)
-        if TRAF_HOME not in loc:
+        if HOME_DIR not in loc:
             run_cmd('chmod 777 %s' % loc)
 
     ### copy jar files ###
