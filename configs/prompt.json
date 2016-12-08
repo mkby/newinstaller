@@ -1,4 +1,9 @@
 {
+  "license_file":
+  {
+      "prompt":"Enter full path to license file",
+      "isexist":true
+  },
   "traf_dirname":
   {
       "prompt":"Enter directory name to install trafodion to"

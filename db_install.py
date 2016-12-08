@@ -42,7 +42,7 @@ except ImportError:
 from scripts import wrapper
 from scripts.common import DEF_PORT_FILE, DBCFG_FILE, USER_PROMPT_FILE, DBCFG_TMP_FILE, \
                            INSTALLER_LOC, Remote, Version, ParseHttp, ParseInI, ParseJson, \
-                           http_start, http_stop, format_output, err_m, expNumRe
+                           http_start, http_stop, format_output, err_m, expNumRe, cmd_output
 
 # init global cfgs for user input
 cfgs = defaultdict(str)
@@ -474,6 +474,9 @@ def user_input(options, prompt_mode=True, pwd=''):
 
     if cfgs['traf_basename'] == 'esgynDB' and float(cfgs['traf_version'][:3]) >= 2.2:
         cfgs['req_java8'] = 'Y'
+        g('license_file')
+        if not os.path.isfile(cfgs['license_file']):
+            log_err('Invalid license file')   
     else:
         cfgs['req_java8'] = 'N'
 

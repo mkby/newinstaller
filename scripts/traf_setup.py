@@ -32,6 +32,13 @@ from common import err, cmd_output, run_cmd
 def run():
     dbcfgs = json.loads(dbcfgs_json)
 
+    ### if version >= 2.2, copy license file to /etc/trafodion
+    if float(dbcfgs['traf_version'][:3]) >= 2.2:
+        LICENSE_FILE = '/tmp/' + dbcfgs['license_file'].split('/')[-1]
+        run_cmd('mkdir -p /etc/trafodion')
+        run_cmd('cp -rf %s /etc/trafodion' % LICENSE_FILE)
+        run_cmd('chmod +r /etc/trafodion -R')
+
     TRAF_HOME = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
     if dbcfgs.has_key('traf_home'):
         TRAF_HOME = dbcfgs['traf_home']
