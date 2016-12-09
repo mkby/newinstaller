@@ -40,20 +40,20 @@ def run():
     else:
         #get license type
         license_type = cmd_output('%s/decoder -t -f %s' % (SCRIPTS_DIR, license_file))
-         
+
         if license_type != 'INTERNAL':
             #check support node number
             nodes = cmd_output('%s/decoder -n -f %s' % (SCRIPTS_DIR, license_file))
             if node_count > nodes:
                 err('Current number of nodes does not match allowed number of nodes')
-         
+
             #check support version
             traf_version = cmd_output('%s/decoder -p -f %s' % (SCRIPTS_DIR, license_file))
             traf_version = '_' + cmd_output('echo %s | awk \'{print tolower($0)}\'' % traf_version) + '_'
             print traf_version
             if traf_version not in traf_package:
                 err('License version doesn\'t match package')
-     
+
             #scheck expire date
             expire_day = cmd_output('%s/decoder -e -f %s' % (SCRIPTS_DIR, license_file))
             current_day = cmd_output('echo $(($(date --utc --date "$1" +\%s)/86400))')

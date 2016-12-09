@@ -32,8 +32,8 @@ from common import err, cmd_output, run_cmd
 def run():
     dbcfgs = json.loads(dbcfgs_json)
 
-    ### if version >= 2.2, copy license file to /etc/trafodion
-    if dbcfgs['traf_basename'] == 'esgynDB' and float(dbcfgs['traf_version'][:3]) >= 2.2:
+    ### copy license file to /etc/trafodion
+    if dbcfgs.has_key('license_file'):
         LICENSE_FILE = '/tmp/' + dbcfgs['license_file'].split('/')[-1]
         run_cmd('mkdir -p /etc/trafodion')
         run_cmd('cp -rf %s /etc/trafodion' % LICENSE_FILE)
