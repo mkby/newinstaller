@@ -36,7 +36,7 @@ REPO_FILE = '/etc/yum.repos.d/cmlocal.repo'
 LOCAL_REPO_PTR = """
 [cmlocal]
 name=cloudera manager local repo
-baseurl=http://%s:%s/
+baseurl=http://%s/
 enabled=1
 gpgcheck=0
 """
@@ -69,7 +69,7 @@ def run():
         f.writelines(etc_hosts)
 
     ### setup cmlocal repo file
-    repo_content = LOCAL_REPO_PTR % (dbcfgs['repo_ip'], dbcfgs['repo_http_port'])
+    repo_content = LOCAL_REPO_PTR % (dbcfgs['repo_url'])
     with open(REPO_FILE, 'w') as f:
         f.write(repo_content)
 

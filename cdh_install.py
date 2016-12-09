@@ -342,14 +342,22 @@ def main():
     ports = ParseInI(DEF_PORT_FILE, 'ports').load()
     roles = ParseInI(DEF_PORT_FILE, 'roles').load()
 
+    repo_url = dirs['repo_url']
     repo_dir = dirs['repo_dir']
     parcel_dir = dirs['parcel_dir']
     repo_http_port = ports['repo_http_port']
     cdh_hosts = expNumRe(hosts['hosts'])
     cdhmaster = cdh_hosts[0]
 
-    if not repo_dir: err_m('Failed to get repository dir from %s' % CDH_CFG_FILE)
-    if not parcel_dir: err_m('Failed to get parcel dir from %s' % CDH_CFG_FILE)
+    if repo_url:
+        if '404 Not Found' in cmd_output('curl %s' % repo_url):
+            err_m('Invalid repository URL')
+    else:
+        if not repo_dir or not os.path.exists(repo_dir):
+            err_m('Failed to get repository dir')
+
+    if not parcel_dir or not os.path.exists(parcel_dir):
+        err_m('Failed to get parcel dir')
 
     with open('/etc/hosts', 'r') as f:
         lines = f.readlines()
@@ -366,8 +374,11 @@ def main():
     cfgs['node_list'] = ','.join(cdh_hosts)
     cfgs['etc_hosts'] = etc_hosts
     cfgs['parcel_dir'] = parcel_dir
-    cfgs['repo_ip'] = repo_ip
-    cfgs['repo_http_port'] = repo_http_port
+
+    if repo_url:
+        cfgs['repo_url'] = repo_url
+    else:
+        cfgs['repo_url'] = '%s:%s' % (repo_ip, repo_http_port)
 
     def cdh_install():
         if options.pwd:
@@ -385,9 +396,9 @@ def main():
             remote.execute('sudo mv /tmp/%s /opt/cloudera/parcel-repo/' % parcel_file.split('/')[-1])
 
         # deploy cloudera
-        http_start(repo_dir, repo_http_port)
+        if not repo_url: http_start(repo_ip)
         wrapper.run(cfgs, options, mode='cloudera', pwd=pwd)
-        http_stop()
+        if not repo_url: http_stop()
         ok('Cloudera RPMs installed successfully!')
 
     cdh_install()
