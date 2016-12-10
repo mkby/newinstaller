@@ -186,6 +186,7 @@ class UserInput(object):
         isYN = self.in_data[name].has_key('isYN')
         isdigit = self.in_data[name].has_key('isdigit')
         isexist = self.in_data[name].has_key('isexist')
+        isfile = self.in_data[name].has_key('isfile')
         isremote_exist = self.in_data[name].has_key('isremote_exist')
         isIP = self.in_data[name].has_key('isIP')
         isuser = self.in_data[name].has_key('isuser')
@@ -203,6 +204,9 @@ class UserInput(object):
             elif isexist:
                 if not os.path.exists(answer):
                     log_err('%s path \'%s\' doesn\'t exist' % (name, answer))
+            elif isfile:
+                if not os.path.isfile(answer):
+                    log_err('%s file \'%s\' doesn\'t exist' % (name, answer))
             elif isremote_exist:
                 hosts = cfgs['node_list'].split(',')
                 remotes = [Remote(host, pwd=self.pwd) for host in hosts]
@@ -439,8 +443,8 @@ def user_input(options, prompt_mode=True, pwd=''):
             log_err('HBase version is not supported')
         if content_dict['hadoop_authorization'] == 'true':
             log_err('HBase authorization is enabled, please disable it before installing trafodion')
-        if content_dict['traf_home']: # trafodion user exists
-            cfgs['traf_home'] = content_dict['traf_home']
+        if content_dict['home_dir']: # trafodion user exists
+            cfgs['home_dir'] = content_dict['home_dir']
         if content_dict['hadoop_authentication'] == 'kerberos':
             cfgs['secure_hadoop'] = 'Y'
         else:
@@ -474,6 +478,7 @@ def user_input(options, prompt_mode=True, pwd=''):
 
     if cfgs['traf_basename'] == 'esgynDB' and float(cfgs['traf_version'][:3]) >= 2.2:
         cfgs['req_java8'] = 'Y'
+        g('license_file')
     else:
         cfgs['req_java8'] = 'N'
 

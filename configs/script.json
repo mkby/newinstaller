@@ -1,6 +1,11 @@
 {
 "install": [
     {
+        "script": "license_check.py",
+        "desc": "License Check",
+        "node": "local"
+    },
+    {
         "script": "traf_check.py",
         "desc": "Environment Check",
         "node": "all"

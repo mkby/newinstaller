@@ -1,9 +1,14 @@
 {
+  "license_file":
+  {
+      "prompt":"Enter full path to license file",
+      "isfile":true
+  },
   "traf_dirname":
   {
       "prompt":"Enter directory name to install trafodion to"
   },
-  "traf_home":
+  "home_dir":
   {
       "prompt":"Enter trafodion user's home directory",
       "default":"/home"

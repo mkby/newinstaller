@@ -49,7 +49,6 @@ def get_options():
     parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
                       help="Prompt SSH login password for remote hosts. \
                             If set, \'sshpass\' tool is required.")
-
     (options, args) = parser.parse_args()
     return options
 
