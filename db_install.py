@@ -459,7 +459,7 @@ def user_input(options, prompt_mode=True, pwd=''):
         ports = ParseInI(DEF_PORT_FILE, 'ports').load()
         cfgs['repo_http_port'] = ports['repo_http_port']
 
-    pkg_list = ['apache-trafodion', 'esgynDB']
+    pkg_list = ['apache-trafodion']
     # find tar in installer folder, if more than one found, use the first one
     for pkg in pkg_list:
         tar_loc = glob('%s/*%s*.tar.gz' % (INSTALLER_LOC, pkg))
@@ -475,12 +475,6 @@ def user_input(options, prompt_mode=True, pwd=''):
         cfgs['traf_basename'], cfgs['traf_version'] = re.search(r'.*(%s).*-(\d\.\d\.\d).*' % pattern, cfgs['traf_package']).groups()
     except:
         log_err('Invalid package tar file')
-
-    if cfgs['traf_basename'] == 'esgynDB' and float(cfgs['traf_version'][:3]) >= 2.2:
-        cfgs['req_java8'] = 'Y'
-        g('license_file')
-    else:
-        cfgs['req_java8'] = 'N'
 
     if not cfgs['traf_dirname']:
         cfgs['traf_dirname'] = '%s-%s' % (cfgs['traf_basename'], cfgs['traf_version'])

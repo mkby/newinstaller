@@ -1,11 +1,6 @@
 {
 "install": [
     {
-        "script": "license_check.py",
-        "desc": "License Check",
-        "node": "local"
-    },
-    {
         "script": "traf_check.py",
         "desc": "Environment Check",
         "node": "all"
@@ -45,12 +40,6 @@
     {
         "script": "dcs_setup.py",
         "desc": "DCS/REST Setup",
-        "node": "all",
-        "run_as_traf": "yes"
-    },
-    {
-        "script": "dbmgr_setup.py",
-        "desc": "DB Manager Setup",
         "node": "all",
         "run_as_traf": "yes"
     },
