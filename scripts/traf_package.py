@@ -34,11 +34,11 @@ def run():
 
     # untar traf package, package comes from copy_files.py
     TRAF_PACKAGE_FILE = '/tmp/' + dbcfgs['traf_package'].split('/')[-1]
-    run_cmd('mkdir -p %s' % TRAF_DIRNAME)
-    run_cmd('tar xf %s -C %s' % (TRAF_PACKAGE_FILE, TRAF_DIRNAME))
+    run_cmd('mkdir -p ~/%s' % TRAF_DIRNAME)
+    run_cmd('tar xf %s -C ~/%s' % (TRAF_PACKAGE_FILE, TRAF_DIRNAME))
 
     # copy dbcfgs file
-    run_cmd('cp -rf /tmp/dbcfgs .dbcfgs')
+    run_cmd('cp -rf /tmp/dbcfgs ~/.dbcfgs')
 
     print 'Trafodion package extracted successfully!'
 
