@@ -468,6 +468,7 @@ def user_input(options, prompt_mode=True, pwd=''):
             break
 
     g('traf_package')
+    cfgs['req_java8'] = 'N'
 
     # get basename and version from tar filename
     try:
