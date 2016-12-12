@@ -77,7 +77,7 @@ def run():
     mod_file(TRAFCI_FILE, {'HNAME=.*':'HNAME=%s:%s' % (dcs_master, dcs_master_port)})
 
     # modify dcs-site.xml
-    net_interface = run_cmd('netstat -rn | grep "^0.0.0.0" | awk \'{print $8}\'')
+    net_interface = run_cmd('ip route |grep default|awk \'{print $5}\'')
     hb = ParseXML(HBASE_XML_FILE)
     zk_hosts = hb.get_property('hbase.zookeeper.quorum')
     zk_port = hb.get_property('hbase.zookeeper.property.clientPort')
