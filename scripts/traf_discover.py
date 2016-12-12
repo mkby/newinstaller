@@ -219,7 +219,7 @@ class Discover(object):
     @deco
     def get_ext_interface(self):
         """ get external network interface """
-        return cmd_output('netstat -rn | grep "^0.0.0.0" | awk \'{print $8}\'').strip()
+        return cmd_output('ip route |grep default|awk \'{print $5}\'')
 
     @deco
     def get_rootdisk_free(self):
