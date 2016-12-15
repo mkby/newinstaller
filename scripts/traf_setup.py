@@ -64,13 +64,8 @@ def run():
             run_cmd('chmod 777 %s' % loc)
 
     ### copy jar files ###
-    hbase_lib_path = '/usr/lib/hbase/lib'
-    if 'CDH' in DISTRO:
-        parcel_lib = '/opt/cloudera/parcels/CDH/lib/hbase/lib'
-        if os.path.exists(parcel_lib): hbase_lib_path = parcel_lib
-    elif 'HDP' in DISTRO:
-        hbase_lib_path = '/usr/hdp/current/hbase-regionserver/lib'
-    elif 'APACHE' in DISTRO:
+    hbase_lib_path = dbcfgs['hbase_lib_path']
+    if 'APACHE' in DISTRO:
         hbase_home = dbcfgs['hbase_home']
         hbase_lib_path = hbase_home + '/lib'
         # for apache distro, get hbase version from cmdline
