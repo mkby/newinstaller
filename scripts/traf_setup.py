@@ -36,7 +36,7 @@ def run():
     if dbcfgs.has_key('license_file'):
         LICENSE_FILE = '/tmp/' + dbcfgs['license_file'].split('/')[-1]
         run_cmd('mkdir -p /etc/trafodion')
-        run_cmd('cp -rf %s /etc/trafodion' % LICENSE_FILE)
+        run_cmd('cp -rf %s /etc/trafodion/esgyndb_license' % LICENSE_FILE)
         run_cmd('chmod +r /etc/trafodion -R')
 
     HOME_DIR = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
