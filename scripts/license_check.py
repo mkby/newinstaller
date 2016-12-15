@@ -21,7 +21,7 @@
 #
 # @@@ END COPYRIGHT @@@
 
-### this script should be run on all nodes with sudo user ###
+### this script should be run on local node ###
 
 import os
 import json
