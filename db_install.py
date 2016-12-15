@@ -54,8 +54,9 @@ class HadoopDiscover(object):
         self.users = {}
         self.cluster_name = cluster_name
         self.hg = ParseHttp(user, pwd)
-        self.v1_url = '%s/api/v1/clusters' % url
-        self.v6_url = '%s/api/v6/clusters' % url
+        self.url = url
+        self.v1_url = '%s/api/v1/clusters' % self.url
+        self.v6_url = '%s/api/v6/clusters' % self.url
         self.cluster_url = '%s/%s' % (self.v1_url, cluster_name.replace(' ', '%20'))
         self._get_distro()
         self._check_version()
@@ -176,6 +177,18 @@ class HadoopDiscover(object):
         hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url)
         self.rsnodes = [c['HostRoles']['host_name'] for c in hdp['host_components']]
 
+    def get_hbase_lib_path(self):
+        if 'CDH' in self.distro:
+            parcel_config = self.hg.get('%s/api/v6/cm/allHosts/config' % self.url)
+            # parcel dir exists
+            if parcel_config['items'] and parcel_config['items'][0]['name'] == 'parcels_directory':
+                hbase_lib_path = parcel_config['items'][0]['value'] + '/CDH/lib/hbase/lib'
+            else:
+                hbase_lib_path = '/usr/lib/hbase/lib'
+        elif 'HDP' in self.distro:
+            hbase_lib_path = '/usr/hdp/current/hbase-regionserver/lib'
+
+        return hbase_lib_path
 
 class UserInput(object):
     def __init__(self, options, pwd):
@@ -395,6 +408,7 @@ def user_input(options, prompt_mode=True, pwd=''):
         hadoop_users = hadoop_discover.get_hadoop_users()
 
         cfgs['distro'] = hadoop_discover.distro
+        cfgs['hbase_lib_path'] = hadoop_discover.get_hbase_lib_path()
         cfgs['hbase_service_name'] = hadoop_discover.get_hbase_srvname()
         cfgs['hdfs_service_name'] = hadoop_discover.get_hdfs_srvname()
         cfgs['zookeeper_service_name'] = hadoop_discover.get_zookeeper_srvname()
