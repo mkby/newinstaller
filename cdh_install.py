@@ -16,7 +16,7 @@ from random import choice
 from cm_api.api_client import ApiResource, ApiException
 from cm_api.endpoints.services import ApiServiceSetupInfo
 from scripts import wrapper
-from scripts.common import err_m, info, ok, http_start, http_stop, Remote, \
+from scripts.common import err_m, info, ok, http_start, http_stop, Remote, cmd_output, \
                            retry, expNumRe, ParseInI, DEF_PORT_FILE, CONFIG_DIR
 
 CM_PORT = 7180

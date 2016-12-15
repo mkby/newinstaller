@@ -36,7 +36,7 @@ REPO_FILE = '/etc/yum.repos.d/cmlocal.repo'
 LOCAL_REPO_PTR = """
 [cmlocal]
 name=cloudera manager local repo
-baseurl=http://%s/
+baseurl=%s/
 enabled=1
 gpgcheck=0
 """
