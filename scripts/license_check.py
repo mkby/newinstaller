@@ -21,7 +21,7 @@
 #
 # @@@ END COPYRIGHT @@@
 
-### this script should be run on local node ###
+### this script should be run on all nodes with sudo user ###
 
 import os
 import json
@@ -48,10 +48,9 @@ def run():
                 err('Current number of nodes does not match allowed number of nodes')
          
             #check support version
-            traf_version = cmd_output('%s/decoder -p -f %s' % (SCRIPTS_DIR, license_file))
-            traf_version = '_' + cmd_output('echo %s | awk \'{print tolower($0)}\'' % traf_version) + '_'
-            print traf_version
-            if traf_version not in traf_package:
+            esgyn_version = cmd_output('%s/decoder -p -f %s' % (SCRIPTS_DIR, license_file))
+            esgyn_version = '_' + cmd_output('echo %s | awk \'{print tolower($0)}\'' % esgyn_version) + '_'
+            if esgyn_version not in traf_package:
                 err('License version doesn\'t match package')
      
             #scheck expire date
