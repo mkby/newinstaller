@@ -36,8 +36,8 @@ cd $HOME
 #-------------------------------------------
 # full path of your Trafodion installation
 #-------------------------------------------
-export SQ_HOME="{{ sq_home }}"
-export MY_SQROOT=$SQ_HOME
+export TRAF_HOME="{{ traf_home }}"
+export MY_SQROOT="{{ traf_home }}" # for compatibility
 
 #-------------------------------------------
 # other env vars needed by Trafodion
@@ -57,9 +57,9 @@ export ZOOKEEPER_PORT="{{ zookeeper_port }}"
 # Execute the sqenv.sh script if it exists.
 #-------------------------------------------
 PATH=".:$PATH"
-if [ -f $MY_SQROOT/sqenv.sh ]; then
+if [ -f $TRAF_HOME/sqenv.sh ]; then
 	pushd . >/dev/null
-	cd $MY_SQROOT
+	cd $TRAF_HOME
 	source ./sqenv.sh
 	popd >/dev/null
 	export MANPATH=$MANPATH:$MPI_ROOT/share/man
