@@ -378,7 +378,7 @@ def main():
     if repo_url:
         cfgs['repo_url'] = repo_url
     else:
-        cfgs['repo_url'] = '%s:%s' % (repo_ip, repo_http_port)
+        cfgs['repo_url'] = 'http://%s:%s' % (repo_ip, repo_http_port)
 
     def cdh_install():
         if options.pwd:
@@ -396,7 +396,7 @@ def main():
             remote.execute('sudo mv /tmp/%s /opt/cloudera/parcel-repo/' % parcel_file.split('/')[-1])
 
         # deploy cloudera
-        if not repo_url: http_start(repo_ip)
+        if not repo_url: http_start(repo_dir, repo_http_port)
         wrapper.run(cfgs, options, mode='cloudera', pwd=pwd)
         if not repo_url: http_stop()
         ok('Cloudera RPMs installed successfully!')
