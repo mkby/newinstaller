@@ -94,7 +94,7 @@ def run():
     nodes = dbcfgs['node_list'].split(',')
     change_items = {
         '{{ java_home }}': dbcfgs['java_home'],
-        '{{ sq_home }}': TRAF_HOME,
+        '{{ traf_home }}': TRAF_HOME,
         '{{ hadoop_type }}': hadoop_type,
         '{{ node_list }}': ' '.join(nodes),
         '{{ node_count }}': str(len(nodes)),

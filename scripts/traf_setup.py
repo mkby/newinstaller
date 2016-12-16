@@ -62,6 +62,13 @@ def run():
     run_cmd('sysctl -w kernel.pid_max=65535 2>&1 > /dev/null')
     run_cmd('echo "kernel.pid_max=65535" >> /etc/sysctl.conf')
 
+    ### copy init script ###
+    init_script = '%s/sysinstall/etc/init.d/trafodion' % TRAF_HOME
+    if os.path.exists(init_script):
+        run_cmd('cp -rf %s /etc/init.d/' % init_script)
+        run_cmd('chkconfig --add trafodion')
+        run_cmd('chkconfig --level 06 trafodion on')
+
     ### create and set permission for scratch file dir ###
     for loc in SCRATCH_LOCS:
         # don't set permission for HOME folder

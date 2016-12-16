@@ -270,7 +270,6 @@ class UserInput(object):
             orig = getpass.getpass(prompt)
             confirm = getpass.getpass('Confirm ' + prompt)
             if orig == confirm:
-                #answer = base64.b64encode(confirm)
                 answer = confirm
             else:
                 log_err('Password mismatch')
@@ -583,8 +582,6 @@ def get_options():
                       help="Install Trafodion on top of Apache Hadoop.")
     parser.add_option("--offline", action="store_true", dest="offline", default=False,
                       help="Enable local repository for offline installing Trafodion.")
-    parser.add_option("--version", action="store_true", dest="version", default=False,
-                      help="Show the installer version.")
 
     (options, args) = parser.parse_args()
     return options
@@ -596,8 +593,6 @@ def main():
 
     # handle parser option
     options = get_options()
-
-    if options.version: version()
 
     if options.build and options.cfgfile:
         log_err('Wrong parameter, cannot specify both --build and --config-file')
