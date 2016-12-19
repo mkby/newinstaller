@@ -320,6 +320,7 @@ class UserInput(object):
         confirm = self.get_confirm()
         if confirm != 'Y':
             if os.path.exists(DBCFG_FILE): os.remove(DBCFG_FILE)
+            run_cmd('rm %s/*.status' % INSTALLER_LOC)
             log_err('User quit')
 
 
