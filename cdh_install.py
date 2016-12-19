@@ -397,6 +397,7 @@ def main():
 
         # deploy cloudera
         if not repo_url: http_start(repo_dir, repo_http_port)
+
         wrapper.run(cfgs, options, mode='cloudera', pwd=pwd)
         if not repo_url: http_stop()
         ok('Cloudera RPMs installed successfully!')
