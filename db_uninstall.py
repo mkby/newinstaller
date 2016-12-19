@@ -84,10 +84,11 @@ def main():
 
     # stop trafodion on the first node
     run_cmd('%s %s sudo su trafodion -l -c \"ckillall\" ' % (ssh_cmd, first_node))
-    # remove trafodion userid and group on all trafodion nodes
+    # remove trafodion userid and group on all trafodion nodes, together with folders
     for node in nodes:
         run_cmd('%s %s sudo /usr/sbin/userdel -rf trafodion' % (ssh_cmd, node))
         run_cmd('%s %s sudo /usr/sbin/groupdel trafodion' % (ssh_cmd, node))
+        run_cmd('%s %s sudo rm -rf /etc/trafodion*' % (ssh_cmd, node))
     
     format_output('EsgynDB Uninstall Complete')
 
