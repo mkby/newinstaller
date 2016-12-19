@@ -72,9 +72,9 @@ def main():
         node_lists = raw_input('Enter Trafodion node list to uninstall(separated by comma): ')
         if not node_lists: err('Empty value\n')
         node_list = ','.join(expNumRe(node_lists))
-        rc = notify(node_list)
-        if rc.lower() != 'y': sys.exit(1)
 
+    rc = notify(node_list)
+    if rc.lower() != 'y': sys.exit(1)
     nodes = node_list.split(',')
     first_node = nodes[0]
 
