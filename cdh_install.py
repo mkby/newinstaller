@@ -339,8 +339,9 @@ def main():
     CDH_CFG_FILE = CONFIG_DIR + '/cdh_config.ini'
     dirs = ParseInI(CDH_CFG_FILE, 'dirs').load()
     hosts = ParseInI(CDH_CFG_FILE, 'hosts').load()
+    roles = ParseInI(CDH_CFG_FILE, 'roles').load()
+
     ports = ParseInI(DEF_PORT_FILE, 'ports').load()
-    roles = ParseInI(DEF_PORT_FILE, 'roles').load()
 
     repo_url = dirs['repo_url']
     repo_dir = dirs['repo_dir']
@@ -354,10 +355,10 @@ def main():
             err_m('Invalid repository URL')
     else:
         if not repo_dir or not os.path.exists(repo_dir):
-            err_m('Failed to get repository dir')
+            err_m('Failed to get repository dir from %s' % CDH_CFG_FILE)
 
     if not parcel_dir or not os.path.exists(parcel_dir):
-        err_m('Failed to get parcel dir')
+        err_m('Failed to get parcel dir from %s' % CDH_CFG_FILE)
 
     with open('/etc/hosts', 'r') as f:
         lines = f.readlines()

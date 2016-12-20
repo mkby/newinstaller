@@ -25,7 +25,7 @@ import sys
 import os
 import getpass
 from optparse import OptionParser
-from scripts.common import run_cmd,format_output,err,expNumRe,ParseInI
+from scripts.common import run_cmd,format_output,err_m,expNumRe,ParseInI, Remote
 
 def get_options():
     usage = 'usage: %prog [options]\n'
@@ -55,7 +55,7 @@ def main():
     node_list = ''
 
     format_output('EsgynDB Uninstall Start')
-    
+
     if options.pwd:
         pwd = getpass.getpass('Input remote host SSH Password: ')
     else:
@@ -63,14 +63,14 @@ def main():
 
     if options.cfgfile:
         if not os.path.exists(options.cfgfile):
-            err('Cannot find config file \'%s\'' % options.cfgfile)
+            err_m('Cannot find config file \'%s\'' % options.cfgfile)
         config_file = options.cfgfile
         p = ParseInI(config_file, 'dbconfigs')
         cfgs = p.load()
         node_list = cfgs['node_list']
     else:
         node_lists = raw_input('Enter Trafodion node list to uninstall(separated by comma): ')
-        if not node_lists: err('Empty value\n')
+        if not node_lists: err_m('Empty value')
         node_list = ','.join(expNumRe(node_lists))
 
     rc = notify(node_list)
@@ -78,18 +78,16 @@ def main():
     nodes = node_list.split(',')
     first_node = nodes[0]
 
-    ssh_cmd = 'ssh'
-    if pwd != '':
-        ssh_cmd = 'sshpass -p %s' % pwd
-
+    remotes = [Remote(node, pwd=pwd) for node in nodes]
     # stop trafodion on the first node
-    run_cmd('%s %s sudo su trafodion -l -c \"ckillall\" ' % (ssh_cmd, first_node))
+    remotes[0].execute('sudo su trafodion -l -c ckillall', chkerr=False)
+
     # remove trafodion userid and group on all trafodion nodes, together with folders
-    for node in nodes:
-        run_cmd('%s %s sudo /usr/sbin/userdel -rf trafodion' % (ssh_cmd, node))
-        run_cmd('%s %s sudo /usr/sbin/groupdel trafodion' % (ssh_cmd, node))
-        run_cmd('%s %s sudo rm -rf /etc/trafodion*' % (ssh_cmd, node))
-    
+    for remote in remotes:
+        remote.execute('sudo -n /usr/sbin/userdel -rf trafodion', chkerr=False)
+        remote.execute('sudo -n /usr/sbin/groupdel trafodion', chkerr=False)
+        remote.execute('sudo -n rm -rf /etc/trafodion', chkerr=False)
+
     format_output('EsgynDB Uninstall Complete')
 
 if __name__ == "__main__":
