@@ -25,12 +25,13 @@ import sys
 import os
 import getpass
 from optparse import OptionParser
-from scripts.common import run_cmd,format_output,err_m,expNumRe,ParseInI, Remote
+from scripts.common import run_cmd, format_output, err_m, \
+                           expNumRe, ParseInI, Remote
 
 def get_options():
     usage = 'usage: %prog [options]\n'
-    usage += '  Trafodion uninstall script. It will uninstall trafodion rpm\n\
-  and remove trafodion user and home folder.'
+    usage += '  Trafodion uninstall script. It will remove \n\
+  trafodion user and home folder.'
     parser = OptionParser(usage=usage)
     parser.add_option("-c", "--config-file", dest="cfgfile", metavar="FILE",
                       help="Json format file. If provided, all install prompts \
@@ -40,7 +41,6 @@ def get_options():
                             If set, \'sshpass\' tool is required.")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                       help="Verbose mode, will print commands.")
-
     (options, args) = parser.parse_args()
     return options
 
@@ -52,15 +52,15 @@ def main():
 
     notify = lambda n: raw_input('Uninstall Trafodion on [%s] [N]: ' % n)
 
-    node_list = ''
 
-    format_output('EsgynDB Uninstall Start')
+    format_output('Trafodion Uninstall Start')
 
     if options.pwd:
         pwd = getpass.getpass('Input remote host SSH Password: ')
     else:
         pwd = ''
 
+    node_list = ''
     if options.cfgfile:
         if not os.path.exists(options.cfgfile):
             err_m('Cannot find config file \'%s\'' % options.cfgfile)
@@ -88,7 +88,7 @@ def main():
         remote.execute('sudo -n /usr/sbin/groupdel trafodion', chkerr=False)
         remote.execute('sudo -n rm -rf /etc/trafodion', chkerr=False)
 
-    format_output('EsgynDB Uninstall Complete')
+    format_output('Trafodion Uninstall Complete')
 
 if __name__ == "__main__":
     main()
