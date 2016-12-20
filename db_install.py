@@ -42,7 +42,7 @@ except ImportError:
 from scripts import wrapper
 from scripts.common import DEF_PORT_FILE, DBCFG_FILE, USER_PROMPT_FILE, DBCFG_TMP_FILE, \
                            INSTALLER_LOC, Remote, Version, ParseHttp, ParseInI, ParseJson, \
-                           http_start, http_stop, format_output, err_m, expNumRe
+                           http_start, http_stop, format_output, err_m, expNumRe, run_cmd
 
 # init global cfgs for user input
 cfgs = defaultdict(str)
@@ -60,6 +60,7 @@ class HadoopDiscover(object):
         self.cluster_url = '%s/%s' % (self.v1_url, cluster_name.replace(' ', '%20'))
         self._get_distro()
         self._check_version()
+        self.cm = self.hg.get('%s/api/v6/cm/deployment' % self.url)
 
     def _get_distro(self):
         content = self.hg.get(self.v1_url)
@@ -159,17 +160,15 @@ class HadoopDiscover(object):
 
     def _get_rsnodes_cdh(self):
         """ get list of HBase RegionServer nodes in CDH """
-        cm = self.hg.get('%s/api/v6/cm/deployment' % cfgs['mgr_url'])
-
         hostids = []
-        for c in cm['clusters']:
+        for c in self.cm['clusters']:
             if c['displayName'] == self.cluster_name:
                 for s in c['services']:
                     if s['type'] == 'HBASE':
                         for r in s['roles']:
                             if r['type'] == 'REGIONSERVER': hostids.append(r['hostRef']['hostId'])
         for i in hostids:
-            for h in cm['hosts']:
+            for h in self.cm['hosts']:
                 if i == h['hostId']: self.rsnodes.append(h['hostname'])
 
     def _get_rsnodes_hdp(self):
@@ -179,10 +178,16 @@ class HadoopDiscover(object):
 
     def get_hbase_lib_path(self):
         if 'CDH' in self.distro:
-            parcel_config = self.hg.get('%s/api/v6/cm/allHosts/config' % self.url)
-            # parcel dir exists
-            if parcel_config['items'] and parcel_config['items'][0]['name'] == 'parcels_directory':
-                hbase_lib_path = parcel_config['items'][0]['value'] + '/CDH/lib/hbase/lib'
+            for c in self.cm['clusters']:
+                if c['displayName'] == self.cluster_name:
+                    parcels = c['parcels']
+            if parcels:
+                parcel_config = self.hg.get('%s/api/v6/cm/allHosts/config' % self.url)
+                # custom parcel dir exists
+                if parcel_config['items'] and parcel_config['items'][0]['name'] == 'parcels_directory':
+                    hbase_lib_path = parcel_config['items'][0]['value'] + '/CDH/lib/hbase/lib'
+                else:
+                    hbase_lib_path = '/opt/cloudera/parcels/CDH/lib/hbase/lib'
             else:
                 hbase_lib_path = '/usr/lib/hbase/lib'
         elif 'HDP' in self.distro:
@@ -621,6 +626,9 @@ def main():
     else:
         print '\n** Loading configs from config file ... \n'
         cfgs = p.load()
+        # remove java home info from default config file
+        if config_file == DBCFG_FILE and cfgs.has_key('java_home'):
+            cfgs.pop('java_home')
         if options.offline and cfgs['offline_mode'] != 'Y':
             log_err('To enable offline mode, must set "offline_mode = Y" in config file')
         user_input(options, prompt_mode=False, pwd=pwd)
