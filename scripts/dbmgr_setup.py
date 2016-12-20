@@ -112,9 +112,9 @@ def run():
     if first_node in local_host:
         # create opentsdb table in hbase
         if dbcfgs.has_key('hbase_home'):
-            run_cmd('export HBASE_HOME=%s; export COMPRESSION=GZ; %s/create_table.sh' % (dbcfgs['hbase_home'], MGBLTY_TOOLS_DIR))
+            run_cmd('export HBASE_HOME=%s; export COMPRESSION=SNAPPY; %s/create_table.sh' % (dbcfgs['hbase_home'], MGBLTY_TOOLS_DIR))
         else:
-            run_cmd('export HBASE_HOME=/usr; export COMPRESSION=GZ; %s/create_table.sh' % MGBLTY_TOOLS_DIR)
+            run_cmd('export HBASE_HOME=/usr; export COMPRESSION=SNAPPY; %s/create_table.sh' % MGBLTY_TOOLS_DIR)
         # register metrics
         run_cmd('export MGBLTY_INSTALL_DIR=%s; %s/register_metrics.sh' % (MGBLTY_INSTALL_DIR, MGBLTY_TOOLS_DIR))
 
