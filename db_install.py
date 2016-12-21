@@ -60,7 +60,8 @@ class HadoopDiscover(object):
         self.cluster_url = '%s/%s' % (self.v1_url, cluster_name.replace(' ', '%20'))
         self._get_distro()
         self._check_version()
-        self.cm = self.hg.get('%s/api/v6/cm/deployment' % self.url)
+        if 'CDH' in self.distro:
+            self.cm = self.hg.get('%s/api/v6/cm/deployment' % self.url)
 
     def _get_distro(self):
         content = self.hg.get(self.v1_url)
@@ -112,7 +113,7 @@ class HadoopDiscover(object):
             if ver in self.distro: has_version = 1
 
         if not has_version:
-            log_err('Sorry, currently EsgynDB doesn\'t support %s version' % self.distro)
+            log_err('Sorry, currently Trafodion doesn\'t support %s version' % self.distro)
 
     def get_hadoop_users(self):
         if 'CDH' in self.distro:
@@ -582,8 +583,8 @@ def get_options():
                             If set, \'sshpass\' tool is required.")
     parser.add_option("--build", action="store_true", dest="build", default=False,
                       help="Build the config file in guided mode only.")
-    parser.add_option("--upgrade", action="store_true", dest="upgrade", default=False,
-                      help="Upgrade install, it is useful when reinstalling Trafodion.")
+    parser.add_option("--reinstall", action="store_true", dest="reinstall", default=False,
+                      help="Reinstall Trafodion without restarting Hadoop.")
     parser.add_option("--apache-hadoop", action="store_true", dest="apache", default=False,
                       help="Install Trafodion on top of Apache Hadoop.")
     parser.add_option("--offline", action="store_true", dest="offline", default=False,
@@ -638,8 +639,8 @@ def main():
             log_err('To enable offline mode, must set "offline_mode = Y" in config file')
         user_input(options, prompt_mode=False, pwd=pwd)
 
-    if options.upgrade:
-        cfgs['upgrade'] = 'Y'
+    if options.reinstall:
+        cfgs['reinstall'] = 'Y'
 
     if options.offline:
         http_start(cfgs['local_repo_dir'], cfgs['repo_http_port'])
