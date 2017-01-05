@@ -62,8 +62,6 @@ def run():
             elif days_left < 30:
                 info('Warning: Days left of license %s' % days_left)
 
-    print 'License check successfully!'
-
 # main
 try:
     dbcfgs_json = sys.argv[1]

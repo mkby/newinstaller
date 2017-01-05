@@ -56,7 +56,7 @@ def run():
     run_cmd('setenforce 0')
 
     ### disable selinux permanently
-    mod_file(SELINUX_FILE, {'^SELINUX=.*':'SELINUX=disabled'})
+    mod_file(SELINUX_FILE, {'SELINUX=\w+':'SELINUX=disabled'})
 
     ### stop iptables
     run_cmd('service iptables stop')
