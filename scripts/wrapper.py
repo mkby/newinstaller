@@ -156,9 +156,9 @@ def run(dbcfgs, options, mode='install', pwd=''):
     else:
         skipped_scripts += ['apache_mods', 'apache_restart']
 
-    # if no license file, ignore license check
+    # if no license file, ignore setting license
     if not dbcfgs.has_key('license_file'):
-        skipped_scripts += ['license_check']
+        skipped_scripts += ['traf_license']
 
     # set ssh config file to avoid known hosts verify on current installer node
     SSH_CFG_FILE = os.environ['HOME'] + '/.ssh/config'

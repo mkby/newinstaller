@@ -1,9 +1,10 @@
 {
 "install": [
     {
-        "script": "license_check.py",
-        "desc": "License Check",
-        "node": "local"
+        "script": "traf_license.py",
+        "desc": "Set up License",
+        "node": "local",
+        "req_pwd": "yes"
     },
     {
         "script": "traf_check.py",
