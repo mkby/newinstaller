@@ -59,7 +59,7 @@ def run():
     KEY_FILE = '/tmp/id_rsa'
     AUTH_KEY_FILE = '%s/.ssh/authorized_keys' % TRAF_USER_DIR
     SSH_CFG_FILE = '%s/.ssh/config' % TRAF_USER_DIR
-    BASHRC_TEMPLATE = '%s/templates/bashrc.template' % TMP_DIR
+    BASHRC_TEMPLATE = '%s/sqf/sysinstall/home/trafodion/.bashrc' % TRAF_HOME
     BASHRC_FILE = '%s/.bashrc' % TRAF_USER_DIR
     ULIMITS_FILE = '/etc/security/limits.d/%s.conf' % TRAF_USER
     HSPERFDATA_FILE = '/tmp/hsperfdata_trafodion'
