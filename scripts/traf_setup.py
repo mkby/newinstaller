@@ -32,13 +32,6 @@ from common import err, cmd_output, run_cmd
 def run():
     dbcfgs = json.loads(dbcfgs_json)
 
-    ### copy license file to /etc/trafodion
-    if dbcfgs.has_key('license_file'):
-        LICENSE_FILE = '/tmp/' + dbcfgs['license_file'].split('/')[-1]
-        run_cmd('mkdir -p /etc/trafodion')
-        run_cmd('cp -rf %s /etc/trafodion/esgyndb_license' % LICENSE_FILE)
-        run_cmd('chmod +r /etc/trafodion -R')
-
     HOME_DIR = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2').strip()
     if dbcfgs.has_key('home_dir'):
         HOME_DIR = dbcfgs['home_dir']
@@ -57,6 +50,13 @@ def run():
 ## Allow trafodion id to run commands needed for backup and restore
 %%%s ALL =(hbase) NOPASSWD: /usr/bin/hbase"
 """ % TRAF_USER
+
+    ### copy license file to /etc/trafodion
+    if dbcfgs.has_key('license_file'):
+        LICENSE_FILE = '/tmp/' + dbcfgs['license_file'].split('/')[-1]
+        run_cmd('mkdir -p /etc/trafodion')
+        run_cmd('cp -rf %s /etc/trafodion/esgyndb_license' % LICENSE_FILE)
+        run_cmd('chmod +r /etc/trafodion -R')
 
     ### kernel settings ###
     run_cmd('sysctl -w kernel.pid_max=65535 2>&1 > /dev/null')

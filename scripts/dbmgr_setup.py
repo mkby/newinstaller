@@ -35,7 +35,7 @@ def run():
 
     DISTRO = dbcfgs['distro']
     SQ_ROOT = os.environ['MY_SQROOT']
-    BASHRC_FILE = os.environ['HOME'] + '/.bashrc'
+    TRAFODION_CFG_FILE = '/etc/trafodion/trafodion_config'
     TRAF_VER = dbcfgs['traf_version']
     HBASE_XML_FILE = dbcfgs['hbase_xml_file']
 
@@ -104,9 +104,9 @@ def run():
     run_cmd('chmod 755 %s/bosun/bin/bosun-linux-amd64' % MGBLTY_INSTALL_DIR)
 
     # edit bashrc
-    append_file(BASHRC_FILE, 'export PATH=$PATH:%s/jython2.7.0/bin' % MGBLTY_INSTALL_DIR)
-    append_file(BASHRC_FILE, 'export MGBLTY_INSTALL_DIR=%s' % MGBLTY_INSTALL_DIR)
-    append_file(BASHRC_FILE, 'export DBMGR_INSTALL_DIR=%s' % DBMGR_INSTALL_DIR)
+    append_file(TRAFODION_CFG_FILE, 'export PATH=$PATH:%s/jython2.7.0/bin' % MGBLTY_INSTALL_DIR)
+    append_file(TRAFODION_CFG_FILE, 'export MGBLTY_INSTALL_DIR=%s' % MGBLTY_INSTALL_DIR)
+    append_file(TRAFODION_CFG_FILE, 'export DBMGR_INSTALL_DIR=%s' % DBMGR_INSTALL_DIR)
 
     # run below commands on first node only
     if first_node in local_host:
