@@ -51,13 +51,6 @@ def run():
 %%%s ALL =(hbase) NOPASSWD: /usr/bin/hbase"
 """ % TRAF_USER
 
-    ### copy license file to /etc/trafodion
-    if dbcfgs.has_key('license_file'):
-        LICENSE_FILE = '/tmp/' + dbcfgs['license_file'].split('/')[-1]
-        run_cmd('mkdir -p /etc/trafodion')
-        run_cmd('cp -rf %s /etc/trafodion/esgyndb_license' % LICENSE_FILE)
-        run_cmd('chmod +r /etc/trafodion -R')
-
     ### kernel settings ###
     run_cmd('sysctl -w kernel.pid_max=65535 2>&1 > /dev/null')
     run_cmd('echo "kernel.pid_max=65535" >> /etc/sysctl.conf')
