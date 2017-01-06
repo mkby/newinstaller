@@ -34,24 +34,12 @@ fi
 cd $HOME
 
 #-------------------------------------------
-# full path of your Trafodion installation
-#-------------------------------------------
-export TRAF_HOME="{{ traf_home }}"
-export MY_SQROOT="{{ traf_home }}" # for compatibility
-
-#-------------------------------------------
-# other env vars needed by Trafodion
+# Execute the trafodion_config script
 #-------------------------------------------
 
-# These env vars define all nodes in the cluster
-export JAVA_HOME="{{ java_home }}"
-export NODE_LIST="{{ node_list }}"
-export MY_NODES="{{ my_nodes }}"
-export node_count="{{ node_count }}"
-export HADOOP_TYPE="{{ hadoop_type }}"
-export ENABLE_HA="{{ enable_ha }}"
-export ZOOKEEPER_NODES="{{ zookeeper_nodes }}"
-export ZOOKEEPER_PORT="{{ zookeeper_port }}"
+if [ -f /etc/trafodion/trafodion_config ]; then
+    source /etc/trafodion/trafodion_config
+fi
 
 #-------------------------------------------
 # Execute the sqenv.sh script if it exists.
