@@ -24,6 +24,7 @@
 ### this script should be run on all nodes with sudo user ###
 
 import re
+import os
 import json
 import sys
 import platform
@@ -144,23 +145,25 @@ class Discover(object):
         else:
             return OK
 
-    def _get_core_site_xml(self):
+    def _get_core_site_info(self, name):
         if self.dbcfgs.has_key('hadoop_home'): # apache distro
             CORE_SITE_XML = '%s/etc/hadoop/core-site.xml' % self.dbcfgs['hadoop_home']
         else:
             CORE_SITE_XML = '/etc/hadoop/conf/core-site.xml'
-        p = ParseXML(CORE_SITE_XML)
-        return p
+
+        if os.path.exists(CORE_SITE_XML):
+            p = ParseXML(CORE_SITE_XML)
+            return p.get_property(name)
+        else:
+            return NA
 
     @deco
     def get_hadoop_authentication(self):
-        p = self._get_core_site_xml()
-        return p.get_property('hadoop.security.authentication')
+        return self._get_core_site_info('hadoop.security.authentication')
 
     @deco
     def get_hadoop_authorization(self):
-        p = self._get_core_site_xml()
-        return p.get_property('hadoop.security.authorization')
+        return self._get_core_site_info('hadoop.security.authorization')
 
     @deco
     def get_hbase(self):
