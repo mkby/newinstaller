@@ -326,7 +326,7 @@ class UserInput(object):
         confirm = self.get_confirm()
         if confirm != 'Y':
             if os.path.exists(DBCFG_FILE): os.remove(DBCFG_FILE)
-            run_cmd('rm %s/*.status' % INSTALLER_LOC)
+            run_cmd('rm -rf %s/*.status' % INSTALLER_LOC)
             log_err('User quit')
 
 
@@ -505,7 +505,8 @@ def user_input(options, prompt_mode=True, pwd=''):
     if not cfgs['traf_dirname']:
         cfgs['traf_dirname'] = '%s-%s' % (cfgs['traf_basename'], cfgs['traf_version'])
     g('traf_dirname')
-    g('traf_pwd')
+    if not cfgs['home_dir']:
+        g('traf_pwd')
     g('dcs_cnt_per_node')
     g('scratch_locs')
     g('traf_start')

@@ -237,7 +237,7 @@ class Discover(object):
 
     @deco
     def get_home_dir(self):
-        if self.dbcfgs.has_key('traf_user'): # apache distro
+        if self.dbcfgs.has_key('traf_user'):
             traf_user = self.dbcfgs['traf_user']
             return cmd_output("getent passwd %s | awk -F: '{print $6}' | sed 's/\/%s//g'" % (traf_user, traf_user))
         else:
