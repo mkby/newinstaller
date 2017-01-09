@@ -461,8 +461,6 @@ def user_input(options, prompt_mode=True, pwd=''):
             log_err('HBase is not found')
         if content_dict['hbase'] == 'N/S':
             log_err('HBase version is not supported')
-        if content_dict['hadoop_authorization'] == 'true':
-            log_err('HBase authorization is enabled, please disable it before installing trafodion')
         if content_dict['home_dir']: # trafodion user exists
             cfgs['home_dir'] = content_dict['home_dir']
         if content_dict['hadoop_authentication'] == 'kerberos':

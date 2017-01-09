@@ -162,10 +162,6 @@ class Discover(object):
         return self._get_core_site_info('hadoop.security.authentication')
 
     @deco
-    def get_hadoop_authorization(self):
-        return self._get_core_site_info('hadoop.security.authorization')
-
-    @deco
     def get_hbase(self):
         """ get HBase version """
         if self.dbcfgs.has_key('hbase_home'): # apache distro
