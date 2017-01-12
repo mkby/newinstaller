@@ -233,7 +233,7 @@ class UserInput(object):
                 nodes = ''
                 for remote in remotes:
                     # check if directory exists on remote host
-                    remote.execute('ls %s 2>&1 >/dev/null' % answer)
+                    remote.execute('ls %s 2>&1 >/dev/null' % answer, chkerr=False)
                     if remote.rc != 0:
                         nodes += ' ' + remote.host
                 if nodes:
