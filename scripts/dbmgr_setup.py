@@ -90,8 +90,12 @@ def run():
     if 'HDP' in DISTRO:
         hm_info_port = hb.get_property('hbase.master.info.port')
         rs_info_port = hb.get_property('hbase.regionserver.info.port')
+        if dbcfgs['secure_hadoop'].upper() == 'Y':
+            hbase_basedir = '/hbase-secure'
+        else:
+            hbase_basedir = '/hbase-unsecure'
         mod_file(OPENTSDB_CONFIG,
-                 {'tsd.storage.hbase.zk_basedir = .*':'tsd.storage.hbase.zk_basedir = /hbase-unsecure'})
+                 {'tsd.storage.hbase.zk_basedir = .*':'tsd.storage.hbase.zk_basedir = %s' % hbase_basedir})
         # edit hbase master collector
         mod_file(HBASE_COLLECTOR, {'60010':hm_info_port})
         # edit hbase regionserver collector

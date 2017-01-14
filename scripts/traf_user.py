@@ -108,8 +108,9 @@ export HADOOP_TYPE="%s"
 export ENABLE_HA="%s"
 export ZOOKEEPER_NODES="%s"
 export ZOOKEEPER_PORT="%s"
+export SECURE_HADOOP="%s"
 """ % (TRAF_HOME, dbcfgs['java_home'], ' '.join(nodes), ' -w ' + ' -w '.join(nodes),
-       str(len(nodes)), hadoop_type, dbcfgs['enable_ha'], zk_nodes, zk_port)
+       str(len(nodes)), hadoop_type, dbcfgs['enable_ha'], zk_nodes, zk_port, dbcfgs['secure_hadoop'])
 
     run_cmd('mkdir -p %s' % TRAFODION_CFG_DIR)
     write_file(TRAFODION_CFG_FILE, trafodion_config)
