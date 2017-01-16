@@ -86,6 +86,17 @@ def run():
               'tsd.core.timezone = .*':'tsd.core.timezone = %s' % timezone,
               'tsd.storage.hbase.zk_quorum = .*':'tsd.storage.hbase.zk_quorum = %s' % zk_hosts})
 
+    if dbcfgs['secure_hadoop'].upper() == 'Y':
+        realm = re.match('.*@(.*)', dbcfgs['admin_principal']).groups()[0]
+        tsdb_secure_config = """
+# ------- Properties to access secure hbase -------
+hbase.security.auth.enable=true
+hbase.security.authentication=kerberos
+hbase.kerberos.regionserver.principal=hbase/_HOST@%s
+hbase.sasl.clientconfig=Client
+""" % realm
+        append_file(OPENTSDB_CONFIG, tsdb_secure_config)
+
     # additional config for HDP distro
     if 'HDP' in DISTRO:
         hm_info_port = hb.get_property('hbase.master.info.port')
