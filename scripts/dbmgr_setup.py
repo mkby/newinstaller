@@ -34,13 +34,13 @@ def run():
     dbcfgs = json.loads(dbcfgs_json)
 
     DISTRO = dbcfgs['distro']
-    SQ_ROOT = os.environ['MY_SQROOT']
+    TRAF_HOME = os.environ['TRAF_HOME']
     TRAFODION_CFG_FILE = '/etc/trafodion/trafodion_config'
     TRAF_VER = dbcfgs['traf_version']
     HBASE_XML_FILE = dbcfgs['hbase_xml_file']
 
-    MGBLTY_INSTALL_DIR = '%s/mgblty' % SQ_ROOT
-    DBMGR_INSTALL_DIR = '%s/dbmgr-%s' % (SQ_ROOT, TRAF_VER)
+    MGBLTY_INSTALL_DIR = '%s/mgblty' % TRAF_HOME
+    DBMGR_INSTALL_DIR = '%s/dbmgr-%s' % (TRAF_HOME, TRAF_VER)
 
     MGBLTY_TOOLS_DIR = '%s/opentsdb/tools' % MGBLTY_INSTALL_DIR
     BOSUN_CONFIG = '%s/bosun/conf/bosun.conf' % MGBLTY_INSTALL_DIR
@@ -79,7 +79,7 @@ def run():
     # edit opentsdb config
     hb = ParseXML(HBASE_XML_FILE)
     zk_hosts = hb.get_property('hbase.zookeeper.quorum')
-    timezone = cmd_output('%s/tools/gettimezone.sh' % SQ_ROOT).split('\n')[0]
+    timezone = cmd_output('%s/tools/gettimezone.sh' % TRAF_HOME).split('\n')[0]
 
     mod_file(OPENTSDB_CONFIG,
              {'tsd.network.port = .*':'tsd.network.port = %s' % tsd_port,

@@ -48,7 +48,7 @@ def run():
     run_cmd_as_user(hdfs_user, '%s dfsadmin -safemode wait' % hdfs_bin)
     run_cmd_as_user(hdfs_user, '%s dfs -mkdir -p %s/{trafodion_backups,bulkload,lobs} /bulkload /lobs /hbase/archive /hbase-staging' % (hdfs_bin, traf_loc))
     run_cmd_as_user(hdfs_user, '%s dfs -chown -R %s:%s /hbase/archive /hbase-staging' % (hdfs_bin, hbase_user, hbase_user))
-    run_cmd_as_user(hdfs_user, '%s dfs -chown -R %s:%s %s/{trafodion_backups,bulkload,lobs} /bulkload /lobs' % (hdfs_bin, traf_user, traf_user, traf_loc))
+    run_cmd_as_user(hdfs_user, '%s dfs -chown -R %s:%s %s %s/{trafodion_backups,bulkload,lobs} /bulkload /lobs' % (hdfs_bin, traf_user, traf_user, traf_loc, traf_loc))
     run_cmd_as_user(hdfs_user, '%s dfs -setfacl -R -m user:%s:rwx /hbase/archive' % (hdfs_bin, traf_user))
     run_cmd_as_user(hdfs_user, '%s dfs -setfacl -R -m default:user:%s:rwx /hbase/archive' % (hdfs_bin, traf_user))
     run_cmd_as_user(hdfs_user, '%s dfs -setfacl -R -m mask::rwx /hbase/archive' % hdfs_bin)
