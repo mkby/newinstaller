@@ -23,10 +23,14 @@
 
 import sys
 import os
+import re
 import getpass
 from optparse import OptionParser
 from scripts.common import run_cmd, format_output, err_m, \
-                           expNumRe, ParseInI, Remote
+                           expNumRe, ParseInI, Remote, info
+
+TRAFODION_CFG_FILE = '/etc/trafodion/trafodion_config'
+TRAF_USER = 'trafodion'
 
 def get_options():
     usage = 'usage: %prog [options]\n'
@@ -39,6 +43,8 @@ def get_options():
     parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
                       help="Prompt SSH login password for remote hosts. \
                             If set, \'sshpass\' tool is required.")
+    parser.add_option("--silent", action="store_true", dest="silent", default=False,
+                      help="Do not ask user to confirm.")
     parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False,
                       help="Verbose mode, will print commands.")
     (options, args) = parser.parse_args()
@@ -52,7 +58,6 @@ def main():
 
     notify = lambda n: raw_input('Uninstall Trafodion on [%s] [N]: ' % n)
 
-
     format_output('Trafodion Uninstall Start')
 
     if options.pwd:
@@ -61,34 +66,49 @@ def main():
         pwd = ''
 
     node_list = ''
-    if options.cfgfile:
+    # parse node list from trafodion_config
+    if os.path.exists(TRAFODION_CFG_FILE):
+        with open(TRAFODION_CFG_FILE, 'r') as f:
+            traf_cfgs = f.readlines()
+        try:
+            line = [l for l in traf_cfgs if 'NODE_LIST' in l][0]
+            node_list = re.search(r'NODE_LIST="(.*)"', line).groups()[0]
+        except Exception as e:
+            err_m('Cannot find node list info from %s: %s' % (TRAFODION_CFG_FILE, e))
+    # parse node list from installation config file
+    elif options.cfgfile:
         if not os.path.exists(options.cfgfile):
             err_m('Cannot find config file \'%s\'' % options.cfgfile)
         config_file = options.cfgfile
         p = ParseInI(config_file, 'dbconfigs')
         cfgs = p.load()
         node_list = cfgs['node_list']
+    # user input
     else:
         node_lists = raw_input('Enter Trafodion node list to uninstall(separated by comma): ')
         if not node_lists: err_m('Empty value')
-        node_list = ','.join(expNumRe(node_lists))
+        node_list = ' '.join(expNumRe(node_lists))
 
-    rc = notify(node_list)
-    if rc.lower() != 'y': sys.exit(1)
-    nodes = node_list.split(',')
+    if not options.silent:
+        rc = notify(node_list)
+        if rc.lower() != 'y': sys.exit(1)
+
+    nodes = node_list.split()
     first_node = nodes[0]
 
     remotes = [Remote(node, pwd=pwd) for node in nodes]
     # stop trafodion on the first node
-    remotes[0].execute('sudo su trafodion -l -c ckillall', chkerr=False)
+    remotes[0].execute('sudo su %s -l -c ckillall' % TRAF_USER, chkerr=False)
 
     # remove trafodion userid and group on all trafodion nodes, together with folders
     for remote in remotes:
-        remote.execute('sudo -n /usr/sbin/userdel -rf trafodion', chkerr=False)
-        remote.execute('sudo -n /usr/sbin/groupdel trafodion', chkerr=False)
-        remote.execute('sudo -n rm -rf /etc/trafodion', chkerr=False)
+        info('Remove Trafodion on node [%s] ...' % remote.host)
+        remote.execute('ps -ef|grep ^%s|awk \'{print $2}\'|xargs sudo kill -9' % TRAF_USER, chkerr=False)
+        remote.execute('sudo -n /usr/sbin/userdel -rf %s' % TRAF_USER, chkerr=False)
+        remote.execute('sudo -n /usr/sbin/groupdel %s' % TRAF_USER, chkerr=False)
+        remote.execute('sudo -n rm -rf /etc/security/limits.d/trafodion.conf /etc/trafodion /tmp/hsperfdata_%s 2>/dev/null' % TRAF_USER, chkerr=False)
 
-    format_output('Trafodion Uninstall Complete')
+    format_output('Trafodion Uninstall Completed')
 
 if __name__ == "__main__":
     main()
