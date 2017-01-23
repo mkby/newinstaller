@@ -50,12 +50,6 @@
         "run_as_traf": "yes"
     },
     {
-        "script": "dbmgr_setup.py",
-        "desc": "DB Manager Setup",
-        "node": "all",
-        "run_as_traf": "yes"
-    },
-    {
         "script": "traf_ldap.py",
         "desc": "LDAP Security Setup",
         "node": "all",
@@ -80,6 +74,12 @@
         "script": "traf_sqconfig.py",
         "desc": "Sqconfig Setup",
         "node": "first",
+        "run_as_traf": "yes"
+    },
+    {
+        "script": "dbmgr_setup.py",
+        "desc": "DB Manager Setup",
+        "node": "all",
         "run_as_traf": "yes"
     },
     {

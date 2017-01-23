@@ -24,6 +24,7 @@
 ### this script should be run on all nodes with trafodion user ###
 
 import os
+import re
 import sys
 import json
 import socket
