@@ -55,7 +55,7 @@ def run():
 
     # Grant all privileges to the Trafodion principal in HBase
     if dbcfgs['secure_hadoop'] == 'Y':
-        run_cmd('grant "%s", "RWXC" | sudo -u %s hbase shell > /tmp/hbase_shell.out' % (traf_user, hbase_user))
+        run_cmd('echo "grant \'%s\', \'RWXC\'" | sudo -u %s hbase shell > /tmp/hbase_shell.out' % (traf_user, hbase_user))
         has_err = cmd_output('grep -c ERROR /tmp/hbase_shell.out')
         if int(has_err):
             err('Failed to grant HBase privileges to %s' % traf_user)
