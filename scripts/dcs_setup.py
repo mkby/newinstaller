@@ -95,8 +95,12 @@ def run():
         p.add_property('dcs.master.floating.ip.external.ip.address', dcs_floating_ip)
         p.rm_property('dcs.dns.interface')
 
+        # modify trafci to use dcs floating ip instead of dcs master node
+        mod_file(TRAFCI_FILE, {'HNAME=.*':'HNAME=%s:%s' % (dcs_floating_ip, dcs_master_port)})
+
         # modify backup_master
-        write_file(DCS_BKMASTER_FILE, dcs_backup_nodes)
+        for dcs_backup_node in dcs_backup_nodes.split(','):
+            append_file(DCS_BKMASTER_FILE, dcs_backup_node)
 
     p.write_xml()
 
