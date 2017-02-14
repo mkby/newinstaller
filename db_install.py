@@ -369,6 +369,7 @@ def user_input(options, prompt_mode=True, pwd=''):
         g('hbase_user')
         g('first_rsnode')
         cfgs['distro'] = 'APACHE'
+        cfgs['hbase_lib_path'] = cfgs['hbase_home'] + '/lib'
     else:
         g('mgr_url')
         if not ('http:' in cfgs['mgr_url'] or 'https:' in cfgs['mgr_url']):
@@ -631,9 +632,6 @@ def main():
     else:
         print '\n** Loading configs from config file ... \n'
         cfgs = p.load()
-        # remove java home info from default config file
-        if config_file == DBCFG_FILE and cfgs.has_key('java_home'):
-            cfgs.pop('java_home')
         if options.offline and cfgs['offline_mode'] != 'Y':
             log_err('To enable offline mode, must set "offline_mode = Y" in config file')
         user_input(options, prompt_mode=False, pwd=pwd)

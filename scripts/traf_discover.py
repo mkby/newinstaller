@@ -133,8 +133,6 @@ class Discover(object):
             # use JDK1.8 first
             if jdk_list.has_key('1.8.0'):
                 return jdk_list['1.8.0']
-            elif jdk_list.has_key('1.7.0'):
-                return jdk_list['1.7.0']
 
     @deco
     def get_hive(self):
