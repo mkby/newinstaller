@@ -73,12 +73,7 @@ def run():
     ### copy jar files ###
     hbase_lib_path = dbcfgs['hbase_lib_path']
     if 'APACHE' in DISTRO:
-        hbase_home = dbcfgs['hbase_home']
-        hbase_lib_path = hbase_home + '/lib'
-        # for apache distro, get hbase version from cmdline
-        hbase_ver = cmd_output('%s/bin/hbase version | head -n1' % hbase_home)
-        hbase_ver = re.search(r'HBase (\d\.\d)', hbase_ver).groups()[0]
-        DISTRO += hbase_ver
+        DISTRO += dbcfgs['hbase_ver']
 
     distro, v1, v2 = re.search(r'(\w+)-*(\d)\.(\d)', DISTRO).groups()
     if distro == 'CDH':
