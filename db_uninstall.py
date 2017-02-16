@@ -26,7 +26,7 @@ import os
 import re
 import getpass
 from optparse import OptionParser
-from scripts.common import run_cmd, format_output, err_m, \
+from scripts.common import run_cmd, format_output, err_m, INSTALLER_LOC, \
                            expNumRe, ParseInI, Remote, info
 
 TRAFODION_CFG_FILE = '/etc/trafodion/trafodion_config'
@@ -108,6 +108,7 @@ def main():
         remote.execute('sudo -n /usr/sbin/groupdel %s' % TRAF_USER, chkerr=False)
         remote.execute('sudo -n rm -rf /etc/security/limits.d/trafodion.conf /etc/trafodion /tmp/hsperfdata_%s 2>/dev/null' % TRAF_USER, chkerr=False)
 
+    run_cmd('rm -f %s/{*.status,db_config}' % INSTALLER_LOC)
     format_output('Trafodion Uninstall Completed')
 
 if __name__ == "__main__":
