@@ -26,11 +26,9 @@ import os
 import re
 import getpass
 from optparse import OptionParser
-from scripts.common import run_cmd, format_output, err_m, INSTALLER_LOC, \
+from scripts.constants import INSTALLER_LOC, TRAF_CFG_FILE, TRAF_USER
+from scripts.common import run_cmd, format_output, err_m, \
                            expNumRe, ParseInI, Remote, info
-
-TRAFODION_CFG_FILE = '/etc/trafodion/trafodion_config'
-TRAF_USER = 'trafodion'
 
 def get_options():
     usage = 'usage: %prog [options]\n'
@@ -67,14 +65,14 @@ def main():
 
     node_list = ''
     # parse node list from trafodion_config
-    if os.path.exists(TRAFODION_CFG_FILE):
-        with open(TRAFODION_CFG_FILE, 'r') as f:
+    if os.path.exists(TRAF_CFG_FILE):
+        with open(TRAF_CFG_FILE, 'r') as f:
             traf_cfgs = f.readlines()
         try:
             line = [l for l in traf_cfgs if 'NODE_LIST' in l][0]
             node_list = re.search(r'NODE_LIST="(.*)"', line).groups()[0]
         except Exception as e:
-            err_m('Cannot find node list info from %s: %s' % (TRAFODION_CFG_FILE, e))
+            err_m('Cannot find node list info from %s: %s' % (TRAF_CFG_FILE, e))
     # parse node list from installation config file
     elif options.cfgfile:
         if not os.path.exists(options.cfgfile):

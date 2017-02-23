@@ -26,28 +26,29 @@
 import os
 import sys
 import json
-from common import append_file, write_file, mod_file, cmd_output, run_cmd, \
-                   ParseInI, ParseXML, DEF_PORT_FILE, err
+from constants import DEF_PORT_FILE
+from common import append_file, write_file, mod_file, cmd_output, \
+                   ParseInI, ParseXML, err, run_cmd
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
 
-    TRAF_HOME = os.environ['TRAF_HOME']
-    TRAF_VER = dbcfgs['traf_version']
-    HBASE_XML_FILE = dbcfgs['hbase_xml_file']
+    traf_home = os.environ['TRAF_HOME']
+    traf_ver = dbcfgs['traf_version']
+    hbase_xml_file = dbcfgs['hbase_xml_file']
 
-    DCS_INSTALL_ENV = 'export DCS_INSTALL_DIR=%s/dcs-%s' % (TRAF_HOME, TRAF_VER)
-    REST_INSTALL_ENV = 'export REST_INSTALL_DIR=%s/rest-%s' % (TRAF_HOME, TRAF_VER)
+    dcs_install_env = 'export DCS_INSTALL_DIR=%s/dcs-%s' % (traf_home, traf_ver)
+    rest_install_env = 'export REST_INSTALL_DIR=%s/rest-%s' % (traf_home, traf_ver)
 
-    DCS_CONF_DIR = '%s/dcs-%s/conf' % (TRAF_HOME, TRAF_VER)
-    DCS_SRV_FILE = DCS_CONF_DIR + '/servers'
-    DCS_MASTER_FILE = DCS_CONF_DIR + '/master'
-    DCS_BKMASTER_FILE = DCS_CONF_DIR + '/backup-masters'
-    DCS_ENV_FILE = DCS_CONF_DIR + '/dcs-env.sh'
-    DCS_SITE_FILE = DCS_CONF_DIR + '/dcs-site.xml'
-    REST_SITE_FILE = '%s/rest-%s/conf/rest-site.xml' % (TRAF_HOME, TRAF_VER)
-    TRAFCI_FILE = TRAF_HOME + '/trafci/bin/trafci'
-    SQENV_FILE = TRAF_HOME + '/sqenvcom.sh'
+    dcs_conf_dir = '%s/dcs-%s/conf' % (traf_home, traf_ver)
+    dcs_srv_file = dcs_conf_dir + '/servers'
+    dcs_master_file = dcs_conf_dir + '/master'
+    dcs_bkmaster_file = dcs_conf_dir + '/backup-masters'
+    dcs_env_file = dcs_conf_dir + '/dcs-env.sh'
+    dcs_site_file = dcs_conf_dir + '/dcs-site.xml'
+    rest_site_file = '%s/rest-%s/conf/rest-site.xml' % (traf_home, traf_ver)
+    trafci_file = traf_home + '/trafci/bin/trafci'
+    sqenv_file = traf_home + '/sqenvcom.sh'
 
     ### dcs setting ###
     # servers
@@ -57,32 +58,32 @@ def run():
     for node in nodes:
         dcs_servers += '%s %s\n' % (node, dcs_cnt)
 
-    write_file(DCS_SRV_FILE, dcs_servers)
+    write_file(dcs_srv_file, dcs_servers)
 
     ### modify dcs config files ###
     # modify master
     dcs_master = nodes[0]
-    append_file(DCS_MASTER_FILE, dcs_master)
+    append_file(dcs_master_file, dcs_master)
 
     # modify sqenvcom.sh
-    append_file(SQENV_FILE, DCS_INSTALL_ENV)
-    append_file(SQENV_FILE, REST_INSTALL_ENV)
+    append_file(sqenv_file, dcs_install_env)
+    append_file(sqenv_file, rest_install_env)
 
     # modify dcs-env.sh
-    mod_file(DCS_ENV_FILE, {'.*DCS_MANAGES_ZK=.*':'export DCS_MANAGES_ZK=false'})
+    mod_file(dcs_env_file, {'.*DCS_MANAGES_ZK=.*':'export DCS_MANAGES_ZK=false'})
 
     ports = ParseInI(DEF_PORT_FILE, 'ports').load()
     dcs_master_port = ports['dcs_master_port']
     # modify trafci
-    mod_file(TRAFCI_FILE, {'HNAME=.*':'HNAME=%s:%s' % (dcs_master, dcs_master_port)})
+    mod_file(trafci_file, {'HNAME=.*':'HNAME=%s:%s' % (dcs_master, dcs_master_port)})
 
     # modify dcs-site.xml
     net_interface = run_cmd('ip route |grep default|awk \'{print $5}\'')
-    hb = ParseXML(HBASE_XML_FILE)
+    hb = ParseXML(hbase_xml_file)
     zk_hosts = hb.get_property('hbase.zookeeper.quorum')
     zk_port = hb.get_property('hbase.zookeeper.property.clientPort')
 
-    p = ParseXML(DCS_SITE_FILE)
+    p = ParseXML(dcs_site_file)
     p.add_property('dcs.zookeeper.property.clientPort', zk_port)
     p.add_property('dcs.zookeeper.quorum', zk_hosts)
     p.add_property('dcs.dns.interface', net_interface)
@@ -96,16 +97,16 @@ def run():
         p.rm_property('dcs.dns.interface')
 
         # modify trafci to use dcs floating ip instead of dcs master node
-        mod_file(TRAFCI_FILE, {'HNAME=.*':'HNAME=%s:%s' % (dcs_floating_ip, dcs_master_port)})
+        mod_file(trafci_file, {'HNAME=.*':'HNAME=%s:%s' % (dcs_floating_ip, dcs_master_port)})
 
         # modify backup_master
         for dcs_backup_node in dcs_backup_nodes.split(','):
-            append_file(DCS_BKMASTER_FILE, dcs_backup_node)
+            append_file(dcs_bkmaster_file, dcs_backup_node)
 
     p.write_xml()
 
     ### rest setting ###
-    p = ParseXML(REST_SITE_FILE)
+    p = ParseXML(rest_site_file)
     p.add_property('rest.zookeeper.property.clientPort', zk_port)
     p.add_property('rest.zookeeper.quorum', zk_hosts)
     p.write_xml()

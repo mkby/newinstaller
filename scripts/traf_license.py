@@ -26,7 +26,8 @@
 import os
 import json
 import sys
-from common import Remote, run_cmd, cmd_output, err, info, SCRIPTS_DIR
+from constants import SCRIPTS_DIR, TRAF_CFG_DIR
+from common import Remote, run_cmd, cmd_output, err, info
 
 def run(pwd):
     dbcfgs = json.loads(dbcfgs_json)
@@ -68,13 +69,13 @@ def run(pwd):
     def copy_license():
         info('copying license file to all nodes')
         tmp_license_file = '/tmp/esgyndb_license'
-        esgyndb_license_file = '/etc/trafodion/esgyndb_license'
+        esgyndb_license_file = TRAF_CFG_DIR + 'esgyndb_license'
         run_cmd('cp %s %s' % (license_file, tmp_license_file))
 
         remotes = [Remote(node, pwd=pwd) for node in nodes]
         for remote in remotes:
-            remote.execute('sudo rm -rf %s; sudo mkdir -p /etc/trafodion; sudo chmod 777 /etc/trafodion' % esgyndb_license_file)
-            remote.copy([tmp_license_file], remote_folder='/etc/trafodion')
+            remote.execute('sudo rm -rf %s; sudo mkdir -p %s; sudo chmod 777 %s' % (esgyndb_license_file, TRAF_CFG_DIR, TRAF_CFG_DIR))
+            remote.copy([tmp_license_file], remote_folder=TRAF_CFG_DIR)
             remote.execute('chmod +r %s' % esgyndb_license_file)
 
         run_cmd('rm -rf %s' % tmp_license_file)

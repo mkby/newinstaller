@@ -27,63 +27,63 @@ import os
 import sys
 import re
 import json
+from constants import TRAF_SUDOER_FILE
 from common import err, cmd_output, run_cmd
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
 
-    HOME_DIR = cmd_output('sudo cat /etc/default/useradd |grep HOME |cut -d "=" -f 2')
+    home_dir = cmd_output('sudo cat /etc/default/useradd |grep HOME |cut -d "=" -f 2')
     if dbcfgs.has_key('home_dir'):
-        HOME_DIR = dbcfgs['home_dir']
+        home_dir = dbcfgs['home_dir']
 
-    TRAF_USER = dbcfgs['traf_user']
-    TRAF_DIRNAME = dbcfgs['traf_dirname']
-    TRAF_HOME = '%s/%s/%s' % (HOME_DIR, TRAF_USER, TRAF_DIRNAME)
+    traf_user = dbcfgs['traf_user']
+    traf_dirname = dbcfgs['traf_dirname']
+    traf_home = '%s/%s/%s' % (home_dir, traf_user, traf_dirname)
 
-    TRAF_VER = dbcfgs['traf_version']
-    DISTRO = dbcfgs['distro']
-    TRAF_LIB_PATH = TRAF_HOME + '/export/lib'
-    SCRATCH_LOCS = dbcfgs['scratch_locs'].split(',')
+    traf_ver = dbcfgs['traf_version']
+    distro = dbcfgs['distro']
+    traf_lib_path = traf_home + '/export/lib'
+    scratch_locs = dbcfgs['scratch_locs'].split(',')
 
-    SUDOER_FILE = '/etc/sudoers.d/trafodion'
     SUDOER_CFG = """
 ## Allow trafodion id to run commands needed for backup and restore
 %%%s ALL =(hbase) NOPASSWD: /usr/bin/hbase"
-""" % TRAF_USER
+""" % traf_user
 
     ### kernel settings ###
     run_cmd('sysctl -w kernel.pid_max=65535 2>&1 > /dev/null')
     run_cmd('echo "kernel.pid_max=65535" >> /etc/sysctl.conf')
 
     ### copy init script ###
-    init_script = '%s/sysinstall/etc/init.d/trafodion' % TRAF_HOME
+    init_script = '%s/sysinstall/etc/init.d/trafodion' % traf_home
     if os.path.exists(init_script):
         run_cmd('cp -rf %s /etc/init.d/' % init_script)
         run_cmd('chkconfig --add trafodion')
         run_cmd('chkconfig --level 06 trafodion on')
 
     ### create and set permission for scratch file dir ###
-    for loc in SCRATCH_LOCS:
+    for loc in scratch_locs:
         # don't set permission for HOME folder
         if not os.path.exists(loc):
             run_cmd('mkdir -p %s' % loc)
-        if HOME_DIR not in loc:
+        if home_dir not in loc:
             run_cmd('chmod 777 %s' % loc)
 
     ### copy jar files ###
     hbase_lib_path = dbcfgs['hbase_lib_path']
-    if 'APACHE' in DISTRO:
-        DISTRO += dbcfgs['hbase_ver']
+    if 'APACHE' in distro:
+        distro += dbcfgs['hbase_ver']
 
-    distro, v1, v2 = re.search(r'(\w+)-*(\d)\.(\d)', DISTRO).groups()
+    distro, v1, v2 = re.search(r'(\w+)-*(\d)\.(\d)', distro).groups()
     if distro == 'CDH':
         if v2 == '6': v2 = '5'
         if v2 == '8': v2 = '7'
     elif distro == 'HDP':
         if v2 == '4': v2 = '3'
 
-    hbase_trx_jar = 'hbase-trx-%s%s_%s-%s.jar' % (distro.lower(), v1, v2, TRAF_VER)
-    traf_hbase_trx_path = '%s/%s' % (TRAF_LIB_PATH, hbase_trx_jar)
+    hbase_trx_jar = 'hbase-trx-%s%s_%s-%s.jar' % (distro.lower(), v1, v2, traf_ver)
+    traf_hbase_trx_path = '%s/%s' % (traf_lib_path, hbase_trx_jar)
     hbase_trx_path = '%s/%s' % (hbase_lib_path, hbase_trx_jar)
     if not os.path.exists(traf_hbase_trx_path):
         err('Cannot find HBase trx jar \'%s\' for your Hadoop distribution' % hbase_trx_jar)
@@ -98,7 +98,7 @@ def run():
 
         # copy new ones
         run_cmd('cp %s %s' % (traf_hbase_trx_path, hbase_lib_path))
-        run_cmd('cp %s/trafodion-utility-* %s' % (TRAF_LIB_PATH, hbase_lib_path))
+        run_cmd('cp %s/trafodion-utility-* %s' % (traf_lib_path, hbase_lib_path))
 
     # set permission
     run_cmd('chmod +r %s/{hbase-trx-*,trafodion-utility-*}' % hbase_lib_path)
@@ -112,10 +112,10 @@ Cmnd_Alias ARP = /sbin/arping
 
 ## Allow Trafodion id to run commands needed to configure floating IP
 %%%s ALL = NOPASSWD: IP, ARP
-""" % TRAF_USER
+""" % traf_user
 
     ### write trafodion sudoer file ###
-    with open(SUDOER_FILE, 'w') as f:
+    with open(TRAF_SUDOER_FILE, 'w') as f:
         f.write(SUDOER_CFG)
 
 # main
