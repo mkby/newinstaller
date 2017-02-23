@@ -457,7 +457,7 @@ def user_input(options, prompt_mode=True, pwd=''):
         if content_dict['linux'] == 'N/A':
             log_err('Unsupported Linux version')
         if content_dict['firewall_status'] == 'Running':
-            info('Firewall is running, please make sure the ports used by Trafodion is open')
+            info('Firewall is running, please make sure the ports used by Trafodion are open')
         if content_dict['traf_status'] == 'Running':
             log_err('Trafodion process is found, please stop it first')
         if content_dict['hbase'] == 'N/A':
