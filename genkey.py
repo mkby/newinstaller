@@ -41,19 +41,23 @@ class PexpectRemote(object):
 
     def copy(self, local_folder, remote_folder='.'):
         cmd = 'scp -oStrictHostKeyChecking=no -r %s %s@%s:%s' % (local_folder, self.user, self.host, remote_folder)
-        p = pexpect.spawn(cmd, timeout=5)
-        rc = p.expect([pexpect.TIMEOUT, 'password: '])
-        has_err = 0
-        if rc == 0:
-            has_err = 1
-        else:
-            rc = p.sendline(self.pwd)
-            p.expect([pexpect.TIMEOUT, pexpect.EOF])
-            if rc == 0: has_err = 1
+        p = pexpect.spawn(cmd, timeout=3)
+        try:
+            rc = p.expect([pexpect.TIMEOUT, 'password: '])
+            has_err = 0
+            if rc == 0:
+                has_err = 1
+            else:
+                rc = p.sendline(self.pwd)
+                p.expect([pexpect.TIMEOUT, pexpect.EOF])
+                if 'Permission denied' in p.before: has_err = 1
+                if rc == 0: has_err = 1
+        except pexpect.EOF:
+            return
 
         p.close()
         if has_err:
-            err('Failed to copy files to host [%s] using pexpect' % self.host)
+            err('Failed to copy files to host [%s] using pexpect, check your password' % self.host)
 
 class SSHRemote(object):
     def __init__(self, host, user='', pwd=''):
