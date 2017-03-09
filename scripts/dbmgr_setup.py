@@ -119,7 +119,7 @@ hbase.sasl.clientconfig=Client
     # set 755 for bosun bin
     run_cmd('chmod 755 %s/bosun/bin/bosun-linux-amd64' % mgblty_install_dir)
 
-    # edit bashrc
+    # edit trafodion config
     append_file(TRAF_CFG_FILE, 'export PATH=$PATH:%s/jython2.7.0/bin' % mgblty_install_dir)
     append_file(TRAF_CFG_FILE, 'export MGBLTY_INSTALL_DIR=%s' % mgblty_install_dir)
     append_file(TRAF_CFG_FILE, 'export DBMGR_INSTALL_DIR=%s' % dbmgr_install_dir)

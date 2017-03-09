@@ -27,9 +27,9 @@ import os
 import json
 import sys
 from constants import SCRIPTS_DIR, TRAF_CFG_DIR
-from common import Remote, run_cmd, cmd_output, err, info
+from common import Remote, run_cmd, cmd_output, err, info, get_sudo_prefix
 
-def run(pwd):
+def run(user, pwd):
     dbcfgs = json.loads(dbcfgs_json)
 
     nodes = dbcfgs['node_list'].split(',')
@@ -72,9 +72,16 @@ def run(pwd):
         esgyndb_license_file = TRAF_CFG_DIR + 'esgyndb_license'
         run_cmd('cp %s %s' % (license_file, tmp_license_file))
 
-        remotes = [Remote(node, pwd=pwd) for node in nodes]
+        sudo_prefix = get_sudo_prefix()
+        if user:
+            if user == 'root':
+                sudo_prefix = ''
+            else:
+                sudo_prefix = 'sudo -n'
+        remotes = [Remote(node, user=user, pwd=pwd) for node in nodes]
         for remote in remotes:
-            remote.execute('sudo rm -rf %s; sudo mkdir -p %s; sudo chmod 777 %s' % (esgyndb_license_file, TRAF_CFG_DIR, TRAF_CFG_DIR))
+            remote.execute('%s rm -rf %s; %s mkdir -p %s; %s chmod 777 %s' % \
+                (sudo_prefix, esgyndb_license_file, sudo_prefix, TRAF_CFG_DIR, sudo_prefix, TRAF_CFG_DIR))
             remote.copy([tmp_license_file], remote_folder=TRAF_CFG_DIR)
             remote.execute('chmod +r %s' % esgyndb_license_file)
 
@@ -92,6 +99,11 @@ except IndexError:
 try:
     pwd = sys.argv[2]
 except IndexError:
-    pwd = ''
+    user = pwd = ''
 
-run(pwd)
+try:
+    user = sys.argv[3]
+except IndexError:
+    user = ''
+
+run(user, pwd)
