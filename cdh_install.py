@@ -17,7 +17,7 @@ from cm_api.api_client import ApiResource, ApiException
 from cm_api.endpoints.services import ApiServiceSetupInfo
 from scripts import wrapper
 from scripts.constants import DEF_PORT_FILE, CONFIG_DIR
-from scripts.common import err_m, info, ok, http_start, http_stop, \
+from scripts.common import err_m, info, ok, http_start, http_stop, get_sudo_prefix, \
                            Remote, cmd_output, retry, expNumRe, ParseInI
 
 CM_PORT = 7180
@@ -388,14 +388,15 @@ def main():
         else:
             pwd = ''
 
+        sudo_prefix = get_sudo_prefix()
         # copy cloudera parcel repo
         info('Copy parcel repo to master nodes')
         remote = Remote(cdhmaster, user='', pwd=pwd)
-        remote.execute('sudo mkdir -p /opt/cloudera/parcel-repo/')
+        remote.execute('%s mkdir -p /opt/cloudera/parcel-repo/' % sudo_prefix)
         parcel_files = glob.glob(parcel_dir + '/*')
         remote.copy(parcel_files, remote_folder='/tmp')
         for parcel_file in parcel_files:
-            remote.execute('sudo mv /tmp/%s /opt/cloudera/parcel-repo/' % parcel_file.split('/')[-1])
+            remote.execute('%s mv /tmp/%s /opt/cloudera/parcel-repo/' % (sudo_prefix, parcel_file.split('/')[-1]))
 
         # deploy cloudera
         if not repo_url: http_start(repo_dir, repo_http_port)

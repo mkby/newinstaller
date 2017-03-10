@@ -33,7 +33,7 @@ from common import err, cmd_output, run_cmd
 def run():
     dbcfgs = json.loads(dbcfgs_json)
 
-    home_dir = cmd_output('sudo cat /etc/default/useradd |grep HOME |cut -d "=" -f 2')
+    home_dir = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2')
     if dbcfgs.has_key('home_dir'):
         home_dir = dbcfgs['home_dir']
 
