@@ -53,7 +53,7 @@ def run():
     etc_hosts = dbcfgs['etc_hosts']
 
     ### disable selinux temporarily
-    run_cmd('setenforce 0')
+    cmd_output('setenforce 0')
 
     ### disable selinux permanently
     mod_file(SELINUX_FILE, {'SELINUX=\w+':'SELINUX=disabled'})
