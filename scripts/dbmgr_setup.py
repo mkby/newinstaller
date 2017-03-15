@@ -131,7 +131,7 @@ hbase.sasl.clientconfig=Client
             hbase_home = dbcfgs['hbase_home']
         else:
             hbase_home = DEF_HBASE_HOME
-        run_cmd('export HBASE_HOME=%s; export COMPRESSION=SNAPPY; %s/create_table.sh' % (DEF_HBASE_HOME, mgblty_tools_dir))
+        run_cmd('export HBASE_HOME=%s; export COMPRESSION=SNAPPY; %s/create_table.sh' % (hbase_home, mgblty_tools_dir))
         # register metrics
         run_cmd('export MGBLTY_INSTALL_DIR=%s; %s/register_metrics.sh' % (mgblty_install_dir, mgblty_tools_dir))
 
