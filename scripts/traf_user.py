@@ -122,9 +122,10 @@ export CLUSTERNAME="%s"
         extra_config = """
 export HADOOP_PREFIX=%s
 export HBASE_HOME=%s
+export HIVE_HOME=%s
 export PATH=$PATH:$HADOOP_PREFIX/bin:$HADOOP_PREFIX/sbin:$HBASE_HOME/bin
-        """ % (dbcfgs['hadoop_home'], dbcfgs['hbase_home'])
-        append_file(TRAFODION_CFG_FILE, extra_config)
+        """ % (dbcfgs['hadoop_home'], dbcfgs['hbase_home'], dbcfgs['hive_home'])
+        append_file(TRAF_CFG_FILE, extra_config)
 
     # set permission
     run_cmd('chown -R %s:%s %s*' % (traf_user, traf_group, TRAF_CFG_DIR))
