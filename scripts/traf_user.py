@@ -81,7 +81,7 @@ def run():
         run_cmd('cp -f %s %s.bak' % (bashrc_file, bashrc_file))
     # copy bashrc to trafodion's home only if user doesn't exist
     run_cmd('cp -f %s %s' % (bashrc_template, bashrc_file))
-    run_cmd('chown -R %s:%s %s*' % (traf_user, traf_user, bashrc_file))
+    run_cmd('chown -R %s:%s %s*' % (traf_user, traf_group, bashrc_file))
 
     # set ssh key
     run_cmd_as_user(traf_user, 'echo -e "y" | ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa')
