@@ -277,6 +277,13 @@ def run(dbcfgs, options, mode='install', pwd=''):
     # remove status file if all scripts run successfully
     os.remove(stat_file)
 
+    # remove ^M dos format in log file
+    with open(log_file, 'r') as f:
+        lines = f.readlines()
+    with open(log_file, 'w') as f:
+        for line in lines:
+            f.write(line.rstrip('\r\n') + '\n')
+
     return script_output
 
 if __name__ == '__main__':
