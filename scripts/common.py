@@ -96,6 +96,9 @@ def cmd_output(cmd):
 
     return stdout.strip() if stdout else stderr
 
+def get_default_home():
+    return cmd_output('%s cat /etc/default/useradd |grep HOME |cut -d "=" -f 2' % get_sudo_prefix())
+
 def get_sudo_prefix():
     """ donnot use sudo prefix if user is root """
     uid = os.getuid()

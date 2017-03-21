@@ -29,7 +29,7 @@ import json
 import socket
 from constants import TRAF_CFG_DIR, TRAF_CFG_FILE, TRAF_HSPERFDATA_FILE, SSHKEY_FILE, TMP_DIR
 from common import ParseXML, run_cmd, append_file, mod_file, write_file, \
-                   cmd_output, run_cmd_as_user, err
+                   cmd_output, run_cmd_as_user, err, get_default_home
 
 def run():
     """ create trafodion user, bashrc, setup passwordless SSH """
@@ -43,7 +43,7 @@ def run():
     elif 'APACHE' in distro:
         hadoop_type = 'apache'
 
-    home_dir = cmd_output('cat /etc/default/useradd |grep HOME |cut -d "=" -f 2')
+    home_dir = get_default_home()
     # customize trafodion home dir
     if dbcfgs.has_key('home_dir') and dbcfgs['home_dir']:
         home_dir = dbcfgs['home_dir']
@@ -63,7 +63,7 @@ def run():
     # create trafodion user and group
     if cmd_output('getent passwd %s' % traf_user):
         # trafodion user exists, set actual trafodion group
-        traf_group = cmd_output('groups %s|awk -F: \'{print $2}\'' % traf_user).split()[0]
+        traf_group = cmd_output('id -ng %s' % traf_user)
     else:
         # default trafodion group
         traf_group = traf_user
