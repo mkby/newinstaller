@@ -114,7 +114,10 @@ class Status(object):
         with open(self.stat_file, 'r') as f:
             st = f.readlines()
         for s in st:
-            if s.split()[0] == self.name: return True
+            try:
+                if s.split()[0] == self.name: return True
+            except IndexError:
+                return False
         return False
 
     def set_status(self):
