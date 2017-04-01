@@ -27,7 +27,7 @@ import os
 import sys
 import json
 import socket
-from common import run_cmd, err, mod_file
+from common import run_cmd, cmd_output, err, mod_file
 
 HOST_FILE = '/etc/hosts'
 SELINUX_FILE = '/etc/selinux/config'
