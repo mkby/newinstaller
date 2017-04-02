@@ -76,7 +76,7 @@ def run():
     ### install CM packages
     print 'Installing CM packages...'
     first_node = nodes[0]
-    local_host = socket.gethostname()
+    local_host = socket.getfqdn()
     # match FQDN
     if first_node in local_host or local_host in first_node:
         # install CM server on first node
