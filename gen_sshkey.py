@@ -57,7 +57,7 @@ class PexpectRemote(object):
 
         p.close()
         if has_err:
-            err('Failed to copy files to host [%s] using pexpect, check your password' % self.host)
+            err_m('Failed to copy files to host [%s] using pexpect, check your password' % self.host)
 
 class SSHRemote(object):
     def __init__(self, host, user='', pwd=''):
@@ -93,7 +93,7 @@ class SSHRemote(object):
             cmd += ['%s:%s/' % (self.host, remote_folder)]
 
         self._execute(cmd)
-        if self.rc != 0: err('Failed to copy files to host [%s] using ssh' % self.host)
+        if self.rc != 0: err_m('Failed to copy files to host [%s] using ssh' % self.host)
 
 def gen_key_file():
     run_cmd('mkdir -p %s' % TMP_SSH_DIR)
@@ -136,6 +136,8 @@ def get_options():
     parser = OptionParser(usage=usage)
     parser.add_option("-u", "--user", dest="user", metavar="USER",
                       help="User name to set up passwordless SSH for.")
+    parser.add_option("-p", "--password", dest="pwd", metavar="PASSWORD",
+                      help="Specify SSH password.")
 
     (options, args) = parser.parse_args()
     return options
@@ -147,6 +149,11 @@ def main():
     else:
         user = getpass.getuser()
 
+    if options.pwd:
+        pwd = options.pwd
+    else:
+        pwd = getpass.getpass('Input remote host SSH Password: ')
+
     gen_key_file()
     nodes = get_nodes()
     remote_folder = '/root' if user == 'root' else '/home/' + user
@@ -155,10 +162,8 @@ def main():
     if no_sshpass and no_pexpect:
         remotes = [SSHRemote(node, user=user, pwd='') for node in nodes]
     elif no_sshpass and not no_pexpect:
-        pwd = getpass.getpass('Input remote host SSH Password: ')
         remotes = [PexpectRemote(node, user=user, pwd=pwd) for node in nodes]
     else:
-        pwd = getpass.getpass('Input remote host SSH Password: ')
         remotes = [SSHRemote(node, user=user, pwd=pwd) for node in nodes]
 
     for remote in remotes:
