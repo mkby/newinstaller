@@ -26,6 +26,7 @@
 import os
 import sys
 import json
+from constants import TRAF_CFG_FILE, TRAF_LICENSE_FILE
 from common import run_cmd, mod_file, err
 
 def run():
@@ -56,6 +57,23 @@ def run():
         'LDAPSearchPwd:.*': 'LDAPSearchPwd:%s' % dbcfgs['ldap_pwd']
     }
 
+    # cloudera sentry for hive
+    if dbcfgs['hive_authorization'] == 'sentry' and dbcfgs['prod_edition'] == 'ADV':
+        mapping = cfgs['hadoop_security_group_mapping']
+        sentry_config = """
+export SENTRY_SECURITY_FOR_HIVE=TRUE
+export SENTRY_SECURITY_GROUP_MODE=%s
+""" % mapping
+        # append sentry configs to trafodion_config
+        append_file(TRAF_CFG_FILE, sentry_config)
+
+        # add extra ldap configs for traf_authentication_config file
+        if mapping == 'LDAP':
+            change_items['LDAPSearchGroupBase:.*'] = 'LDAPSearchGroupBase:%s' % dbcfgs['ldap_srch_grp_base']
+            change_items['LDAPSearchGroupObjectClass:.*'] = 'LDAPSearchGroupObjectClass:%s' % dbcfgs['ldap_srch_grp_obj_class']
+            change_items['LDAPSearchGroupMemberAttr:.*'] = 'LDAPSearchGroupMemberAttr:%s' % dbcfgs['ldap_srch_grp_mem_attr']
+            change_items['LDAPSearchGroupNameAttr:.*'] = 'LDAPSearchGroupNameAttr:%s' % dbcfgs['ldap_srch_grp_name_attr']
+
     print 'Modify authentication config file'
     run_cmd('cp %s %s' % (traf_auth_template, traf_auth_config))
     mod_file(traf_auth_config, change_items)
@@ -69,7 +87,7 @@ def run():
     #    err('Failed to access LDAP server with user %s' % db_root_user)
 
     print 'Modfiy sqenvcom.sh to turn on authentication'
-    mod_file(sqenv_file, {'TRAFODION_ENABLE_AUTHENTICATION=NO':'TRAFODION_ENABLE_AUTHENTICATION=YES'})
+    mod_file(sqenv_file, {'TRAFODION_ENABLE_AUTHENTICATION=.*':'TRAFODION_ENABLE_AUTHENTICATION=YES'})
 
 # main
 try:

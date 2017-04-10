@@ -113,13 +113,29 @@
   },
   "ldap_user":
   {
-      "prompt":"Enter Search user name (if required)",
+      "prompt":"Enter search user name (if required)",
       "default":" "
   },
   "ldap_pwd":
   {
-      "prompt":"Enter Search password (if required)",
+      "prompt":"Enter search password (if required)",
       "default":" "
+  },
+  "ldap_srch_grp_base":
+  {
+      "prompt":"Enter search group base"
+  },
+  "ldap_srch_grp_obj_class":
+  {
+      "prompt":"Enter search group object class"
+  },
+  "ldap_srch_grp_mem_attr":
+  {
+      "prompt":"Enter search group member attribute"
+  },
+  "ldap_srch_grp_name_attr":
+  {
+      "prompt":"Enter search group name attribute"
   },
   "scratch_locs":
   {

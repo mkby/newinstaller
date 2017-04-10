@@ -40,7 +40,7 @@ except ImportError:
     print 'Python module prettytable is not found. Install python-prettytable first.'
     exit(1)
 from scripts import wrapper
-from scripts.constants import DEF_PORT_FILE, DBCFG_FILE, USER_PROMPT_FILE, DBCFG_TMP_FILE, INSTALLER_LOC, \
+from scripts.constants import DEF_PORT_FILE, DBCFG_FILE, USER_PROMPT_FILE, DBCFG_TMP_FILE, INSTALLER_LOC, SCRIPTS_DIR, \
                               DEF_HBASE_XML_FILE, PARCEL_HBASE_LIB, DEF_HBASE_LIB, HDP_HBASE_LIB, TRAF_USER
 from scripts.common import Remote, Version, ParseHttp, ParseInI, ParseJson, run_cmd, info, \
                            http_start, http_stop, format_output, err_m, expNumRe
@@ -84,6 +84,19 @@ class HadoopDiscover(object):
                         break
                 except KeyError:
                     log_err('Failed to get hadoop distribution info from management url')
+
+    def get_hive_authorization(self):
+        hive_authorzation = 'NONE'
+        if 'CDH' in self.distro:
+            cfg = self.hg.get('%s/services/hive/config' % self.cluster_url)
+            if cfg.has_key('items'):
+                for item in cfg['items']:
+                    if item['name'] == 'sentry_service':
+                        hive_authorzation = item['value']
+        elif 'HDP' in self.distro:
+            # will support HDP in the future if edb supports ranger
+            pass
+        return hive_authorzation
 
     def get_hdfs_srvname(self):
         return self._get_service_name('HDFS')
@@ -155,7 +168,6 @@ class HadoopDiscover(object):
         # use short hostname
         try:
             self.rsnodes = [re.match(r'([\w\-]+).*', node).group(1) for node in self.rsnodes]
-
         except AttributeError:
             pass
         return self.rsnodes
@@ -419,6 +431,7 @@ def user_input(options, prompt_mode=True, pwd=''):
         hadoop_users = hadoop_discover.get_hadoop_users()
 
         cfgs['distro'] = hadoop_discover.distro
+        cfgs['hive_authorization'] = hadoop_discover.get_hive_authorization()
         cfgs['hbase_lib_path'] = hadoop_discover.get_hbase_lib_path()
         cfgs['hbase_service_name'] = hadoop_discover.get_hbase_srvname()
         cfgs['hdfs_service_name'] = hadoop_discover.get_hdfs_srvname()
@@ -477,6 +490,8 @@ def user_input(options, prompt_mode=True, pwd=''):
         else:
             cfgs['secure_hadoop'] = 'N'
 
+        cfgs['hadoop_security_group_mapping'] = content_dict['hadoop_security_group_mapping']
+
     if offline:
         g('local_repo_dir')
         if not glob('%s/repodata' % cfgs['local_repo_dir']):
@@ -506,6 +521,11 @@ def user_input(options, prompt_mode=True, pwd=''):
     if cfgs['traf_basename'] == 'esgynDB' and float(cfgs['traf_version'][:3]) >= 2.2:
         cfgs['req_java8'] = 'Y'
         g('license_file')
+        prod_edition = run_cmd('%s/decoder -p -f %s' % (SCRIPTS_DIR, cfgs['license_file']))
+        if prod_edition == 'UNKNOWN':
+            log_err('Invalid license')
+        else:
+            cfgs['prod_edition'] = prod_edition
     else:
         cfgs['req_java8'] = 'N'
 
@@ -548,6 +568,12 @@ def user_input(options, prompt_mode=True, pwd=''):
         else:
             cfgs['ldap_user'] = ''
             cfgs['ldap_pwd'] = ''
+
+        if cfgs['hive_authorization'] == 'sentry' and cfgs['prod_edition'] == 'ADV' and cfgs['hadoop_security_group_mapping'] == 'LDAP':
+            g('ldap_srch_grp_base')
+            g('ldap_srch_grp_obj_class')
+            g('ldap_srch_grp_mem_attr')
+            g('ldap_srch_grp_name_attr')
 
     # DCS HA
     g('dcs_ha')

@@ -26,7 +26,7 @@
 import os
 import json
 import sys
-from constants import SCRIPTS_DIR, TRAF_CFG_DIR
+from constants import SCRIPTS_DIR, TRAF_CFG_DIR, TRAF_LICENSE_FILE
 from common import Remote, run_cmd, cmd_output, err, info, get_sudo_prefix
 
 def run(user, pwd):
@@ -69,7 +69,6 @@ def run(user, pwd):
     def copy_license():
         info('copying license file to all nodes')
         tmp_license_file = '/tmp/esgyndb_license'
-        esgyndb_license_file = TRAF_CFG_DIR + 'esgyndb_license'
         run_cmd('cp %s %s' % (license_file, tmp_license_file))
 
         sudo_prefix = get_sudo_prefix()
@@ -81,9 +80,9 @@ def run(user, pwd):
         remotes = [Remote(node, user=user, pwd=pwd) for node in nodes]
         for remote in remotes:
             remote.execute('%s rm -rf %s; %s mkdir -p %s; %s chmod 777 %s' % \
-                (sudo_prefix, esgyndb_license_file, sudo_prefix, TRAF_CFG_DIR, sudo_prefix, TRAF_CFG_DIR))
+                (sudo_prefix, TRAF_LICENSE_FILE, sudo_prefix, TRAF_CFG_DIR, sudo_prefix, TRAF_CFG_DIR))
             remote.copy([tmp_license_file], remote_folder=TRAF_CFG_DIR)
-            remote.execute('chmod +r %s' % esgyndb_license_file)
+            remote.execute('chmod +r %s' % TRAF_LICENSE_FILE)
 
         run_cmd('rm -rf %s' % tmp_license_file)
 

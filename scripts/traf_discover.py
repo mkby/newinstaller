@@ -160,6 +160,16 @@ class Discover(object):
         return self._get_core_site_info('hadoop.security.authentication')
 
     @deco
+    def get_hadoop_security_group_mapping(self):
+        mapping = self._get_core_site_info('hadoop.security.group.mapping')
+        if 'ShellBasedUnixGroupsMapping' in mapping:
+            return 'SHELL'
+        elif 'LdapGroupsMapping' in mapping:
+            return 'LDAP'
+        else:
+            return 'NONE'
+
+    @deco
     def get_hbase(self):
         """ get HBase version """
         if self.dbcfgs.has_key('hbase_home'): # apache distro
