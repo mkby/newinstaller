@@ -96,6 +96,13 @@
         "node": "all"
     }
 ],
+"perf": [
+    {
+        "script": "net_perf.py",
+        "desc": "Network Performance Testing",
+        "node": "all"
+    }
+],
 "cloudera": [
     {
         "script": "deploy_cdh.py",

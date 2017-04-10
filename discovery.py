@@ -39,7 +39,7 @@ from scripts import wrapper
 
 def get_options():
     usage = 'usage: %prog [options]\n'
-    usage += '  Trafodion install main script.'
+    usage += '  Discovery script.'
     parser = OptionParser(usage=usage)
     parser.add_option("-c", "--config-file", dest="cfgfile", metavar="FILE",
                       help="Json format file. If provided, all install prompts \
@@ -47,6 +47,8 @@ def get_options():
     parser.add_option("-u", "--remote-user", dest="user", metavar="USER",
                       help="Specify ssh login user for remote server, \
                             if not provided, use current login user as default.")
+    parser.add_option("-p", "--net-perf", action="store_true", dest="perf", default=False,
+                      help="Run network bandwidth tests.")
     parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
                       help="Prompt SSH login password for remote hosts. \
                             If set, \'sshpass\' tool is required.")
@@ -123,15 +125,25 @@ def main():
 
         cfgs['node_list'] = ','.join(node_lists)
 
-
-    results = wrapper.run(cfgs, options, mode='discover', pwd=pwd)
+    if options.perf:
+        mode = 'perf'
+    else:
+        mode = 'discover'
+    results = wrapper.run(cfgs, options, mode=mode, pwd=pwd)
 
     format_output('Discover results')
 
-    if len(results) > 4:
-        output = output_row(results)
+    if mode == 'discover':
+        if len(results) > 4:
+            output = output_row(results)
+        else:
+            output = output_column(results)
     else:
-        output = output_column(results)
+        output = ''
+        for result in results:
+            host, content = result.items()[0]
+            if not content: continue
+            output += content + '\n'
 
     print output
     with open('discover_result', 'w') as f:
