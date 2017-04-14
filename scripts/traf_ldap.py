@@ -27,7 +27,7 @@ import os
 import sys
 import json
 from constants import TRAF_CFG_FILE, TRAF_LICENSE_FILE
-from common import run_cmd, mod_file, err
+from common import run_cmd, mod_file, err, append_file
 
 def run():
     """ setup LDAP security """
@@ -86,8 +86,8 @@ export SENTRY_SECURITY_GROUP_MODE=%s
     #if not 'Authentication successful' in ldapcheck_result:
     #    err('Failed to access LDAP server with user %s' % db_root_user)
 
-    print 'Modfiy sqenvcom.sh to turn on authentication'
-    mod_file(sqenv_file, {'TRAFODION_ENABLE_AUTHENTICATION=.*':'TRAFODION_ENABLE_AUTHENTICATION=YES'})
+    print 'turn on authentication setting in trafodion_config'
+    append_file(TRAF_CFG_FILE, 'export TRAFODION_ENABLE_AUTHENTICATION=YES\n')
 
 # main
 try:

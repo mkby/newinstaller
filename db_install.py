@@ -87,8 +87,9 @@ class HadoopDiscover(object):
 
     def get_hive_authorization(self):
         hive_authorzation = 'NONE'
-        if 'CDH' in self.distro:
-            cfg = self.hg.get('%s/services/hive/config' % self.cluster_url)
+        hive_srvname = self.get_hive_srvname()
+        if 'CDH' in self.distro and hive_srvname:
+            cfg = self.hg.get('%s/services/%s/config' % (self.cluster_url, hive_srvname))
             if cfg.has_key('items'):
                 for item in cfg['items']:
                     if item['name'] == 'sentry_service':
@@ -103,6 +104,9 @@ class HadoopDiscover(object):
 
     def get_hbase_srvname(self):
         return self._get_service_name('HBASE')
+
+    def get_hive_srvname(self):
+        return self._get_service_name('HIVE')
 
     def get_zookeeper_srvname(self):
         return self._get_service_name('ZOOKEEPER')
@@ -526,6 +530,8 @@ def user_input(options, prompt_mode=True, pwd=''):
             log_err('Invalid license')
         else:
             cfgs['prod_edition'] = prod_edition
+        # need to get multi tenancy info from decoder
+        cfgs['multi_tenancy'] = 'N'
     else:
         cfgs['req_java8'] = 'N'
 
@@ -538,8 +544,18 @@ def user_input(options, prompt_mode=True, pwd=''):
     g('scratch_locs')
     g('traf_start')
 
+    # multi tenancy
+    if cfgs['multi_tenancy'] == 'Y':
+        numchk = lambda n: 1 <= n <= 100
+        g('cgroup_cpu_quota')
+        if not numchk(int(cfgs['cgroup_cpu_quota'])):
+            log_err('Invalid number, should be 1 to 100.')
+        g('cgroup_mem_quota')
+        if not numchk(int(cfgs['cgroup_mem_quota'])):
+            log_err('Invalid number, should be 1 to 100.')
+
     # kerberos
-    if cfgs['secure_hadoop'].upper() == 'Y':
+    if cfgs['secure_hadoop'] == 'Y':
         g('kdc_server')
         g('admin_principal')
         g('kdcadmin_pwd')
@@ -593,7 +609,6 @@ def user_input(options, prompt_mode=True, pwd=''):
         # don't overwrite user input java home
         if not cfgs['java_home']:
             cfgs['java_home'] = java_home
-
 
     if not silent:
         u.notify_user()
