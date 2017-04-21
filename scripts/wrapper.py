@@ -33,7 +33,8 @@ from common import err_m, run_cmd, time_elapse, get_logger, get_sudo_prefix, Rem
 class RemoteRun(Remote):
     """ run commands or scripts remotely using ssh """
 
-    def __init__(self, host, logger, user='', pwd='', quiet=False):
+    def __init__(self, host, logger, user='', pwd='', verbose=False, quiet=False):
+        self.verbose = verbose
         self.sudo_prefix = ''
         self.host = host
         self.user = user
@@ -49,21 +50,21 @@ class RemoteRun(Remote):
     def initialize(self):
         super(RemoteRun, self).__init__(self.host, self.user, self.pwd)
         # create tmp folder
-        self.execute('mkdir -p %s' % TMP_DIR)
+        self.execute('mkdir -p %s' % TMP_DIR, verbose=self.verbose)
 
         # copy all needed files to remote host
         all_files = [CONFIG_DIR, SCRIPTS_DIR, TEMPLATES_DIR]
 
-        self.copy(all_files, remote_folder=TMP_DIR)
+        self.copy(all_files, remote_folder=TMP_DIR, verbose=self.verbose)
 
         # set permission
-        self.execute('chmod a+rx %s/scripts/*.py' % TMP_DIR)
+        self.execute('chmod a+rx %s/scripts/*.py' % TMP_DIR, verbose=self.verbose)
 
     def __del__(self):
         # clean up
         self.execute('%s rm -rf %s' % (self.sudo_prefix, TMP_DIR), chkerr=False)
 
-    def run_script(self, script, run_user, json_string, verbose=False):
+    def run_script(self, script, run_user, json_string):
         """ @param run_user: run the script with this user """
 
         if run_user:
@@ -71,10 +72,10 @@ class RemoteRun(Remote):
             json_string = json_string.replace('"', '\\\\\\"').replace(' ', '').replace('{', '\\{').replace('$', '\\\\\\$')
             # this command only works with shell=True
             script_cmd = '"%s su - %s -c \'%s/scripts/%s %s\'"' % (self.sudo_prefix, run_user, TMP_DIR, script, json_string)
-            self.execute(script_cmd, verbose=verbose, shell=True, chkerr=False)
+            self.execute(script_cmd, verbose=self.verbose, shell=True, chkerr=False)
         else:
             script_cmd = '%s %s/scripts/%s \'%s\'' % (self.sudo_prefix, TMP_DIR, script, json_string)
-            self.execute(script_cmd, verbose=verbose, chkerr=False)
+            self.execute(script_cmd, verbose=self.verbose, chkerr=False)
 
         format1 = 'Host [%s]: Script [%s]: %s' % (self.host, script, self.stdout)
         format2 = 'Host [%s]: Script [%s]' % (self.host, script)
@@ -209,9 +210,9 @@ def run(dbcfgs, options, mode='install', pwd=''):
     try:
         remote_instances = []
         if mode == 'discover':
-            remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd, quiet=True) for host in hosts]
+            remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd, verbose=verbose, quiet=True) for host in hosts]
         else:
-            remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd) for host in hosts]
+            remote_instances = [RemoteRun(host, logger, user=user, pwd=pwd, verbose=verbose) for host in hosts]
         # do init in threads to improve performance
         threads = [Thread(target=r.initialize) for r in remote_instances]
         for t in threads: t.start()
@@ -255,9 +256,9 @@ def run(dbcfgs, options, mode='install', pwd=''):
             if node == 'local':
                 run_local_script(script, dbcfgs_json, req_pwd)
             elif node == 'first':
-                first_instance.run_script(script, run_user, dbcfgs_json, verbose=verbose)
+                first_instance.run_script(script, run_user, dbcfgs_json)
             elif node == 'first_rs':
-                first_rs_instance.run_script(script, run_user, dbcfgs_json, verbose=verbose)
+                first_rs_instance.run_script(script, run_user, dbcfgs_json)
             elif node == 'all':
                 l = len(remote_instances)
                 if l > threshold:
@@ -268,7 +269,7 @@ def run(dbcfgs, options, mode='install', pwd=''):
                     parted_remote_instances = [remote_instances]
 
                 for parted_remote_inst in parted_remote_instances:
-                    threads = [Thread(target=r.run_script, args=(script, run_user, dbcfgs_json, verbose)) for r in parted_remote_inst]
+                    threads = [Thread(target=r.run_script, args=(script, run_user, dbcfgs_json)) for r in parted_remote_inst]
                     for t in threads: t.start()
                     for t in threads: t.join()
 
@@ -282,6 +283,8 @@ def run(dbcfgs, options, mode='install', pwd=''):
                 err_m('Invalid configuration for %s' % SCRCFG_FILE)
 
             status.set_status()
+
+        logger.info(' ***** %s End *****' % mode)
     except KeyboardInterrupt:
         err_m('User quit')
 

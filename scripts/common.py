@@ -246,7 +246,7 @@ class Remote(object):
         if chkerr and self.rc != 0:
             err_m('Failed to execute command on remote host [%s]: "%s"' % (self.host, user_cmd))
 
-    def copy(self, files, remote_folder='.'):
+    def copy(self, files, remote_folder='.', verbose=False):
         """ copy file to user's home folder """
         for f in files:
             if not os.path.exists(f):
@@ -260,10 +260,10 @@ class Remote(object):
         else:
             cmd += ['%s:%s/' % (self.host, remote_folder)]
 
-        self._execute(cmd)
+        self._execute(cmd, verbose=verbose)
         if self.rc != 0: err_m('Failed to copy files to remote nodes')
 
-    def fetch(self, files, local_folder='.'):
+    def fetch(self, files, local_folder='.', verbose=False):
         """ fetch file from user's home folder """
         cmd = self._commands('scp')
         cmd += ['-r']
@@ -273,7 +273,7 @@ class Remote(object):
             cmd += ['%s:~/{%s}' % (self.host, ','.join(files))]
         cmd += [local_folder]
 
-        self._execute(cmd)
+        self._execute(cmd, verbose=verbose)
         if self.rc != 0: err('Failed to fetch files from remote nodes')
 
 
