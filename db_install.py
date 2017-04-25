@@ -530,8 +530,12 @@ def user_input(options, prompt_mode=True, pwd=''):
             log_err('Invalid license')
         else:
             cfgs['prod_edition'] = prod_edition
-        # need to get multi tenancy info from decoder
-        cfgs['multi_tenancy'] = 'N'
+        # get multi tenancy info from decoder
+        mt_enabled = run_cmd('%s/decoder -x -f %s' % (SCRIPTS_DIR, cfgs['license_file']))
+        if int(mt_enabled) == 0:
+            cfgs['multi_tenancy'] = 'Y'
+        else:
+            cfgs['multi_tenancy'] = 'N'
     else:
         cfgs['req_java8'] = 'N'
 
@@ -547,11 +551,11 @@ def user_input(options, prompt_mode=True, pwd=''):
     # multi tenancy
     if cfgs['multi_tenancy'] == 'Y':
         numchk = lambda n: 1 <= n <= 100
-        g('cgroup_cpu_quota')
-        if not numchk(int(cfgs['cgroup_cpu_quota'])):
+        g('cgroup_cpu_pct')
+        if not numchk(int(cfgs['cgroup_cpu_pct'])):
             log_err('Invalid number, should be 1 to 100.')
-        g('cgroup_mem_quota')
-        if not numchk(int(cfgs['cgroup_mem_quota'])):
+        g('cgroup_mem_pct')
+        if not numchk(int(cfgs['cgroup_mem_pct'])):
             log_err('Invalid number, should be 1 to 100.')
 
     # kerberos

@@ -62,3 +62,6 @@ TRAF_CFG_DIR = '/etc/trafodion/'
 TRAF_LICENSE_FILE = TRAF_CFG_DIR + 'esgyndb_license'
 TRAF_CFG_FILE = '/etc/trafodion/trafodion_config'
 TRAF_USER = 'trafodion'
+
+EDB_CGROUP_NAME = 'Esgyn'
+CGRULES_CONF_FILE = '/etc/cgrules.conf'
