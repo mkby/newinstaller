@@ -129,12 +129,13 @@ class Status(object):
             f.write('%s OK\n' % self.name)
 
 @time_elapse
-def run(dbcfgs, options, mode='install', pwd=''):
+def run(dbcfgs, options, mode='install', pwd='', log_file=''):
     """ main entry
         mode: install/discover
     """
     stat_file = '%s/%s.status' % (INSTALLER_LOC, mode)
-    log_file = '%s/logs/%s_%s.log' % (INSTALLER_LOC, mode, time.strftime('%Y%m%d_%H%M'))
+    if not log_file:
+        log_file = '%s/logs/%s_%s.log' % (INSTALLER_LOC, mode, time.strftime('%Y%m%d_%H%M'))
     logger = get_logger(log_file)
 
     verbose = True if hasattr(options, 'verbose') and options.verbose else False
@@ -276,7 +277,14 @@ def run(dbcfgs, options, mode='install', pwd=''):
                     if sum([r.rc for r in parted_remote_inst]) != 0:
                         err_m('Script failed to run on one or more nodes, exiting ...\nCheck log file %s for details.' % log_file)
 
-                    script_output += [{r.host:r.stdout.strip()} for r in parted_remote_inst]
+                    #script_output += [{r.host:r.stdout.strip()} for r in parted_remote_inst]
+                    for r in parted_remote_inst:
+                        try:
+                            dic = json.loads(r.stdout)
+                            dic.update({'hostname':r.host})
+                        except ValueError:
+                            dic = {r.host:r.stdout.strip()}
+                        script_output.append(dic)
 
             else:
                 # should not go to here

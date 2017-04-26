@@ -468,33 +468,30 @@ def user_input(options, prompt_mode=True, pwd=''):
     need_java_home = 0
     has_home_dir = 0
     for result in system_discover:
-        host, content = result.items()[0]
-        content_dict = json.loads(content)
-
-        java_home = content_dict['default_java']
+        java_home = result['default_java']
         if java_home == 'N/A':
             need_java_home += 1
-        if content_dict['linux'] == 'N/A':
+        if result['linux'] == 'N/A':
             log_err('Unsupported Linux version')
-        if content_dict['firewall_status'] == 'Running':
+        if result['firewall_status'] == 'Running':
             info('Firewall is running, please make sure the ports used by Trafodion are open')
-        if content_dict['traf_status'] == 'Running':
+        if result['traf_status'] == 'Running':
             log_err('Trafodion process is found, please stop it first')
-        if content_dict['hbase'] == 'N/A':
+        if result['hbase'] == 'N/A':
             log_err('HBase is not found')
-        if content_dict['hbase'] == 'N/S':
+        if result['hbase'] == 'N/S':
             log_err('HBase version is not supported')
         else:
-            cfgs['hbase_ver'] = content_dict['hbase']
-        if content_dict['home_dir']: # trafodion user exists
+            cfgs['hbase_ver'] = result['hbase']
+        if result['home_dir']: # trafodion user exists
             has_home_dir += 1
-            cfgs['home_dir'] = content_dict['home_dir']
-        if content_dict['hadoop_authentication'] == 'kerberos':
+            cfgs['home_dir'] = result['home_dir']
+        if result['hadoop_authentication'] == 'kerberos':
             cfgs['secure_hadoop'] = 'Y'
         else:
             cfgs['secure_hadoop'] = 'N'
 
-        cfgs['hadoop_security_group_mapping'] = content_dict['hadoop_security_group_mapping']
+        cfgs['hadoop_security_group_mapping'] = result['hadoop_security_group_mapping']
 
     if offline:
         g('local_repo_dir')
@@ -624,6 +621,8 @@ def get_options():
     parser.add_option("-c", "--config-file", dest="cfgfile", metavar="FILE",
                       help="Json format file. If provided, all install prompts \
                             will be taken from this file and not prompted for.")
+    parser.add_option("-l", "--log-file", dest="logfile", metavar="FILE",
+                      help="Specify the log file name.")
     parser.add_option("-u", "--remote-user", dest="user", metavar="USER",
                       help="Specify ssh login user for remote server, \
                             if not provided, use current login user as default.")
@@ -700,8 +699,11 @@ def main():
     if not options.build:
         format_output('Installation Start')
 
-        ### perform actual installation ###
-        wrapper.run(cfgs, options, pwd=pwd)
+        if options.logfile:
+            ### perform actual installation ###
+            wrapper.run(cfgs, options, pwd=pwd, log_file=options.logfile)
+        else:
+            wrapper.run(cfgs, options, pwd=pwd)
 
         format_output('Installation Complete')
 
