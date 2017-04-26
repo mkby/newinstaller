@@ -39,6 +39,11 @@
         "node": "all"
     },
     {
+        "script": "traf_cgroups.py",
+        "desc": "Cgroups Setup",
+        "node": "all"
+    },
+    {
         "script": "traf_kerberos.py",
         "desc": "Kerberos Setup",
         "node": "all"

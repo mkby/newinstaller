@@ -548,12 +548,12 @@ def user_input(options, prompt_mode=True, pwd=''):
     # multi tenancy
     if cfgs['multi_tenancy'] == 'Y':
         numchk = lambda n: 1 <= n <= 100
-        g('cgroup_cpu_pct')
-        if not numchk(int(cfgs['cgroup_cpu_pct'])):
-            log_err('Invalid number, should be 1 to 100.')
-        g('cgroup_mem_pct')
-        if not numchk(int(cfgs['cgroup_mem_pct'])):
-            log_err('Invalid number, should be 1 to 100.')
+        g('cgroups_cpu_pct')
+        if not numchk(int(cfgs['cgroups_cpu_pct'])):
+            log_err('Invalid number, should be between 1 to 100.')
+        g('cgroups_mem_pct')
+        if not numchk(int(cfgs['cgroups_mem_pct'])):
+            log_err('Invalid number, should be between 1 to 100.')
 
     # kerberos
     if cfgs['secure_hadoop'] == 'Y':

@@ -28,7 +28,7 @@ import sys
 import re
 import json
 from constants import EDB_CGROUP_NAME, CGRULES_CONF_FILE
-from common import err, run_cmd, get_default_home
+from common import err, run_cmd, get_default_home, append_file
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -50,11 +50,11 @@ def run():
         run_cmd('service cgconfig restart')
 
         esgyn_cgrules = '%s cpu,memory %s/' % (traf_user, EDB_CGROUP_NAME)
-        mod_file(CGRULES_CONF_FILE, esgyn_cgrules)
+        append_file(CGRULES_CONF_FILE, esgyn_cgrules)
 
         run_cmd('service cgred restart')
 
-        run_cmd('%s/sql/scripts/edb_cgroup_cmd --add --pcgrp %s --cpu_pct %s --mem_pct %s' % (traf_home, EDB_CGROUP_NAME, cpu_pct, mem_pct))
+        run_cmd('%s/sql/scripts/edb_cgroup_cmd --add --pcgrp %s --cpu-pct %s --mem-pct %s' % (traf_home, EDB_CGROUP_NAME, cpu_pct, mem_pct))
 # main
 try:
     dbcfgs_json = sys.argv[1]

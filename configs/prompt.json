@@ -254,13 +254,13 @@
       "default":"Y",
       "isYN":true
   },
-  "cgroup_cpu_pct":
+  "cgroups_cpu_pct":
   {
       "prompt":"Enter the % CPU to use for EsgynDB services",
       "default":"100",
       "isdigit":true
   },
-  "cgroup_mem_pct":
+  "cgroups_mem_pct":
   {
       "prompt":"Enter the % Memory to use for EsgynDB services",
       "default":"100",

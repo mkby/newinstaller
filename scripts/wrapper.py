@@ -158,6 +158,9 @@ def run(dbcfgs, options, mode='install', pwd='', log_file=''):
     if dbcfgs['secure_hadoop'] == 'N':
         skipped_scripts += ['traf_kerberos']
 
+    if dbcfgs['multi_tenancy'] == 'N':
+        skipped_scripts += ['traf_cgroups']
+
     if dbcfgs['traf_start'].upper() == 'N':
         skipped_scripts += ['traf_start']
 
