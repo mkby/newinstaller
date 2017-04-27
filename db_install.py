@@ -447,10 +447,10 @@ def user_input(options, prompt_mode=True, pwd=''):
         cfgs['node_list'] = ','.join(rsnodes)
         cfgs['first_rsnode'] = rsnodes[0] # first regionserver node
 
-    # check node connection
-    for node in cfgs['node_list'].split(','):
-        rc = os.system('ping -c 1 %s >/dev/null 2>&1' % node)
-        if rc: log_err('Cannot ping %s, please check network connection and /etc/hosts' % node)
+#    # check node connection
+#    for node in cfgs['node_list'].split(','):
+#        rc = os.system('ping -c 1 %s >/dev/null 2>&1' % node)
+#        if rc: log_err('Cannot ping %s, please check network connection and /etc/hosts' % node)
 
     # set some system default configs
     cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
