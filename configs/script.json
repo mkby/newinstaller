@@ -30,8 +30,7 @@
     {
         "script": "traf_package.py",
         "desc": "Install Trafodion package",
-        "node": "all",
-        "run_as_traf": "yes"
+        "node": "all"
     },
     {
         "script": "traf_setup.py",

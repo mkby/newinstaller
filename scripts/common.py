@@ -210,7 +210,7 @@ class Remote(object):
                 # 'ssh -tt' will overwrite stderr, so manually handle it
                 if MARK in self.stdout:
                     self.stdout, self.stderr = self.stdout.split(MARK)
-                else:
+                elif self.stdout:
                     self.stderr = self.stdout
         except Exception as e:
             err_m('Failed to run commands on remote host: %s' % e)
@@ -261,7 +261,7 @@ class Remote(object):
             cmd += ['%s:%s/' % (self.host, remote_folder)]
 
         self._execute(cmd, verbose=verbose)
-        if self.rc != 0: err_m('Failed to copy files to remote nodes')
+        if self.rc != 0: err_m('Failed to copy files to remote node [%s]: %s' % (self.host, self.stderr))
 
     def fetch(self, files, local_folder='.', verbose=False):
         """ fetch file from user's home folder """

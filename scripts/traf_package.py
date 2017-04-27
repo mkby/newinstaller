@@ -21,22 +21,33 @@
 #
 # @@@ END COPYRIGHT @@@
 
-## This script should be run on all nodes with trafodion user ##
+## This script should be run on all nodes with sudo user ##
 
 import sys
 import json
-from common import run_cmd, err
+from common import run_cmd, cmd_output, err, get_default_home
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
 
+    home_dir = get_default_home()
+    if dbcfgs.has_key('home_dir'):
+        home_dir = dbcfgs['home_dir']
+
+    traf_user = dbcfgs['traf_user']
+    traf_group = cmd_output('id -ng %s' % traf_user)
     traf_dirname = dbcfgs['traf_dirname']
+    traf_home = '%s/%s/%s' % (home_dir, traf_user, traf_dirname)
 
     # untar traf package, package comes from copy_files.py
     traf_package_file = '/tmp/' + dbcfgs['traf_package'].split('/')[-1]
-    run_cmd('mkdir -p ~/%s' % traf_dirname)
-    run_cmd('tar xf %s -C ~/%s' % (traf_package_file, traf_dirname))
+    run_cmd('mkdir -p %s' % traf_home)
+    run_cmd('tar xf %s -C %s' % (traf_package_file, traf_home))
 
+    run_cmd('chmod 700 %s' % traf_home)
+    run_cmd('chown -R %s:%s %s' % (traf_user, traf_group, traf_home))
+
+    run_cmd('rm -rf %s' % traf_package_file)
     print 'Trafodion package extracted successfully!'
 
 # main
