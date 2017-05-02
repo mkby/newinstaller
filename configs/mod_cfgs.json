@@ -1,16 +1,17 @@
 {
 "MOD_CFGS": {
     "hbase-site": {
-        "hbase.master.distributed.log.splitting": "true",
-        "hbase.snapshot.master.timeoutMillis": "600000",
         "hbase.coprocessor.region.classes": "org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionObserver,org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionEndpoint,org.apache.hadoop.hbase.coprocessor.AggregateImplementation",
         "hbase.hregion.impl": "org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion",
         "hbase.regionserver.region.split.policy": "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy",
+        "hbase.regionserver.lease.period": "3600000",
         "hbase.snapshot.enabled": "true",
-        "hbase.bulkload.staging.dir": "/hbase-staging",
-        "hbase.regionserver.region.transactional.tlog": "true",
+        "hbase.snapshot.master.timeoutMillis": "600000",
         "hbase.snapshot.region.timeout": "600000",
-        "hbase.client.scanner.timeout.period": "600000"
+        "hbase.hregion.memstore.flush.size": "536870912",
+        "hbase.hregion.memstore.block.multiplier": "7",
+        "hbase.hstore.blockingStoreFiles": "200",
+        "hbase.rootdir.perms": "750"
     },
     "hdfs-site": { "dfs.namenode.acls.enabled": "true" },
     "zoo.cfg": { "maxClientCnxns": "0" }
@@ -21,7 +22,7 @@
         "roleType" : "MASTER",
         "items" : [ {
                 "name" : "hbase_master_config_safety_valve",
-        "value" : "<property>\r\n   <name>hbase.master.distributed.log.splitting</name>\r\n   <value>true</value>\r\n</property>\r\n <property>\r\n   <name>hbase.snapshot.master.timeoutMillis</name>\r\n   <value>600000</value>\r\n</property>\r\n"
+                "value" : "<property><name>hbase.snapshot.master.timeoutMillis</name><value>600000</value></property> <property><name>hbase.rootdir.perms</name><value>750</value></property>"
                 } ]
     } ]
 },
@@ -32,10 +33,19 @@
                 "value" : "org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionObserver,org.apache.hadoop.hbase.coprocessor.transactional.TrxRegionEndpoint,org.apache.hadoop.hbase.coprocessor.AggregateImplementation"
                 }, {
                 "name" : "hbase_regionserver_lease_period",
-                "value" : "600000"
+                "value" : "3600000"
+                }, {
+                "name" : "hbase_hregion_memstore_flush_size",
+                "value" : "536870912"
+                }, {
+                "name" : "hbase_hregion_memstore_block_multiplier",
+                "value" : "7"
+                }, {
+                "name" : "hbase_hstore_blockingStoreFiles",
+                "value" : "200"
                 }, {
                 "name" : "hbase_regionserver_config_safety_valve",
-                "value" : "<property>\r\n   <name>hbase.hregion.impl</name>\r\n   <value>org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion</value>\r\n</property>\r\n <property>\r\n   <name>hbase.regionserver.region.split.policy</name>\r\n   <value>org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy</value>\r\n</property>\r\n  <property>\r\n   <name>hbase.snapshot.enabled</name>\r\n   <value>true</value>\r\n</property>\r\n <property>\r\n   <name>hbase.bulkload.staging.dir</name>\r\n   <value>/hbase-staging</value>\r\n</property>\r\n <property>\r\n   <name>hbase.regionserver.region.transactional.tlog</name>\r\n   <value>true</value>\r\n</property>\r\n <property>\r\n   <name>hbase.snapshot.region.timeout</name>\r\n   <value>600000</value>\r\n</property>\r\n "
+                "value" : "<property><name>hbase.hregion.impl</name><value>org.apache.hadoop.hbase.regionserver.transactional.TransactionalRegion</value></property> <property><name>hbase.regionserver.region.split.policy</name><value>org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy</value></property> <property><name>hbase.snapshot.enabled</name><value>true</value></property> <property><name>hbase.snapshot.region.timeout</name><value>600000</value></property>"
                 } ]
 },
 
