@@ -40,7 +40,7 @@ except ImportError:
     import xml.etree.ElementTree as ET
 from ConfigParser import ConfigParser
 from collections import defaultdict
-from constants import VERSION_FILE
+from constants import CENTRAL_CFG_FILE, PARCEL_HBASE_LIB, DEF_HBASE_LIB, HDP_HBASE_LIB
 
 MARK = '[ERR]'
 
@@ -85,6 +85,12 @@ def run_cmd(cmd):
         msg = stderr if stderr else stdout
         err('Failed to run command %s: %s' % (cmd, msg))
     return stdout.strip()
+
+def run_cmd2(cmd):
+    """ return command return code """
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    p.communicate()
+    return p.returncode
 
 def run_cmd_as_user(user, cmd):
     return run_cmd('%s su - %s -c \'%s\'' % (get_sudo_prefix(), user, cmd))
@@ -151,16 +157,178 @@ def write_file(template_file, string):
     except IOError:
         err('Failed to open file %s to write' % template_file)
 
+class HadoopDiscover(object):
+    """ discover for hadoop related info """
+    def __init__(self, user, pwd, url, cluster_name):
+        self.rsnodes = []
+        self.users = {}
+        self.cluster_name = cluster_name
+        self.hg = ParseHttp(user, pwd)
+        self.url = url
+        self.v1_url = '%s/api/v1/clusters' % self.url
+        self.v6_url = '%s/api/v6/clusters' % self.url
+        self.cluster_url = '%s/%s' % (self.v1_url, cluster_name.replace(' ', '%20'))
+        self._get_distro()
+        self._check_version()
+        if 'CDH' in self.distro:
+            self.cm = self.hg.get('%s/api/v6/cm/deployment' % self.url)
 
-class Version(object):
+    def _get_distro(self):
+        content = self.hg.get(self.v1_url)
+
+        if content['items'][0].has_key('name'):
+            # use v6 rest api for CDH to get fullversion
+            content = self.hg.get(self.v6_url)
+
+        # loop all managed clusters
+        for cluster in content['items']:
+            try:
+                # HDP
+                self.distro = cluster['Clusters']['version']
+            except KeyError:
+                # CDH
+                try:
+                    if self.cluster_name == cluster['displayName']:
+                        self.distro = 'CDH' + cluster['fullVersion']
+                        break
+                except KeyError:
+                    err_m('Failed to get hadoop distribution info from management url')
+
+    def get_hive_authorization(self):
+        hive_authorzation = 'NONE'
+        hive_srvname = self.get_hive_srvname()
+        if 'CDH' in self.distro and hive_srvname:
+            cfg = self.hg.get('%s/services/%s/config' % (self.cluster_url, hive_srvname))
+            if cfg.has_key('items'):
+                for item in cfg['items']:
+                    if item['name'] == 'sentry_service':
+                        hive_authorzation = item['value']
+        elif 'HDP' in self.distro:
+            # will support HDP in the future if edb supports ranger
+            pass
+        return hive_authorzation
+
+    def get_hdfs_srvname(self):
+        return self._get_service_name('HDFS')
+
+    def get_hbase_srvname(self):
+        return self._get_service_name('HBASE')
+
+    def get_hive_srvname(self):
+        return self._get_service_name('HIVE')
+
+    def get_zookeeper_srvname(self):
+        return self._get_service_name('ZOOKEEPER')
+
+    def _get_service_name(self, service):
+        # CDH uses different service names in multiple clusters
+        if 'CDH' in self.distro:
+            services_cfgs = self.hg.get(self.cluster_url +'/services')
+            for item in services_cfgs['items']:
+                if item['type'] == service:
+                    return item['name']
+        else:
+            return service.lower()
+
+    def _check_version(self):
+        ccfg = CentralConfig()
+        if 'CDH' in self.distro: version_list = ccfg.get('cdh_ver')
+        if 'HDP' in self.distro: version_list = ccfg.get('hdp_ver')
+
+        has_version = 0
+        for ver in version_list:
+            if ver in self.distro: has_version = 1
+
+        if not has_version:
+            err_m('Sorry, currently Trafodion doesn\'t support %s version' % self.distro)
+
+    def get_hadoop_users(self):
+        if 'CDH' in self.distro:
+            self._get_cdh_users()
+        elif 'HDP' in self.distro or 'BigInsights' in self.distro:
+            self._get_hdp_users()
+        return self.users
+
+    def _get_hdp_users(self):
+        desired_cfg = self.hg.get('%s/?fields=Clusters/desired_configs' % (self.cluster_url))
+        config_type = {'hbase-env':'hbase_user', 'hadoop-env':'hdfs_user'}
+        for key, value in config_type.items():
+            desired_tag = desired_cfg['Clusters']['desired_configs'][key]['tag']
+            current_cfg = self.hg.get('%s/configurations?type=%s&tag=%s' % (self.cluster_url, key, desired_tag))
+            self.users[value] = current_cfg['items'][0]['properties'][value]
+
+    def _get_cdh_users(self):
+        def _get_username(service_name, hadoop_type):
+            cfg = self.hg.get('%s/services/%s/config' % (self.cluster_url, service_name))
+            if cfg.has_key('items'):
+                for item in cfg['items']:
+                    if item['name'] == 'process_username':
+                        return item['value']
+            return hadoop_type
+
+        hdfs_user = _get_username(self.get_hdfs_srvname(), 'hdfs')
+        hbase_user = _get_username(self.get_hbase_srvname(), 'hbase')
+
+        self.users = {'hbase_user':hbase_user, 'hdfs_user':hdfs_user}
+
+    def get_rsnodes(self):
+        if 'CDH' in self.distro:
+            self._get_rsnodes_cdh()
+        elif 'HDP' in self.distro or 'BigInsights' in self.distro:
+            self._get_rsnodes_hdp()
+
+        self.rsnodes.sort()
+        # use short hostname
+        try:
+            self.rsnodes = [re.match(r'([\w\-]+).*', node).group(1) for node in self.rsnodes]
+        except AttributeError:
+            pass
+        return self.rsnodes
+
+    def _get_rsnodes_cdh(self):
+        """ get list of HBase RegionServer nodes in CDH """
+        hostids = []
+        for c in self.cm['clusters']:
+            if c['displayName'] == self.cluster_name:
+                for s in c['services']:
+                    if s['type'] == 'HBASE':
+                        for r in s['roles']:
+                            if r['type'] == 'REGIONSERVER': hostids.append(r['hostRef']['hostId'])
+        for i in hostids:
+            for h in self.cm['hosts']:
+                if i == h['hostId']: self.rsnodes.append(h['hostname'])
+
+    def _get_rsnodes_hdp(self):
+        """ get list of HBase RegionServer nodes in HDP """
+        hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url)
+        self.rsnodes = [c['HostRoles']['host_name'] for c in hdp['host_components']]
+
+    def get_hbase_lib_path(self):
+        if 'CDH' in self.distro:
+            for c in self.cm['clusters']:
+                if c['displayName'] == self.cluster_name:
+                    parcels = c['parcels']
+            if parcels:
+                parcel_config = self.hg.get('%s/api/v6/cm/allHosts/config' % self.url)
+                # custom parcel dir exists
+                if parcel_config['items'] and parcel_config['items'][0]['name'] == 'parcels_directory':
+                    hbase_lib_path = parcel_config['items'][0]['value'] + '/CDH/lib/hbase/lib'
+                else:
+                    hbase_lib_path = PARCEL_HBASE_LIB
+            else:
+                hbase_lib_path = DEF_HBASE_LIB
+        elif 'HDP' in self.distro:
+            hbase_lib_path = HDP_HBASE_LIB
+
+        return hbase_lib_path
+
+class CentralConfig(object):
     def __init__(self):
-        self.support_ver = ParseJson(VERSION_FILE).load()
+        self.cfg = ParseJson(CENTRAL_CFG_FILE).load()
 
-    def get_version(self, component):
-        if self.support_ver[component] == '':
-            err('Failed to get version info for "%s" from config file' % component)
-
-        return self.support_ver[component]
+    def get(self, component):
+        # return empty str if component not exist
+        return self.cfg[component]
 
 class Remote(object):
     """

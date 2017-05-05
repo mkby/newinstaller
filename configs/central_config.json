@@ -1,0 +1,23 @@
+{
+    "packages":  ["apr", "apr-util", "expect", "gzip", "gnuplot", "libiodbc-devel",
+                  "lzo", "lzop", "pdsh", "perl-DBD-SQLite", "perl-Params-Validate",
+                  "perl-Time-HiRes", "protobuf", "sqlite", "snappy", "unixODBC-devel", "unzip"],
+
+    "linux_ver":     ["suse11.2", "centos6", "centos7", "redhat6", "redhat7"],
+    "hadoop_ver":    ["mapr", "cloudera", "hortonworks", "apache"],
+    "java_ver":      ["1.7", "1.8"],
+    "cdh_ver":       ["5.4", "5.5", "5.6", "5.7", "5.8"],
+    "hdp_ver":       ["2.3", "2.4"],
+    "hbase_ver":     ["1.0", "1.1", "1.2"],
+
+    "mem_total":         {"warn": "64", "error": "32", "unit": "GB", "cmpr": "lt"},
+    "disk_nums":         {"warn": "4", "error": "2", "cmpr": "lt"},
+    "install_disk_free": {"warn": "200", "error": "50", "unit": "GB", "cmpr": "lt"},
+    "user_disk_free":    {"warn": "1000", "error": "200", "unit": "GB", "cmpr": "lt"},
+    "net_bw":            {"warn": "10", "error": "1", "unit": "Gb", "cmpr": "lt"},
+    "swap_pct":          {"warn": "25", "error": "1", "unit": "%", "cmpr": "lt"},
+    "pid_max":           {"warn": "65535", "cmpr": "lt"},
+    "tcp_time":          {"warn": "240", "cmpr": "gt"},
+    "tcp_intvl":         {"warn": "15", "cmpr": "gt"},
+    "tcp_probes":        {"warn": "4", "cmpr": "gt"}
+}

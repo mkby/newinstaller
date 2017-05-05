@@ -26,6 +26,12 @@
 import os
 import re
 
+NA = 'N/A' # not available
+OK = 'ok'
+WARN = 'warn'
+ERR = 'error'
+UNKNOWN = 'unknown'
+
 INSTALLER_LOC = re.search('(.*)/\w+',os.path.dirname(os.path.abspath(__file__))).groups()[0]
 
 CONFIG_DIR = INSTALLER_LOC + '/configs'
@@ -34,7 +40,7 @@ TEMPLATES_DIR = INSTALLER_LOC + '/templates'
 
 USER_PROMPT_FILE = CONFIG_DIR + '/prompt.json'
 SCRCFG_FILE = CONFIG_DIR + '/script.json'
-VERSION_FILE = CONFIG_DIR + '/version.json'
+CENTRAL_CFG_FILE = CONFIG_DIR + '/central_config.json'
 MODCFG_FILE = CONFIG_DIR + '/mod_cfgs.json'
 DEF_PORT_FILE = CONFIG_DIR + '/default_ports.ini'
 
@@ -46,6 +52,7 @@ SSH_CONFIG_FILE = '/etc/ssh/sshd_config'
 SSHKEY_FILE = '/tmp/id_rsa'
 TMP_DIR = '/tmp/.trafodion_install_temp'
 
+DEF_HADOOP_HOME = '/usr'
 DEF_HBASE_HOME = '/usr'
 DEF_HBASE_XML_FILE = '/etc/hbase/conf/hbase-site.xml'
 DEF_CORE_SITE_XML = '/etc/hadoop/conf/core-site.xml'

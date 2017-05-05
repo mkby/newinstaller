@@ -54,7 +54,7 @@ def main():
     # handle parser option
     options = get_options()
 
-    notify = lambda n: raw_input('Uninstall Trafodion on [%s] [N]: ' % n)
+    notify = lambda n: raw_input('Uninstall Trafodion on [%s], this will remove all files in trafodion user, do you really want to continue [N]: ' % n)
 
     format_output('Trafodion Uninstall Start')
 

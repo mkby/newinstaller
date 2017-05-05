@@ -49,6 +49,7 @@ class RemoteRun(Remote):
 
     def initialize(self):
         super(RemoteRun, self).__init__(self.host, self.user, self.pwd)
+        self.execute('%s rm -rf %s' % (self.sudo_prefix, TMP_DIR), chkerr=False, verbose=self.verbose)
         # create tmp folder
         self.execute('mkdir -p %s' % TMP_DIR, verbose=self.verbose)
 
@@ -62,7 +63,7 @@ class RemoteRun(Remote):
 
     def __del__(self):
         # clean up
-        self.execute('%s rm -rf %s' % (self.sudo_prefix, TMP_DIR), chkerr=False)
+        self.execute('%s rm -rf %s' % (self.sudo_prefix, TMP_DIR), chkerr=False, verbose=self.verbose)
 
     def run_script(self, script, run_user, json_string):
         """ @param run_user: run the script with this user """
@@ -284,9 +285,8 @@ def run(dbcfgs, options, mode='install', pwd='', log_file=''):
                     for r in parted_remote_inst:
                         try:
                             dic = json.loads(r.stdout)
-                            dic.update({'hostname':r.host})
                         except ValueError:
-                            dic = {r.host:r.stdout.strip()}
+                            dic = r.stdout.strip()
                         script_output.append(dic)
 
             else:

@@ -28,7 +28,7 @@ import os
 import sys
 import json
 import platform
-from common import run_cmd, cmd_output, err
+from common import run_cmd, cmd_output, err, CentralConfig
 
 LOCAL_REPO_PTR = """
 [traflocal]
@@ -58,25 +58,7 @@ def run():
     if not offline and not os.path.exists(EPEL_FILE):
         run_cmd('yum install -y epel-release')
 
-    package_list = [
-        'apr',
-        'apr-util',
-        'expect',
-        'gzip',
-        'gnuplot', #dbmgr
-        'libiodbc-devel',
-        'lzo',
-        'lzop',
-        'pdsh', # epel
-        'perl-DBD-SQLite',
-        'perl-Params-Validate',
-        'perl-Time-HiRes',
-        'protobuf', # epel
-        'sqlite',
-        'snappy',
-        'unixODBC-devel',
-        'unzip'
-    ]
+    package_list = CentralConfig().get('packages')
 
     if dbcfgs['ldap_security'].upper() == 'Y':
         package_list += ['openldap-clients']

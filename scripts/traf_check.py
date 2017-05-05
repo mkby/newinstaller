@@ -27,7 +27,7 @@ import re
 import json
 import sys
 import os
-from common import run_cmd, cmd_output, err, Version, get_sudo_prefix
+from common import run_cmd, cmd_output, err, CentralConfig, get_sudo_prefix
 from constants import SSH_CONFIG_FILE
 
 class Check(object):
@@ -35,7 +35,7 @@ class Check(object):
 
     def __init__(self, dbcfgs_json):
         self.dbcfgs = json.loads(dbcfgs_json)
-        self.version = Version()
+        self.ccfg = CentralConfig()
 
     def check_sudo(self):
         """ check sudo access """
@@ -64,7 +64,7 @@ class Check(object):
         if self.dbcfgs['req_java8'] == 'Y': # only allow JDK1.8
             support_java = '1.8'
         else:
-            support_java = self.version.get_version('java')
+            support_java = self.ccfg.get('java')
 
         if jdk_ver == '1.7' and int(sub_ver) < 65:
             err('Unsupported JDK1.7 version, sub version should be higher than 65')

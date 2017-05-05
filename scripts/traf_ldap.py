@@ -59,7 +59,7 @@ def run():
 
     # cloudera sentry for hive
     if dbcfgs['hive_authorization'] == 'sentry' and dbcfgs['prod_edition'] == 'ADV':
-        mapping = dbcfgs['hadoop_security_group_mapping']
+        mapping = dbcfgs['hadoop_group_mapping']
         sentry_config = """
 export SENTRY_SECURITY_FOR_HIVE=TRUE
 export SENTRY_SECURITY_GROUP_MODE=%s

@@ -32,7 +32,7 @@ try:
 except ImportError:
     print 'Python module prettytable is not found. Install python-prettytable first.'
     exit(1)
-from scripts.constants import DBCFG_FILE
+from scripts.constants import DBCFG_FILE, WARN, ERR, OK
 from scripts.common import err_m, err, ParseInI, ParseHttp, expNumRe, format_output, HadoopDiscover
 from scripts import wrapper
 
@@ -59,43 +59,75 @@ def get_options():
     (options, args) = parser.parse_args()
     return options
 
-# row format
-def output_row(results):
-    items = []
-    for result in results:
-        host = result['hostname']
+def overview(results):
+    pt_item = []
 
-        title = ['Host']
-        item = [host]
-        cfg_tuples = sorted(result.items())
-        for key, value in cfg_tuples:
-            title.append(key)
-            item.append(value)
-        items.append(item)
+    checkitems = results[0].keys() # same item on all nodes, so just pick up the first one
+    for item in checkitems:
+        doc = results[0][item]['doc']
+        expected = results[0][item].get('expected','-')
+        sterr = stwarn = stok = 0
+        for result in results:
+            status = result[item].get('status','')
+            if status == ERR:
+                sterr += 1
+            elif status == WARN:
+                stwarn += 1
+            elif status == OK:
+                stok += 1
 
-    pt = PrettyTable(title)
-    for item in items: pt.add_row(item)
+        if not status: continue
+        if sterr:
+            status = '\33[31m X \33[0m'
+        elif stwarn:
+            status = '\33[33m ! \33[0m'
+        elif stok:
+            status = '\33[32m O \33[0m'
+
+        pt_item.append([doc, status, expected])
+
+    pt_title = ['OverView', 'Stat', 'Expected']
+    pt = PrettyTable(pt_title)
+    for arr in sorted(pt_item):
+        pt.add_row(arr)
 
     return str(pt)
 
-# column format
-def output_column(results):
-    items = []
-    for result in results:
-        host = result['hostname']
+def detail_view(results):
+    pt_title = ['DetailView']
+    for index, result in enumerate(results):
+        hostname = result['hostname']['value']
+        pt_title += [hostname, 'Stat%d' % (index+1)]
+    pt_title += ['Expected']
 
-        item = []
-        title = []
-        cfg_tuples = sorted(result.items())
-        for key, value in cfg_tuples:
-            title.append(key)
-            item.append(value)
-        items.append([host, item])
+    pt_items = []
+    checkitems = results[0].keys() # same item on all nodes, so just pick up the first one
 
-    pt = PrettyTable()
-    pt.add_column('Host', title)
-    for item in items:
-        pt.add_column(item[0], item[1])
+    for item in checkitems:
+        doc = results[0][item]['doc']
+        expected = results[0][item].get('expected','-')
+        lines = [doc]
+        for result in results:
+            value = str(result[item]['value'])
+            if len(value) > 24: # cut off long string for better output
+                value = value[:24] + '..'
+            status = result[item].get('status','-')
+
+            if status == OK:
+                status = '\33[32m O \33[0m'
+            if status == WARN:
+                status = '\33[33m ! \33[0m'
+            if status == ERR:
+                status = '\33[31m X \33[0m'
+
+            lines += [value, status]
+        lines += [expected]
+
+        pt_items.append(lines)
+
+    pt = PrettyTable(pt_title)
+    for arr in sorted(pt_items):
+        pt.add_row(arr)
 
     return str(pt)
 
@@ -146,7 +178,6 @@ def main():
         mode = 'discover'
 
     if options.logfile:
-        ### perform actual installation ###
         results = wrapper.run(cfgs, options, mode=mode, pwd=pwd, log_file=options.logfile)
     else:
         results = wrapper.run(cfgs, options, mode=mode, pwd=pwd)
@@ -155,20 +186,22 @@ def main():
 
     if mode == 'discover':
         if options.json:
-            output = results
+            output = json.dumps(results)
         else:
-            if len(results) > 4:
-                output = output_row(results)
-            else:
-                output = output_column(results)
+            output = overview(results) + '\n' + detail_view(results)
     elif mode == 'perf':
-        output = ''
-        for result in results:
-            host, content = result.items()[0]
-            if not content: continue
-            output += content + '\n'
-
+        if options.json:
+            output = json.dumps(results)
+        else:
+            output = ''
+            for result in results:
+                if len(result) == 1: continue
+                for k,v in result.iteritems():
+                    output += '%s : %s\n' % (k, v)
     print output
+
+    with open('discover_result', 'w') as f:
+        f.write(output)
 
 if __name__ == "__main__":
     try:

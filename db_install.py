@@ -41,177 +41,12 @@ except ImportError:
     exit(1)
 from scripts import wrapper
 from scripts.constants import DEF_PORT_FILE, DBCFG_FILE, USER_PROMPT_FILE, DBCFG_TMP_FILE, INSTALLER_LOC, SCRIPTS_DIR, \
-                              DEF_HBASE_XML_FILE, PARCEL_HBASE_LIB, DEF_HBASE_LIB, HDP_HBASE_LIB, TRAF_USER
-from scripts.common import Remote, Version, ParseHttp, ParseInI, ParseJson, run_cmd, info, \
+                              DEF_HBASE_XML_FILE, PARCEL_HBASE_LIB, DEF_HBASE_LIB, HDP_HBASE_LIB, TRAF_USER, ERR, WARN
+from scripts.common import HadoopDiscover, Remote, ParseHttp, ParseInI, ParseJson, run_cmd, info, \
                            http_start, http_stop, format_output, err_m, expNumRe
 
 # init global cfgs for user input
 cfgs = defaultdict(str)
-
-class HadoopDiscover(object):
-    """ discover for hadoop related info """
-    def __init__(self, user, pwd, url, cluster_name):
-        self.rsnodes = []
-        self.users = {}
-        self.cluster_name = cluster_name
-        self.hg = ParseHttp(user, pwd)
-        self.url = url
-        self.v1_url = '%s/api/v1/clusters' % self.url
-        self.v6_url = '%s/api/v6/clusters' % self.url
-        self.cluster_url = '%s/%s' % (self.v1_url, cluster_name.replace(' ', '%20'))
-        self._get_distro()
-        self._check_version()
-        if 'CDH' in self.distro:
-            self.cm = self.hg.get('%s/api/v6/cm/deployment' % self.url)
-
-    def _get_distro(self):
-        content = self.hg.get(self.v1_url)
-
-        if content['items'][0].has_key('name'):
-            # use v6 rest api for CDH to get fullversion
-            content = self.hg.get(self.v6_url)
-
-        # loop all managed clusters
-        for cluster in content['items']:
-            try:
-                # HDP
-                self.distro = cluster['Clusters']['version']
-            except KeyError:
-                # CDH
-                try:
-                    if self.cluster_name == cluster['displayName']:
-                        self.distro = 'CDH' + cluster['fullVersion']
-                        break
-                except KeyError:
-                    log_err('Failed to get hadoop distribution info from management url')
-
-    def get_hive_authorization(self):
-        hive_authorzation = 'NONE'
-        hive_srvname = self.get_hive_srvname()
-        if 'CDH' in self.distro and hive_srvname:
-            cfg = self.hg.get('%s/services/%s/config' % (self.cluster_url, hive_srvname))
-            if cfg.has_key('items'):
-                for item in cfg['items']:
-                    if item['name'] == 'sentry_service':
-                        hive_authorzation = item['value']
-        elif 'HDP' in self.distro:
-            # will support HDP in the future if edb supports ranger
-            pass
-        return hive_authorzation
-
-    def get_hdfs_srvname(self):
-        return self._get_service_name('HDFS')
-
-    def get_hbase_srvname(self):
-        return self._get_service_name('HBASE')
-
-    def get_hive_srvname(self):
-        return self._get_service_name('HIVE')
-
-    def get_zookeeper_srvname(self):
-        return self._get_service_name('ZOOKEEPER')
-
-    def _get_service_name(self, service):
-        # CDH uses different service names in multiple clusters
-        if 'CDH' in self.distro:
-            services_cfgs = self.hg.get(self.cluster_url +'/services')
-            for item in services_cfgs['items']:
-                if item['type'] == service:
-                    return item['name']
-        else:
-            return service.lower()
-
-    def _check_version(self):
-        version = Version()
-        if 'CDH' in self.distro: version_list = version.get_version('cdh')
-        if 'HDP' in self.distro: version_list = version.get_version('hdp')
-
-        has_version = 0
-        for ver in version_list:
-            if ver in self.distro: has_version = 1
-
-        if not has_version:
-            log_err('Sorry, currently Trafodion doesn\'t support %s version' % self.distro)
-
-    def get_hadoop_users(self):
-        if 'CDH' in self.distro:
-            self._get_cdh_users()
-        elif 'HDP' in self.distro or 'BigInsights' in self.distro:
-            self._get_hdp_users()
-        return self.users
-
-    def _get_hdp_users(self):
-        desired_cfg = self.hg.get('%s/?fields=Clusters/desired_configs' % (self.cluster_url))
-        config_type = {'hbase-env':'hbase_user', 'hadoop-env':'hdfs_user'}
-        for key, value in config_type.items():
-            desired_tag = desired_cfg['Clusters']['desired_configs'][key]['tag']
-            current_cfg = self.hg.get('%s/configurations?type=%s&tag=%s' % (self.cluster_url, key, desired_tag))
-            self.users[value] = current_cfg['items'][0]['properties'][value]
-
-    def _get_cdh_users(self):
-        def _get_username(service_name, hadoop_type):
-            cfg = self.hg.get('%s/services/%s/config' % (self.cluster_url, service_name))
-            if cfg.has_key('items'):
-                for item in cfg['items']:
-                    if item['name'] == 'process_username':
-                        return item['value']
-            return hadoop_type
-
-        hdfs_user = _get_username(self.get_hdfs_srvname(), 'hdfs')
-        hbase_user = _get_username(self.get_hbase_srvname(), 'hbase')
-
-        self.users = {'hbase_user':hbase_user, 'hdfs_user':hdfs_user}
-
-    def get_rsnodes(self):
-        if 'CDH' in self.distro:
-            self._get_rsnodes_cdh()
-        elif 'HDP' in self.distro or 'BigInsights' in self.distro:
-            self._get_rsnodes_hdp()
-
-        self.rsnodes.sort()
-        # use short hostname
-        try:
-            self.rsnodes = [re.match(r'([\w\-]+).*', node).group(1) for node in self.rsnodes]
-        except AttributeError:
-            pass
-        return self.rsnodes
-
-    def _get_rsnodes_cdh(self):
-        """ get list of HBase RegionServer nodes in CDH """
-        hostids = []
-        for c in self.cm['clusters']:
-            if c['displayName'] == self.cluster_name:
-                for s in c['services']:
-                    if s['type'] == 'HBASE':
-                        for r in s['roles']:
-                            if r['type'] == 'REGIONSERVER': hostids.append(r['hostRef']['hostId'])
-        for i in hostids:
-            for h in self.cm['hosts']:
-                if i == h['hostId']: self.rsnodes.append(h['hostname'])
-
-    def _get_rsnodes_hdp(self):
-        """ get list of HBase RegionServer nodes in HDP """
-        hdp = self.hg.get('%s/services/HBASE/components/HBASE_REGIONSERVER' % self.cluster_url)
-        self.rsnodes = [c['HostRoles']['host_name'] for c in hdp['host_components']]
-
-    def get_hbase_lib_path(self):
-        if 'CDH' in self.distro:
-            for c in self.cm['clusters']:
-                if c['displayName'] == self.cluster_name:
-                    parcels = c['parcels']
-            if parcels:
-                parcel_config = self.hg.get('%s/api/v6/cm/allHosts/config' % self.url)
-                # custom parcel dir exists
-                if parcel_config['items'] and parcel_config['items'][0]['name'] == 'parcels_directory':
-                    hbase_lib_path = parcel_config['items'][0]['value'] + '/CDH/lib/hbase/lib'
-                else:
-                    hbase_lib_path = PARCEL_HBASE_LIB
-            else:
-                hbase_lib_path = DEF_HBASE_LIB
-        elif 'HDP' in self.distro:
-            hbase_lib_path = HDP_HBASE_LIB
-
-        return hbase_lib_path
 
 class UserInput(object):
     def __init__(self, options, pwd):
@@ -471,27 +306,27 @@ def user_input(options, prompt_mode=True, pwd=''):
         java_home = result['default_java']
         if java_home == 'N/A':
             need_java_home += 1
-        if result['linux'] == 'N/A':
+        if result['linux_ver']['status'] == ERR:
             log_err('Unsupported Linux version')
-        if result['firewall_status'] == 'Running':
-            info('Firewall is running, please make sure the ports used by Trafodion are open')
-        if result['traf_status'] == 'Running':
-            log_err('Trafodion process is found, please stop it first')
-        if result['hbase'] == 'N/A':
-            log_err('HBase is not found')
-        if result['hbase'] == 'N/S':
-            log_err('HBase version is not supported')
         else:
-            cfgs['hbase_ver'] = result['hbase']
-        if result['home_dir']: # trafodion user exists
+            cfgs['linux_ver'] = result['linux_ver']['value']
+        if result['firewall_status']['status'] == WARN:
+            info('Firewall is running, please make sure the ports used by Trafodion are open')
+        if result['traf_status']['status'] == WARN:
+            log_err('Trafodion process is found, please stop it first')
+        if result['hbase_ver']['status'] == ERR:
+            log_err('HBase check error: HBase version [%s]' % result['hbase_ver']['value'])
+        else:
+            cfgs['hbase_ver'] = result['hbase_ver']['value']
+        if result['home_dir']['value']: # trafodion user exists
             has_home_dir += 1
-            cfgs['home_dir'] = result['home_dir']
-        if result['hadoop_authentication'] == 'kerberos':
+            cfgs['home_dir'] = result['home_dir']['value']
+        if result['hadoop_auth']['value'] == 'kerberos':
             cfgs['secure_hadoop'] = 'Y'
         else:
             cfgs['secure_hadoop'] = 'N'
 
-        cfgs['hadoop_security_group_mapping'] = result['hadoop_security_group_mapping']
+        cfgs['hadoop_group_mapping'] = result['hadoop_group_mapping']['value']
 
     if offline:
         g('local_repo_dir')
@@ -586,7 +421,7 @@ def user_input(options, prompt_mode=True, pwd=''):
             cfgs['ldap_user'] = ''
             cfgs['ldap_pwd'] = ''
 
-        if cfgs['hive_authorization'] == 'sentry' and cfgs['prod_edition'] == 'ADV' and cfgs['hadoop_security_group_mapping'] == 'LDAP':
+        if cfgs['hive_authorization'] == 'sentry' and cfgs['prod_edition'] == 'ADV' and cfgs['hadoop_group_mapping'] == 'LDAP':
             g('ldap_srch_grp_base')
             g('ldap_srch_grp_obj_class')
             g('ldap_srch_grp_mem_attr')
