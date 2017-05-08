@@ -28,7 +28,7 @@ import sys
 import re
 import json
 from constants import TRAF_SUDOER_FILE
-from common import err, cmd_output, run_cmd, get_default_home, mod_file
+from common import err, cmd_output, run_cmd, get_default_home
 
 def run():
     dbcfgs = json.loads(dbcfgs_json)
@@ -69,10 +69,6 @@ def run():
             run_cmd('mkdir -p %s' % loc)
         if home_dir not in loc:
             run_cmd('chmod 777 %s' % loc)
-
-    ### set scratch in ms.env directly ###
-    ms_env_file = '%s/etc/ms.env' % traf_home
-    mod_file(ms_env_file, {'STFS_HDD_LOCATION=.*':'STFS_HDD_LOCATION=%s' % ':'.join(scratch_locs)})
 
     ### copy jar files ###
     hbase_lib_path = dbcfgs['hbase_lib_path']

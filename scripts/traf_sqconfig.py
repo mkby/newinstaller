@@ -32,6 +32,7 @@ def run():
     dbcfgs = json.loads(dbcfgs_json)
 
     nodes = dbcfgs['node_list'].split(',')
+    scratch_locs = dbcfgs['scratch_locs'].split(',')
 
     # this script is running by trafodion user, so get sqroot from env
     traf_home = os.environ['TRAF_HOME']
@@ -50,6 +51,14 @@ def run():
             lines.append(line)
 
     lines.append('end node\n')
+    lines.append('\n')
+    lines.append('begin overflow\n')
+
+    for scratch_loc in scratch_locs:
+        line = 'hdd %s\n' % scratch_loc
+        lines.append(line)
+
+    lines.append('end overflow\n')
 
     with open(sqconfig_file, 'w') as f:
         f.writelines(lines)
