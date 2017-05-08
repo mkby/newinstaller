@@ -32,10 +32,16 @@ try:
 except ImportError:
     print 'Python module prettytable is not found. Install python-prettytable first.'
     exit(1)
-from scripts.constants import DBCFG_FILE, WARN, ERR, OK
+from scripts.constants import DBCFG_FILE, INSTALLER_LOC, WARN, ERR, OK
 from scripts.common import err_m, err, ParseInI, ParseHttp, expNumRe, format_output, HadoopDiscover
 from scripts import wrapper
 
+STAT_ERR  = ' x '
+STAT_WARN = ' ! '
+STAT_OK   = ' o '
+C_STAT_ERR  = '\33[31m x \33[0m'
+C_STAT_WARN = '\33[33m ! \33[0m'
+C_STAT_OK   = '\33[32m o \33[0m'
 
 def get_options():
     usage = 'usage: %prog [options]\n'
@@ -51,6 +57,8 @@ def get_options():
                             if not provided, use current login user as default.")
     parser.add_option("-j", "--json", action="store_true", dest="json", default=False,
                       help="Output result in JSON format.")
+    parser.add_option("-a", "--all", action="store_true", dest="all", default=False,
+                      help="Display all scan results.")
     parser.add_option("-p", "--net-perf", action="store_true", dest="perf", default=False,
                       help="Run network bandwidth tests.")
     parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
@@ -78,11 +86,11 @@ def overview(results):
 
         if not status: continue
         if sterr:
-            status = '\33[31m X \33[0m'
+            status = STAT_ERR
         elif stwarn:
-            status = '\33[33m ! \33[0m'
+            status = STAT_WARN
         elif stok:
-            status = '\33[32m O \33[0m'
+            status = STAT_OK
 
         pt_item.append([doc, status, expected])
 
@@ -104,6 +112,7 @@ def detail_view(results):
     checkitems = results[0].keys() # same item on all nodes, so just pick up the first one
 
     for item in checkitems:
+        if item == 'dependencies': continue
         doc = results[0][item]['doc']
         expected = results[0][item].get('expected','-')
         lines = [doc]
@@ -114,11 +123,11 @@ def detail_view(results):
             status = result[item].get('status','-')
 
             if status == OK:
-                status = '\33[32m O \33[0m'
+                status = STAT_OK
             if status == WARN:
-                status = '\33[33m ! \33[0m'
+                status = STAT_WARN
             if status == ERR:
-                status = '\33[31m X \33[0m'
+                status = STAT_ERR
 
             lines += [value, status]
         lines += [expected]
@@ -130,6 +139,19 @@ def detail_view(results):
         pt.add_row(arr)
 
     return str(pt)
+
+def dependency_view(results):
+    rpms = [(result['hostname']['value'],result['dependencies']['value']) for result in results]
+
+    output = '\n*** EsgynDB RPM Dependencies ***:\n'
+    for hostname, rpm in rpms:
+        output += 'Host: ' + hostname + '\n'
+        output += '-' * 48 + '\n'
+        for k,v in rpm.items():
+            output += '%20s | %20s' % (k, v) + '\n'
+        output += '-' * 48 + '\n'
+
+    return output
 
 def main():
     options = get_options()
@@ -188,20 +210,26 @@ def main():
         if options.json:
             output = json.dumps(results)
         else:
-            output = overview(results) + '\n' + detail_view(results)
+            output = overview(results) + '\n'
+            if options.all:
+                output += detail_view(results) + '\n'
+                output += dependency_view(results)
+
     elif mode == 'perf':
         if options.json:
             output = json.dumps(results)
         else:
             output = ''
             for result in results:
-                if len(result) == 1: continue
-                for k,v in result.iteritems():
-                    output += '%s : %s\n' % (k, v)
-    print output
-
-    with open('discover_result', 'w') as f:
+                if not result: continue
+                output += '%s\n' % result
+    with open('%s/logs/discover_result' % INSTALLER_LOC, 'w') as f:
         f.write(output)
+
+    output = output.replace(STAT_OK, C_STAT_OK)
+    output = output.replace(STAT_WARN, C_STAT_WARN)
+    output = output.replace(STAT_ERR, C_STAT_ERR)
+    print output
 
 if __name__ == "__main__":
     try:

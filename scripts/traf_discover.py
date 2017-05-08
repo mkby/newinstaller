@@ -120,7 +120,7 @@ def deco_val_chk(func):
 class Discover(object):
     """ discover functions, to add a new discover function,
         simply add a new def with name get_xx and decorated
-        by 'deco', then return result in string or dict format:
+        by 'deco', then return result in string format:
 
         @deco
         def get_xx(self):
@@ -213,9 +213,9 @@ class Discover(object):
         """Hive status"""
         hive_stat = cmd_output('which hive')
         if 'no hive' in hive_stat:
-            return 'not found', ERR
+            return UNKNOWN, ERR
         else:
-            return 'installed', OK
+            return 'Installed', OK
 
     @deco_val_chk
     def get_home_nfs(self):
@@ -318,9 +318,9 @@ class Discover(object):
     def get_net_bw(self):
         """Network Card bandwidth"""
         # output are several lines with 1 or 10 or other numbers
-        net_bw = cmd_output('lspci -vv |grep -i ethernet |grep -o "[0-9]\+\s*Gb"|sed s"/\s\+Gb//g"').split('\n')
-        net_bw.append(0) # add a default int when not detected
-        bandwidth = max([int(bw) for bw in net_bw if type(bw) == int])
+        net_bw = cmd_output('lspci -vv |grep -i ethernet |grep -o "[0-9]\+\s*Gb"|sed s"/s*Gb//g"').split('\n')
+        net_bw.append('0') # add a default int when not detected
+        bandwidth = max([int(bw) for bw in net_bw if bw.isdigit()])
 
         return bandwidth
 
@@ -345,7 +345,6 @@ class Discover(object):
     @deco_warn_err
     def get_tcp_time(self):
         """Kernel tcp keep alive time"""
-        #net.ipv4.tcp_keepalive_time net.ipv4.tcp_keepalive_intvl net.ipv4.tcp_keepalive_probes
         return self._get_sysctl_info('net.ipv4.tcp_keepalive_time')
 
     @deco_warn_err
@@ -380,8 +379,7 @@ class Discover(object):
 
         for pkg in napkgs:
             dic[pkg] = NA
-        #return dic
-        return 'ok'
+        return dic
 
     @deco
     def get_hadoop_distro(self):
