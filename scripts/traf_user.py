@@ -68,7 +68,7 @@ def run():
         # default trafodion group
         traf_group = traf_user
         if not cmd_output('getent group %s' % traf_group):
-            run_cmd('groupadd %s > /dev/null 2>&1' % traf_group)
+            run_cmd('groupadd %s' % traf_group)
         traf_pwd = dbcfgs['traf_pwd']
         run_cmd('useradd --shell /bin/bash -m %s -g %s --home %s --password "$(openssl passwd %s)"' % (traf_user, traf_group, traf_user_dir, traf_pwd))
 
