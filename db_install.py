@@ -29,6 +29,7 @@ import json
 import getpass
 import time
 import sys
+import readline
 reload(sys)
 sys.setdefaultencoding("utf-8")
 from optparse import OptionParser
@@ -289,7 +290,9 @@ def user_input(options, prompt_mode=True, pwd=''):
 
     # set some system default configs
     cfgs['config_created_date'] = time.strftime('%Y/%m/%d %H:%M %Z')
-    cfgs['traf_user'] = TRAF_USER
+    if not cfgs['traf_user']:
+        cfgs['traf_user'] = TRAF_USER
+
     if apache:
         cfgs['hbase_xml_file'] = cfgs['hbase_home'] + '/conf/hbase-site.xml'
         cfgs['hdfs_xml_file'] = cfgs['hadoop_home'] + '/etc/hadoop/hdfs-site.xml'
@@ -375,6 +378,7 @@ def user_input(options, prompt_mode=True, pwd=''):
         cfgs['traf_dirname'] = '%s-%s' % (cfgs['traf_basename'], cfgs['traf_version'])
     g('traf_dirname')
     if not has_home_dir:
+        g('home_dir')
         g('traf_pwd')
     g('dcs_cnt_per_node')
     g('scratch_locs')
@@ -454,7 +458,7 @@ def get_options():
     usage += '  Trafodion install main script.'
     parser = OptionParser(usage=usage)
     parser.add_option("-c", "--config-file", dest="cfgfile", metavar="FILE",
-                      help="Json format file. If provided, all install prompts \
+                      help="Trafodion config file. If provided, all install prompts \
                             will be taken from this file and not prompted for.")
     parser.add_option("-l", "--log-file", dest="logfile", metavar="FILE",
                       help="Specify the log file name.")
@@ -468,6 +472,8 @@ def get_options():
     parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
                       help="Prompt SSH login password for remote hosts. \
                             If set, \'sshpass\' tool is required.")
+    parser.add_option("-p", "--password", dest="password", metavar="PASSWD",
+                      help="Specify ssh login password for remote server.")
     parser.add_option("--build", action="store_true", dest="build", default=False,
                       help="Build the config file in guided mode only.")
     parser.add_option("--reinstall", action="store_true", dest="reinstall", default=False,
@@ -502,7 +508,10 @@ def main():
         config_file = DBCFG_FILE
 
     if options.pwd:
-        pwd = getpass.getpass('Input remote host SSH Password: ')
+        if options.password:
+            pwd = options.password
+        else:
+            pwd = getpass.getpass('Input remote host SSH Password: ')
     else:
         pwd = ''
 

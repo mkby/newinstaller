@@ -59,11 +59,13 @@ def get_options():
                       help="Output result in JSON format.")
     parser.add_option("-a", "--all", action="store_true", dest="all", default=False,
                       help="Display all scan results.")
-    parser.add_option("-p", "--net-perf", action="store_true", dest="perf", default=False,
+    parser.add_option("-n", "--net-perf", action="store_true", dest="perf", default=False,
                       help="Run network bandwidth tests.")
     parser.add_option("--enable-pwd", action="store_true", dest="pwd", default=False,
                       help="Prompt SSH login password for remote hosts. \
                             If set, \'sshpass\' tool is required.")
+    parser.add_option("-p", "--password", dest="password", metavar="PASSWD",
+                      help="Specify ssh login password for remote server.")
     (options, args) = parser.parse_args()
     return options
 
@@ -166,7 +168,10 @@ def main():
         config_file = DBCFG_FILE
 
     if options.pwd:
-        pwd = getpass.getpass('Input remote host SSH Password: ')
+        if options.password:
+            pwd = options.password
+        else:
+            pwd = getpass.getpass('Input remote host SSH Password: ')
     else:
         pwd = ''
 
