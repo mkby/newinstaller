@@ -306,7 +306,7 @@ def user_input(options, prompt_mode=True, pwd=''):
     need_java_home = 0
     has_home_dir = 0
     for result in system_discover:
-        java_home = result['default_java']
+        java_home = result['default_java']['value']
         if java_home == 'N/A':
             need_java_home += 1
         if result['linux_ver']['status'] == ERR:

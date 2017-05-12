@@ -63,6 +63,12 @@ def run():
     if dbcfgs['ldap_security'].upper() == 'Y':
         package_list += ['openldap-clients']
 
+    if dbcfgs['multi_tenancy'].upper() == 'Y':
+        if '7' in dbcfgs['linux_ver']:
+            package_list += ['libcgroup-tools']
+        elif '6' in dbcfgs['linux_ver']:
+            package_list += ['libcgroup']
+
     all_pkg_list = run_cmd('rpm -qa')
     for pkg in package_list:
         if pkg in all_pkg_list:
