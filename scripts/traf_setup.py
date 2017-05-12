@@ -78,7 +78,7 @@ def run():
     distro, v1, v2 = re.search(r'(\w+)-*(\d)\.(\d)', distro).groups()
     if distro == 'CDH':
         if v2 == '6': v2 = '5'
-        if v2 == '8': v2 = '7'
+        if v2 == '8' or v2 == '9': v2 = '7'
     elif distro == 'HDP':
         if v2 == '4': v2 = '3'
 

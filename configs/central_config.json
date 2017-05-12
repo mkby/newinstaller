@@ -6,7 +6,7 @@
     "linux_ver":     ["suse11.2", "centos6", "centos7", "redhat6", "redhat7"],
     "hadoop_ver":    ["mapr", "cloudera", "hortonworks", "apache"],
     "java_ver":      ["1.7", "1.8"],
-    "cdh_ver":       ["5.4", "5.5", "5.6", "5.7", "5.8"],
+    "cdh_ver":       ["5.4", "5.5", "5.6", "5.7", "5.8", "5.9"],
     "hdp_ver":       ["2.3", "2.4"],
     "hbase_ver":     ["1.0", "1.1", "1.2"],
 
