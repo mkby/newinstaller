@@ -37,11 +37,64 @@ from scripts.common import err_m, err, ParseInI, ParseHttp, expNumRe, format_out
 from scripts import wrapper
 
 STAT_ERR  = ' x '
-STAT_WARN = ' ! '
+STAT_WARN = ' w '
 STAT_OK   = ' o '
 C_STAT_ERR  = '\33[31m x \33[0m'
-C_STAT_WARN = '\33[33m ! \33[0m'
+C_STAT_WARN = '\33[33m w \33[0m'
 C_STAT_OK   = '\33[32m o \33[0m'
+
+CAT_HW = [
+'cpu_arch',
+'cpu_cores',
+'disk_nums',
+'user_disk_free',
+'install_disk_free',
+'mem_total',
+'mem_free',
+'swap_pct',
+'ext_interface',
+'net_interfaces',
+'net_bw',
+]
+
+CAT_CFG = [
+'linux_distro',
+'kernel_ver',
+'hostname',
+'fqdn',
+'loopback',
+'systime',
+'timezone',
+'ntp_status',
+'firewall_status',
+'core_pattern',
+'pid_max',
+'tcp_time',
+'tcp_intvl',
+'tcp_probes',
+'home_nfs',
+'sudo',
+'network_mgr_status',
+'ssh_pam',
+'python_ver',
+]
+
+CAT_HADOOP = [
+'default_java',
+'hadoop_auth',
+'hadoop_group_mapping',
+'hadoop_distro',
+'hbase_ver',
+'hdfs_ver',
+'hive_ver',
+]
+
+CAT_TRAF = [
+'traf_status',
+]
+
+ALL_CATS = {'Hardware':CAT_HW, 'Configs':CAT_CFG, 'Hadoop':CAT_HADOOP, 'Trafodion':CAT_TRAF}
+ALL_ITEMS = CAT_HW + CAT_CFG + CAT_HADOOP + CAT_TRAF
 
 def get_options():
     usage = 'usage: %prog [options]\n'
@@ -72,19 +125,27 @@ def get_options():
 def overview(results):
     pt_item = []
 
-    checkitems = results[0].keys() # same item on all nodes, so just pick up the first one
-    for item in checkitems:
+    for item in ALL_ITEMS:
         doc = results[0][item]['doc']
         expected = results[0][item].get('expected','-')
-        sterr = stwarn = stok = 0
+        sterr = stwarn = stok = stcons = 0
+        chk_arr = [] # array for consistent check
         for result in results:
             status = result[item].get('status','')
+            consistent = result[item].get('consistent','')
+            if consistent == 'true':
+                chk_arr.append(result[item]['value'])
+                expected = 'Consistent'
             if status == ERR:
                 sterr += 1
             elif status == WARN:
                 stwarn += 1
             elif status == OK:
                 stok += 1
+
+        # check consistency
+        if len(list(set(chk_arr))) > 1:
+            status = STAT_WARN
 
         if not status: continue
         if sterr:
@@ -98,10 +159,21 @@ def overview(results):
 
     pt_title = ['OverView', 'Stat', 'Expected']
     pt = PrettyTable(pt_title)
-    for arr in sorted(pt_item):
+    for arr in pt_item:
         pt.add_row(arr)
 
     return str(pt)
+
+def wrap_line(val, length):
+    wrap_val = val[:length]
+    l_num = len(val) / length + 1
+    for l in xrange(1, l_num):
+        wrap_val += '\n' + val[l*length:(l+1)*length]
+
+    if val[l_num*length:]:
+        wrap_val += '\n' + val[l_num*length:]
+
+    return wrap_val
 
 def detail_view(results):
     pt_title = ['DetailView']
@@ -111,33 +183,37 @@ def detail_view(results):
     pt_title += ['Expected']
 
     pt_items = []
-    checkitems = results[0].keys() # same item on all nodes, so just pick up the first one
 
-    for item in checkitems:
-        if item == 'dependencies': continue
-        doc = results[0][item]['doc']
-        expected = results[0][item].get('expected','-')
-        lines = [doc]
-        for result in results:
-            value = str(result[item]['value'])
-            if len(value) > 24: # cut off long string for better output
-                value = value[:24] + '..'
-            status = result[item].get('status','-')
+    for category, items in ALL_CATS.items():
+        line = [' %s %s %s' % ('-'*10, category, '-'*10)]
+        line += (len(results)*2+1)*['-----']
+        pt_items.append(line)
+        for item in items:
+            # handle dependencies values seperately
+            if item == 'dependencies': continue
+            doc = results[0][item]['doc']
+            expected = results[0][item].get('expected','-')
+            lines = [doc]
+            for result in results:
+                value = str(result[item]['value'])
+                # wrap line for long string
+                value = wrap_line(value, 20)
 
-            if status == OK:
-                status = STAT_OK
-            if status == WARN:
-                status = STAT_WARN
-            if status == ERR:
-                status = STAT_ERR
+                status = result[item].get('status','-')
+                if status == OK:
+                    status = STAT_OK
+                if status == WARN:
+                    status = STAT_WARN
+                if status == ERR:
+                    status = STAT_ERR
 
-            lines += [value, status]
-        lines += [expected]
+                lines += [value, status]
+            lines += [expected]
 
-        pt_items.append(lines)
+            pt_items.append(lines)
 
     pt = PrettyTable(pt_title)
-    for arr in sorted(pt_items):
+    for arr in pt_items:
         pt.add_row(arr)
 
     return str(pt)
@@ -215,11 +291,11 @@ def main():
         if options.json:
             output = json.dumps(results)
         else:
-            output = overview(results) + '\n'
+            hosts = 'Hosts: ' + ','.join([result['hostname']['value'] for result in results])
+            output = hosts + '\n' + overview(results) + '\n'
             if options.all:
                 output += detail_view(results) + '\n'
                 output += dependency_view(results)
-
     elif mode == 'perf':
         if options.json:
             output = json.dumps(results)
@@ -228,6 +304,7 @@ def main():
             for result in results:
                 if not result: continue
                 output += '%s\n' % result
+
     with open('%s/logs/discover_result' % INSTALLER_LOC, 'w') as f:
         f.write(output)
 
