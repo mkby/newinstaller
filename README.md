@@ -1,5 +1,5 @@
 # Apache Trafodion Python Installer
-
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/mkby/newinstaller.svg)
 ## Prerequisite:
 
 - CDH/HDP is installed on Trafodion nodes with web UI enabled, or Apache Hadoop, HBase is installed on the same directory on all nodes
